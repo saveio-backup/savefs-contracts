@@ -3,10 +3,11 @@ pragma solidity ^0.8.0;
 
 import "hardhat/console.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "./IFileSystem.sol";
 import "./Struct.sol";
 import "./Error.sol";
 
-contract FileSystem is Initializable {
+contract FileSystem is Initializable, IFileSystem {
     FsNodeInfo[] nodeInfo;
     NodeList nodeList;
 
@@ -14,7 +15,7 @@ contract FileSystem is Initializable {
         console.log("initializer");
     }
 
-    function FsGetSettings() public pure returns (FsSetting memory) {
+    function FsGetSettings() public pure override returns (FsSetting memory) {
         FsSetting memory fsSetting;
         fsSetting.FsGasPrice = 1;
         fsSetting.GasPerGBPerBlock = 1;
@@ -31,6 +32,7 @@ contract FileSystem is Initializable {
     function FsGetUploadStorageFee(UploadOption memory uploadOption)
         public
         view
+        override
         returns (StorageFee memory)
     {
         require(uploadOption.FileSize > 0, "fileSize must be greater than 0");
@@ -62,7 +64,11 @@ contract FileSystem is Initializable {
         return storageFee;
     }
 
-    function FsNodeRegister(FsNodeInfo memory fsNodeInfo) public payable {
+    function FsNodeRegister(FsNodeInfo memory fsNodeInfo)
+        public
+        payable
+        override
+    {
         require(
             fsNodeInfo.Volume >= FsGetSettings().MinVolume,
             "Volume is too small"
