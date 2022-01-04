@@ -5,7 +5,6 @@ import "hardhat/console.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "./Struct.sol";
 import "./Error.sol";
-import "./Util.sol";
 
 contract FileSystem is Initializable {
     FsNodeInfo[] nodeInfo;
@@ -29,27 +28,53 @@ contract FileSystem is Initializable {
         return fsSetting;
     }
 
+    function FsGetUploadStorageFee(UploadOption memory uploadOption)
+        public
+        view
+        returns (StorageFee memory)
+    {
+        require(uploadOption.FileSize > 0, "fileSize must be greater than 0");
+        FsSetting memory fsSetting = FsGetSettings();
+        StorageFee memory storageFee;
+        uint64 fee;
+        uint64 txGas = 10000000;
+        if (uploadOption.WhiteList.Num > 0) {
+            fee = txGas * 4;
+        } else {
+            fee = txGas * 3;
+        }
+
+        uint64 proveTime = (uploadOption.ExpiredHeight - uint64(block.number)) /
+            uploadOption.ProveInterval +
+            1;
+        uint64 validFee = (uploadOption.CopyNum + 1) *
+            uint64(
+                proveTime +
+                    (fsSetting.GasForChallenge * uploadOption.FileSize) /
+                    1024000
+            );
+        uint64 spaceFee = ((uploadOption.CopyNum + 1) *
+            fsSetting.GasPerGBPerBlock *
+            uploadOption.FileSize) / uint64(1024000);
+        storageFee.TxnFee = fee;
+        storageFee.ValidationFee = validFee;
+        storageFee.SpaceFee = spaceFee;
+        return storageFee;
+    }
+
     function FsNodeRegister(FsNodeInfo memory fsNodeInfo) public payable {
         require(
             fsNodeInfo.Volume >= FsGetSettings().MinVolume,
             "Volume is too small"
         );
         FsSetting memory fsSetting = FsGetSettings();
-        uint64 pledge = calculateNodePledge(fsNodeInfo, fsSetting);
-        fsNodeInfo.Pledge = pledge;
+        fsNodeInfo.Pledge =
+            fsSetting.FsGasPrice *
+            fsSetting.GasPerGBPerBlock *
+            fsNodeInfo.Volume;
         fsNodeInfo.Profit = 0;
         fsNodeInfo.RestVol = fsNodeInfo.Volume;
         nodeInfo.push(fsNodeInfo);
         nodeList.AddrList.push(fsNodeInfo.WalletAddr);
-    }
-
-    function calculateNodePledge(
-        FsNodeInfo memory fsNodeInfo,
-        FsSetting memory fsSetting
-    ) public pure returns (uint64) {
-        return
-            fsSetting.FsGasPrice *
-            fsSetting.GasPerGBPerBlock *
-            fsNodeInfo.Volume;
     }
 }
