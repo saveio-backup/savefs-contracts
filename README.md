@@ -1,14 +1,44 @@
-# SaveFs smart constract solidity version
+# SaveFS contract Solidity Version
+
+## Environment
+
+```
+solc, the solidity compiler commandline interface
+Version: 0.8.11+commit.d7f03943.Darwin.appleclang
+```
 
 ## Usage
 
-```shell
-npx hardhat accounts
+Compile contracts:
+
+```
 npx hardhat compile
-npx hardhat clean
-npx hardhat test
-npx hardhat node
-node scripts/[name].js
-npx hardhat help
 ```
 
+Run all test:
+
+```
+npx hardhat test
+```
+
+Run a specify test file:
+
+```
+npx hardhat test ./test/[name].js 
+```
+
+Run a deploy script:
+
+```
+node scripts/[name].js
+```
+
+Clean local cache:
+
+```shell
+npx hardhat clean
+```
+
+## License
+
+Unlicense
