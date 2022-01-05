@@ -1,8 +1,9 @@
-const { expect } = require("chai");
-const { ethers } = require("hardhat");
+import { expect } from "chai";
+import { ethers } from "hardhat";
+import { FileSystem } from "../typechain";
 
 describe("FileSystem", () => {
-  let fs;
+  let fs: FileSystem;
 
   it("Deploy", async () => {
     const FS = await ethers.getContractFactory("FileSystem");

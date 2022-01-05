@@ -6,10 +6,14 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "./IFileSystem.sol";
 import "./Struct.sol";
 import "./Error.sol";
+import "./Event.sol";
+import "./Enum.sol";
 
 contract FileSystem is Initializable, IFileSystem {
     FsNodeInfo[] nodeInfo;
     NodeList nodeList;
+
+    event RegisterNodeEvent(FsEvent eventType);
 
     function initialize() public initializer {
         console.log("initializer");
@@ -82,5 +86,6 @@ contract FileSystem is Initializable, IFileSystem {
         fsNodeInfo.RestVol = fsNodeInfo.Volume;
         nodeInfo.push(fsNodeInfo);
         nodeList.AddrList.push(fsNodeInfo.WalletAddr);
+        emit RegisterNodeEvent(FsEvent.EVENT_FS_REG_NODE);
     }
 }

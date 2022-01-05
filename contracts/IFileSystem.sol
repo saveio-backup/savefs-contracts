@@ -1,7 +1,6 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.0;
 import "./Struct.sol";
-import "./Error.sol";
 
 abstract contract IFileSystem {
     function FsGetSettings() public pure virtual returns (FsSetting memory);
