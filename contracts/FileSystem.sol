@@ -13,7 +13,14 @@ contract FileSystem is Initializable, IFileSystem {
     FsNodeInfo[] nodeInfo;
     NodeList nodeList;
 
-    event RegisterNodeEvent(FsEvent eventType);
+    event RegisterNodeEvent(
+        FsEvent eventType,
+        uint256 blockHeight,
+        address walletAddr,
+        address nodeAddr,
+        uint64 volume,
+        uint64 serviceTime
+    );
 
     function initialize() public initializer {
         console.log("initializer");
@@ -86,6 +93,13 @@ contract FileSystem is Initializable, IFileSystem {
         fsNodeInfo.RestVol = fsNodeInfo.Volume;
         nodeInfo.push(fsNodeInfo);
         nodeList.AddrList.push(fsNodeInfo.WalletAddr);
-        emit RegisterNodeEvent(FsEvent.EVENT_FS_REG_NODE);
+        emit RegisterNodeEvent(
+            FsEvent.EVENT_FS_REG_NODE,
+            block.number,
+            fsNodeInfo.WalletAddr,
+            fsNodeInfo.NodeAddr,
+            fsNodeInfo.Volume,
+            fsNodeInfo.ServiceTime
+        );
     }
 }
