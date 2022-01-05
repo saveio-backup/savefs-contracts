@@ -12,7 +12,18 @@ describe("FileSystem", () => {
   });
 
   it("FsNodeQuery", async () => {
-    const res = await fs.FsNodeQuery("0x2546BcD3c84621e976D8185a91A922aE77ECEc30");
-    assert(res.Volume.eq(0))
+    let tx = fs.FsNodeRegister({
+      Pledge: 0,
+      Profit: 0,
+      Volume: 1000 * 1000,
+      RestVol: 0,
+      ServiceTime: 0,
+      WalletAddr: "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+      NodeAddr: "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+    });
+    await (await tx).wait();
+
+    const res = await fs.FsNodeQuery("0x5FbDB2315678afecb367f032d93F642f64180aa3");
+    assert(res.Volume.eq(1000 * 1000));
   });
 });

@@ -16,6 +16,11 @@ abstract contract IFileSystem {
         payable
         virtual;
 
-    function FsNodeQuery(address walletAddr) public virtual view returns(FsNodeInfo memory);
+    function FsNodeQuery(address walletAddr)
+        public
+        view
+        virtual
+        returns (FsNodeInfo memory);
 
+    function FsNodeUpdate(FsNodeInfo memory fsNodeInfo) public payable virtual;
 }

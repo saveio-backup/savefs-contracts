@@ -156,7 +156,7 @@ contract FileSystem is Initializable, IFileSystem {
             "Volume is too small"
         );
         require(
-            nodesInfo[fsNodeInfo.WalletAddr].Volume != 0,
+            nodesInfo[fsNodeInfo.WalletAddr].Volume == 0,
             "Node already registered"
         );
         FsSetting memory fsSetting = FsGetSettings();
@@ -185,5 +185,26 @@ contract FileSystem is Initializable, IFileSystem {
         returns (FsNodeInfo memory)
     {
         return nodesInfo[walletAddr];
+    }
+
+    function FsNodeUpdate(FsNodeInfo memory fsNodeInfo)
+        public
+        payable
+        override
+    {
+        require(
+            fsNodeInfo.Volume >= FsGetSettings().MinVolume,
+            "Volume is too small"
+        );
+        require(
+            nodesInfo[fsNodeInfo.WalletAddr].Volume != 0,
+            "Node not registered"
+        );
+        require(
+            nodesInfo[fsNodeInfo.WalletAddr].WalletAddr ==
+                fsNodeInfo.WalletAddr,
+            "Node not registered"
+        );
+        // FsSetting memory fsSetting = FsGetSettings();
     }
 }

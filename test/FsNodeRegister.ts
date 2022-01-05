@@ -64,7 +64,7 @@ describe("FileSystem", () => {
   });
 
   it("FsNodeRegister event", async () => {
-    const tx = await fs.FsNodeRegister({
+    const tx = fs.FsNodeRegister({
       Pledge: 0,
       Profit: 0,
       Volume: 1000 * 1000,
@@ -73,7 +73,7 @@ describe("FileSystem", () => {
       WalletAddr: "0x5FbDB2315678afecb367f032d93F642f64180aa3",
       NodeAddr: "0x5FbDB2315678afecb367f032d93F642f64180aa3",
     });
-    let res = await tx.wait();
+    let res = await (await tx).wait();
     if (res.events?.length == 1) {
       assert(res.events[0].event == "RegisterNodeEvent");
     }
