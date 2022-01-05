@@ -10,8 +10,42 @@ import "./Event.sol";
 import "./Enum.sol";
 
 contract FileSystem is Initializable, IFileSystem {
-    FsNodeInfo[] nodeInfo;
+    mapping(address => FsNodeInfo) nodesInfo;
     NodeList nodeList;
+
+    event StoreFileEvent(
+        FsEvent eventType,
+        uint256 blockHeight,
+        string fileHash,
+        uint64 fileSize,
+        address walletAddr,
+        uint64 cost,
+        bool isPlotFile
+    );
+
+    event DeleteFileEvent(
+        FsEvent eventType,
+        uint256 blockHeight,
+        string fileHash,
+        address walletAddr
+    );
+
+    event DeleteFilesEvent(
+        FsEvent eventType,
+        uint256 blockHeight,
+        string fileHash,
+        address walletAddr
+    );
+
+    event SetUserSpaceEvent(
+        FsEvent eventType,
+        uint256 blockHeight,
+        address walletAddr,
+        uint64 sizeType,
+        uint64 size,
+        uint64 countType,
+        uint64 count
+    );
 
     event RegisterNodeEvent(
         FsEvent eventType,
@@ -20,6 +54,43 @@ contract FileSystem is Initializable, IFileSystem {
         address nodeAddr,
         uint64 volume,
         uint64 serviceTime
+    );
+
+    event UnRegisterNodeEvent(
+        FsEvent eventType,
+        uint256 blockHeight,
+        address walletAddr
+    );
+
+    event ProveFileEvent(
+        FsEvent eventType,
+        uint256 blockHeight,
+        address walletAddr,
+        uint64 profit
+    );
+
+    event FilePDPSuccessEvent(
+        FsEvent eventType,
+        uint256 blockHeight,
+        string fileHash,
+        address walletAddr
+    );
+
+    event CreateSectorEvent(
+        FsEvent eventType,
+        uint256 blockHeight,
+        address walletAddr,
+        uint64 sectorId,
+        uint64 provLevel,
+        uint64 size,
+        bool isPlots
+    );
+
+    event DeleteSectorEvent(
+        FsEvent eventType,
+        uint256 blockHeight,
+        address walletAddr,
+        uint64 sectorId
     );
 
     function initialize() public initializer {
@@ -84,6 +155,10 @@ contract FileSystem is Initializable, IFileSystem {
             fsNodeInfo.Volume >= FsGetSettings().MinVolume,
             "Volume is too small"
         );
+        require(
+            nodesInfo[fsNodeInfo.WalletAddr].Volume != 0,
+            "Node already registered"
+        );
         FsSetting memory fsSetting = FsGetSettings();
         fsNodeInfo.Pledge =
             fsSetting.FsGasPrice *
@@ -91,7 +166,7 @@ contract FileSystem is Initializable, IFileSystem {
             fsNodeInfo.Volume;
         fsNodeInfo.Profit = 0;
         fsNodeInfo.RestVol = fsNodeInfo.Volume;
-        nodeInfo.push(fsNodeInfo);
+        nodesInfo[fsNodeInfo.WalletAddr] = fsNodeInfo;
         nodeList.AddrList.push(fsNodeInfo.WalletAddr);
         emit RegisterNodeEvent(
             FsEvent.EVENT_FS_REG_NODE,
@@ -101,5 +176,14 @@ contract FileSystem is Initializable, IFileSystem {
             fsNodeInfo.Volume,
             fsNodeInfo.ServiceTime
         );
+    }
+
+    function FsNodeQuery(address walletAddr)
+        public
+        view
+        override
+        returns (FsNodeInfo memory)
+    {
+        return nodesInfo[walletAddr];
     }
 }
