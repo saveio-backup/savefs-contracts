@@ -9,9 +9,9 @@ import "./Error.sol";
 import "./Enum.sol";
 
 contract FileSystem is Initializable, IFileSystem {
-    mapping(address => FsNodeInfo) nodesInfo;
-    NodeList nodeList;
-    mapping(address => SectorInfos) sectorInfos;
+    mapping(address => FsNodeInfo) nodesInfo; // walletAddr => FsNodeInfo
+    NodeList nodeList; // nodeAddr list
+    mapping(address => SectorInfos) sectorInfos; // nodeAddr => SectorInfos
 
     /**********************************************************************
      * event define start *************************************************
@@ -187,7 +187,7 @@ contract FileSystem is Initializable, IFileSystem {
         VolumeRequire(fsNodeInfo)
         NodeNotRegisted(fsNodeInfo.WalletAddr)
     {
-        uint64 pledge = CalcLateNodePledge(fsNodeInfo);
+        uint64 pledge = CalculateNodePledge(fsNodeInfo);
         if (msg.value < pledge) {
             revert NotEnoughPledge(msg.value, pledge);
         }
@@ -206,7 +206,7 @@ contract FileSystem is Initializable, IFileSystem {
         );
     }
 
-    function CalcLateNodePledge(FsNodeInfo memory fsNodeInfo)
+    function CalculateNodePledge(FsNodeInfo memory fsNodeInfo)
         public
         pure
         override
@@ -217,15 +217,6 @@ contract FileSystem is Initializable, IFileSystem {
             fsSetting.FsGasPrice *
             fsSetting.GasPerGBPerBlock *
             fsNodeInfo.Volume;
-    }
-
-    function FsNodeQuery(address walletAddr)
-        public
-        view
-        override
-        returns (FsNodeInfo memory)
-    {
-        return nodesInfo[walletAddr];
     }
 
     function FsNodeUpdate(FsNodeInfo memory fsNodeInfo)
@@ -241,7 +232,7 @@ contract FileSystem is Initializable, IFileSystem {
             "Node walletAddr changed"
         );
         FsNodeInfo memory oldNode = nodesInfo[fsNodeInfo.WalletAddr];
-        uint64 newPledge = CalcLateNodePledge(fsNodeInfo);
+        uint64 newPledge = CalculateNodePledge(fsNodeInfo);
         uint64 oldPledge = oldNode.Pledge;
         if (newPledge < oldPledge) {
             payable(fsNodeInfo.WalletAddr).transfer(oldPledge - newPledge);
@@ -267,7 +258,9 @@ contract FileSystem is Initializable, IFileSystem {
     {
         FsNodeInfo memory fsNodeInfo = nodesInfo[walletAddr];
         if (fsNodeInfo.Pledge > 0) {
-            payable(fsNodeInfo.WalletAddr).transfer(fsNodeInfo.Pledge + fsNodeInfo.Profit);
+            payable(fsNodeInfo.WalletAddr).transfer(
+                fsNodeInfo.Pledge + fsNodeInfo.Profit
+            );
         }
         delete sectorInfos[fsNodeInfo.NodeAddr];
         delete nodesInfo[walletAddr];
@@ -288,15 +281,40 @@ contract FileSystem is Initializable, IFileSystem {
         }
     }
 
-    function FsGetNodeList() public view returns (FsNodesInfo memory) {
-        FsNodesInfo memory fsNodesInfo;
-        fsNodesInfo.NodesInfo = new FsNodeInfo[](nodeList.AddrList.length);
+    /**
+     * @return nodeAddr => FsNodeInfo
+     */
+    function FsGetNodeList()
+        public
+        view
+        override
+        returns (FsNodeInfo[] memory)
+    {
+        FsNodeInfo[] memory _nodesInfo = new FsNodeInfo[](
+            nodeList.AddrList.length
+        );
         for (uint256 i = 0; i < nodeList.AddrList.length; i++) {
-            FsNodeInfo memory info = nodesInfo[nodeList.AddrList[i]];
-            fsNodesInfo.NodesInfo[i] = info;
-            fsNodesInfo.NodeNum++;
+            _nodesInfo[i] = nodesInfo[nodeList.AddrList[i]];
         }
-        return fsNodesInfo;
+        return _nodesInfo;
+    }
+
+    function FsGetNodeInfoByWalletAddr(address walletAddr)
+        public
+        view
+        override
+        returns (FsNodeInfo memory)
+    {
+        return nodesInfo[walletAddr];
+    }
+
+    function FsGetNodeInfoByNodeAddr(address nodeAddr)
+        public
+        view
+        override
+        returns (FsNodeInfo memory)
+    {
+        return nodesInfo[nodeAddr];
     }
     /**
      * Node info mamanagement end ************************************************

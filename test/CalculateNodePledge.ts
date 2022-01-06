@@ -13,8 +13,8 @@ describe("FileSystem", () => {
     assert(res != undefined)
   });
 
-  it("CalcLateNodePledge", async () => {
-    const tx = fs.CalcLateNodePledge({
+  it("CalculateNodePledge", async () => {
+    const tx = fs.CalculateNodePledge({
       Pledge: 0,
       Profit: 0,
       Volume: 1000 * 1000,

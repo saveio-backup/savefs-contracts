@@ -11,7 +11,7 @@ describe("FileSystem", () => {
     await fs.deployed();
   });
 
-  it("FsGetNodeList", async () => {
+  it("FsGetNodeInfoByNodeAddr", async () => {
     let tx = fs.FsNodeRegister({
       Pledge: 0,
       Profit: 0,
@@ -23,10 +23,9 @@ describe("FileSystem", () => {
     }, {
       value: 1000000
     });
-    let r = await (await tx).wait();
-    // console.log(r)
+    await (await tx).wait();
 
-    const res = await fs.FsGetNodeList();
-    assert(res.length == 1);
+    const res = await fs.FsGetNodeInfoByNodeAddr("0x5FbDB2315678afecb367f032d93F642f64180aa3");
+    assert(res.NodeAddr == "0x5FbDB2315678afecb367f032d93F642f64180aa3");
   });
 });

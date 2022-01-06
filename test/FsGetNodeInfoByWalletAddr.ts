@@ -11,7 +11,7 @@ describe("FileSystem", () => {
     await fs.deployed();
   });
 
-  it("FsNodeQuery", async () => {
+  it("FsGetNodeInfoByWalletAddr", async () => {
     let tx = fs.FsNodeRegister({
       Pledge: 0,
       Profit: 0,
@@ -25,7 +25,7 @@ describe("FileSystem", () => {
     });
     await (await tx).wait();
 
-    const res = await fs.FsNodeQuery("0x5FbDB2315678afecb367f032d93F642f64180aa3");
-    assert(res.Volume.eq(1000 * 1000));
+    const res = await fs.FsGetNodeInfoByWalletAddr("0x5FbDB2315678afecb367f032d93F642f64180aa3");
+    assert(res.WalletAddr == "0x5FbDB2315678afecb367f032d93F642f64180aa3");
   });
 });

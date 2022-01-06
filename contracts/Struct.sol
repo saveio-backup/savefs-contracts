@@ -29,11 +29,6 @@ struct FsNodeInfo {
     address NodeAddr;
 }
 
-struct FsNodesInfo {
-    uint64 NodeNum;
-    FsNodeInfo[] NodesInfo ;
-}
-
 struct NodeList {
     uint64 AddrNum;
     address[] AddrList;
