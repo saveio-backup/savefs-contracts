@@ -93,8 +93,15 @@ contract FileSystem is Initializable, IFileSystem {
         uint64 sectorId
     );
 
+    error NotEnoughPledge(uint256 got, uint256 want);
+
     function initialize() public initializer {
         console.log("initializer");
+    }
+
+    function sendETHtoContract() public payable returns (address payable) {
+        console.log("sendETHtoContract", msg.sender, msg.value);
+        return payable(address(this));
     }
 
     function FsGetSettings() public pure override returns (FsSetting memory) {
@@ -159,11 +166,11 @@ contract FileSystem is Initializable, IFileSystem {
             nodesInfo[fsNodeInfo.WalletAddr].Volume == 0,
             "Node already registered"
         );
-        FsSetting memory fsSetting = FsGetSettings();
-        fsNodeInfo.Pledge =
-            fsSetting.FsGasPrice *
-            fsSetting.GasPerGBPerBlock *
-            fsNodeInfo.Volume;
+        uint64 pledge = CalcLateNodePledge(fsNodeInfo);
+        if (msg.value < pledge) {
+            revert NotEnoughPledge(msg.value, pledge);
+        }
+        fsNodeInfo.Pledge = pledge;
         fsNodeInfo.Profit = 0;
         fsNodeInfo.RestVol = fsNodeInfo.Volume;
         nodesInfo[fsNodeInfo.WalletAddr] = fsNodeInfo;
@@ -176,6 +183,19 @@ contract FileSystem is Initializable, IFileSystem {
             fsNodeInfo.Volume,
             fsNodeInfo.ServiceTime
         );
+    }
+
+    function CalcLateNodePledge(FsNodeInfo memory fsNodeInfo)
+        public
+        pure
+        override
+        returns (uint64)
+    {
+        FsSetting memory fsSetting = FsGetSettings();
+        return
+            fsSetting.FsGasPrice *
+            fsSetting.GasPerGBPerBlock *
+            fsNodeInfo.Volume;
     }
 
     function FsNodeQuery(address walletAddr)
@@ -203,8 +223,11 @@ contract FileSystem is Initializable, IFileSystem {
         require(
             nodesInfo[fsNodeInfo.WalletAddr].WalletAddr ==
                 fsNodeInfo.WalletAddr,
-            "Node not registered"
+            "Node walletAddr changed"
         );
         // FsSetting memory fsSetting = FsGetSettings();
+        // uint64 newPledge = fsSetting.FsGasPrice *
+        //     fsSetting.GasPerGBPerBlock *
+        //     fsNodeInfo.Volume;
     }
 }
