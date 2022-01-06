@@ -11,6 +11,7 @@ import "./Enum.sol";
 contract FileSystem is Initializable, IFileSystem {
     mapping(address => FsNodeInfo) nodesInfo;
     NodeList nodeList;
+    mapping(address => SectorInfos) sectorInfos;
 
     /**********************************************************************
      * event define start *************************************************
@@ -268,9 +269,9 @@ contract FileSystem is Initializable, IFileSystem {
         if (fsNodeInfo.Pledge > 0) {
             payable(fsNodeInfo.WalletAddr).transfer(fsNodeInfo.Pledge + fsNodeInfo.Profit);
         }
+        delete sectorInfos[fsNodeInfo.NodeAddr];
         delete nodesInfo[walletAddr];
         NodeListRemove(walletAddr);
-        // TODO deleteSector
         emit UnRegisterNodeEvent(
             FsEvent.EVENT_FS_UN_REG_NODE,
             block.number,
@@ -285,6 +286,17 @@ contract FileSystem is Initializable, IFileSystem {
                 return;
             }
         }
+    }
+
+    function FsGetNodeList() public view returns (FsNodesInfo memory) {
+        FsNodesInfo memory fsNodesInfo;
+        fsNodesInfo.NodesInfo = new FsNodeInfo[](nodeList.AddrList.length);
+        for (uint256 i = 0; i < nodeList.AddrList.length; i++) {
+            FsNodeInfo memory info = nodesInfo[nodeList.AddrList[i]];
+            fsNodesInfo.NodesInfo[i] = info;
+            fsNodesInfo.NodeNum++;
+        }
+        return fsNodesInfo;
     }
     /**
      * Node info mamanagement end ************************************************

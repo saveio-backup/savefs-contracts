@@ -29,6 +29,11 @@ struct FsNodeInfo {
     address NodeAddr;
 }
 
+struct FsNodesInfo {
+    uint64 NodeNum;
+    FsNodeInfo[] NodesInfo ;
+}
+
 struct NodeList {
     uint64 AddrNum;
     address[] AddrList;
@@ -61,4 +66,33 @@ struct UploadOption {
     WhiteListT WhiteList;
     bool Share;
     uint64 StorageType;
+}
+
+struct FileHash {
+    bytes[] Hash;
+}
+
+struct FileListT {
+    uint64 FileNum;
+    FileHash[] List;
+}
+
+struct SectorInfo {
+    address NodeAddr;
+    uint64 SectorID;
+    uint64 Size;
+    uint64 Used;
+    uint64 ProveLevel;
+    uint64 FirstProveHeight;
+    uint64 NextProveHeight;
+    uint64 TotalBlockNum;
+    uint64 FileNum;
+    uint64 GroupNum;
+    bool IsPlots;
+    FileListT FileList;
+}
+
+struct SectorInfos {
+    uint64 SectorCount;
+    uint64[] SectorIds;
 }
