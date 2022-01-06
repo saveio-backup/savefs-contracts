@@ -29,4 +29,6 @@ abstract contract IFileSystem {
         returns (FsNodeInfo memory);
 
     function FsNodeUpdate(FsNodeInfo memory fsNodeInfo) public payable virtual;
+
+    function FsNodeCancel(address walletAddr) public virtual;
 }

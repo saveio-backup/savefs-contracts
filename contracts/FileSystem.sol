@@ -12,6 +12,9 @@ contract FileSystem is Initializable, IFileSystem {
     mapping(address => FsNodeInfo) nodesInfo;
     NodeList nodeList;
 
+    /**********************************************************************
+     * event define start *************************************************
+     */
     event StoreFileEvent(
         FsEvent eventType,
         uint256 blockHeight,
@@ -91,8 +94,14 @@ contract FileSystem is Initializable, IFileSystem {
         address walletAddr,
         uint64 sectorId
     );
+    /**
+     * event define end ****************************************************
+     ***********************************************************************/
 
-    modifier volumeRequire(FsNodeInfo memory fsNodeInfo) {
+    /************************************************************************
+     * modifier define start ************************************************
+     */
+    modifier VolumeRequire(FsNodeInfo memory fsNodeInfo) {
         require(
             fsNodeInfo.Volume >= FsGetSettings().MinVolume,
             "Volume is too small"
@@ -100,13 +109,22 @@ contract FileSystem is Initializable, IFileSystem {
         _;
     }
 
-    function initialize() public initializer {
-        console.log("initializer");
+    modifier NodeRegisted(address walletAddr) {
+        require(nodesInfo[walletAddr].Volume != 0, "Node not registered");
+        _;
     }
 
-    function sendETHtoContract() public payable returns (address payable) {
-        console.log("sendETHtoContract", msg.sender, msg.value);
-        return payable(address(this));
+    modifier NodeNotRegisted(address walletAddr) {
+        require(nodesInfo[walletAddr].Volume == 0, "Node already registered");
+        _;
+    }
+
+    /**
+     * modifier define end ***************************************************
+     *************************************************************************/
+
+    function initialize() public initializer {
+        console.log("initializer");
     }
 
     function FsGetSettings() public pure override returns (FsSetting memory) {
@@ -158,16 +176,16 @@ contract FileSystem is Initializable, IFileSystem {
         return storageFee;
     }
 
+    /****************************************************************************
+     * Node info mamanagement start *********************************************
+     */
     function FsNodeRegister(FsNodeInfo memory fsNodeInfo)
         public
         payable
         override
-        volumeRequire(fsNodeInfo)
+        VolumeRequire(fsNodeInfo)
+        NodeNotRegisted(fsNodeInfo.WalletAddr)
     {
-        require(
-            nodesInfo[fsNodeInfo.WalletAddr].Volume == 0,
-            "Node already registered"
-        );
         uint64 pledge = CalcLateNodePledge(fsNodeInfo);
         if (msg.value < pledge) {
             revert NotEnoughPledge(msg.value, pledge);
@@ -213,12 +231,9 @@ contract FileSystem is Initializable, IFileSystem {
         public
         payable
         override
-        volumeRequire(fsNodeInfo)
+        VolumeRequire(fsNodeInfo)
+        NodeRegisted(fsNodeInfo.WalletAddr)
     {
-        require(
-            nodesInfo[fsNodeInfo.WalletAddr].Volume != 0,
-            "Node not registered"
-        );
         require(
             nodesInfo[fsNodeInfo.WalletAddr].WalletAddr ==
                 fsNodeInfo.WalletAddr,
@@ -243,4 +258,35 @@ contract FileSystem is Initializable, IFileSystem {
             oldNode.Volume;
         nodesInfo[fsNodeInfo.WalletAddr] = fsNodeInfo;
     }
+
+    function FsNodeCancel(address walletAddr)
+        public
+        override
+        NodeRegisted(walletAddr)
+    {
+        FsNodeInfo memory fsNodeInfo = nodesInfo[walletAddr];
+        if (fsNodeInfo.Pledge > 0) {
+            payable(fsNodeInfo.WalletAddr).transfer(fsNodeInfo.Pledge + fsNodeInfo.Profit);
+        }
+        delete nodesInfo[walletAddr];
+        NodeListRemove(walletAddr);
+        // TODO deleteSector
+        emit UnRegisterNodeEvent(
+            FsEvent.EVENT_FS_UN_REG_NODE,
+            block.number,
+            walletAddr
+        );
+    }
+
+    function NodeListRemove(address addr) public {
+        for (uint256 i = 0; i < nodeList.AddrList.length - 1; i++) {
+            if (nodeList.AddrList[i] == addr) {
+                delete nodeList.AddrList[i];
+                return;
+            }
+        }
+    }
+    /**
+     * Node info mamanagement end ************************************************
+     *****************************************************************************/
 }
