@@ -6,7 +6,6 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "./IFileSystem.sol";
 import "./Struct.sol";
 import "./Error.sol";
-import "./Event.sol";
 import "./Enum.sol";
 
 contract FileSystem is Initializable, IFileSystem {
@@ -93,7 +92,13 @@ contract FileSystem is Initializable, IFileSystem {
         uint64 sectorId
     );
 
-    error NotEnoughPledge(uint256 got, uint256 want);
+    modifier volumeRequire(FsNodeInfo memory fsNodeInfo) {
+        require(
+            fsNodeInfo.Volume >= FsGetSettings().MinVolume,
+            "Volume is too small"
+        );
+        _;
+    }
 
     function initialize() public initializer {
         console.log("initializer");
@@ -157,11 +162,8 @@ contract FileSystem is Initializable, IFileSystem {
         public
         payable
         override
+        volumeRequire(fsNodeInfo)
     {
-        require(
-            fsNodeInfo.Volume >= FsGetSettings().MinVolume,
-            "Volume is too small"
-        );
         require(
             nodesInfo[fsNodeInfo.WalletAddr].Volume == 0,
             "Node already registered"
@@ -211,11 +213,8 @@ contract FileSystem is Initializable, IFileSystem {
         public
         payable
         override
+        volumeRequire(fsNodeInfo)
     {
-        require(
-            fsNodeInfo.Volume >= FsGetSettings().MinVolume,
-            "Volume is too small"
-        );
         require(
             nodesInfo[fsNodeInfo.WalletAddr].Volume != 0,
             "Node not registered"
@@ -225,9 +224,23 @@ contract FileSystem is Initializable, IFileSystem {
                 fsNodeInfo.WalletAddr,
             "Node walletAddr changed"
         );
-        // FsSetting memory fsSetting = FsGetSettings();
-        // uint64 newPledge = fsSetting.FsGasPrice *
-        //     fsSetting.GasPerGBPerBlock *
-        //     fsNodeInfo.Volume;
+        FsNodeInfo memory oldNode = nodesInfo[fsNodeInfo.WalletAddr];
+        uint64 newPledge = CalcLateNodePledge(fsNodeInfo);
+        uint64 oldPledge = oldNode.Pledge;
+        if (newPledge < oldPledge) {
+            payable(fsNodeInfo.WalletAddr).transfer(oldPledge - newPledge);
+        } else {
+            uint64 pledge = newPledge - oldPledge;
+            if (msg.value < pledge) {
+                revert NotEnoughPledge(msg.value, pledge);
+            }
+        }
+        fsNodeInfo.Pledge = newPledge;
+        fsNodeInfo.Profit = oldNode.Profit;
+        fsNodeInfo.RestVol =
+            oldNode.RestVol +
+            fsNodeInfo.Volume -
+            oldNode.Volume;
+        nodesInfo[fsNodeInfo.WalletAddr] = fsNodeInfo;
     }
 }
