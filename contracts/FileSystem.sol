@@ -347,6 +347,17 @@ contract FileSystem is Initializable, IFileSystem {
         return storageFee;
     }
 
+    function GetFileInfo(bytes memory fileHash)
+        public
+        view
+        override
+        returns (FileInfo memory)
+    {
+        require(fileHash.length > 0, "fileHash must be greater than 0");
+        FileInfo memory fileInfo = fileInfos[fileHash];
+        return fileInfo;
+    }
+
     function GetFileInfos(FileList memory fileList)
         public
         view
