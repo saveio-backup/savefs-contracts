@@ -8,29 +8,121 @@ You can got the coverage of the solidity code by running the following command:
 npx hardhat coverage
 ```
 
-There is the example output:
+There is the output:
 
 ```
+Version
+=======
+> solidity-coverage: v0.7.17
+
+Instrumenting for coverage...
+=============================
+
+> FileSystem.sol
+> IFileSystem.sol
+> Types.sol
+
+Compilation:
+============
+
+Nothing to compile
+No need to generate any newer typings.
+
+Network Info
+============
+> HardhatEVM: v2.8.0
+> network:    hardhat
+
+No need to generate any newer typings.
+
+
+  CalculateNodePledge.ts
+    ✓ Deploy (92ms)
+    ✓ CalculateNodePledge.ts
+
+  GetFileInfo.ts
+    ✓ Deploy (42ms)
+    ✓ GetFileInfo.ts
+
+  GetFileInfos.ts
+    ✓ Deploy (60ms)
+    ✓ GetFileInfos.ts
+
+  GetFileList.ts
+    ✓ Deploy (76ms)
+    ✓ GetFileList.ts
+
+  GetNodeInfoByNodeAddr.ts
+    ✓ FDeploy (47ms)
+    ✓ GetNodeInfoByNodeAddr.ts (83ms)
+
+  GetNodeInfoByWalletAddr.ts
+    ✓ Deploy (39ms)
+    ✓ GetNodeInfoByWalletAddr.ts
+
+  GetNodeList.ts
+    ✓ Deploy
+    ✓ GetNodeList.ts
+
+  GetSettings.ts
+    ✓ Deploy
+    ✓ GetSettings.ts
+
+  GetUploadStorageFee.ts
+    ✓ Deploy
+    ✓ GetUploadStorageFee.ts fileSize<0
+    ✓ GetUploadStorageFee.ts fileSize>0 num==0
+    ✓ GetUploadStorageFee.ts fileSize>0 num>0
+
+  GetUserSpace.ts
+    ✓ Deploy
+    ✓ GetUserSpace.ts
+
+  GetWhiteList.ts
+    ✓ Deploy
+    ✓ GetWhiteList.ts
+
+  initialize.ts
+    ✓ Deploy
+initializer
+    ✓ initialize.ts
+
+  NodeCancel.ts
+    ✓ Deploy
+    ✓ NodeCancel.ts
+
+  NodeRegister.ts
+    ✓ Deploy
+    ✓ NodeRegister.ts require 1
+    ✓ NodeRegister.ts require 2
+    ✓ NodeRegister.ts event
+
+  NodeUpdate.ts
+    ✓ Deploy (50ms)
+    ✓ NodeUpdate.ts (55ms)
+
+  NodeWithDrawProfit.ts
+    ✓ Deploy
+    ✓ NodeWithDrawProfit.ts
+
+
+  36 passing (1s)
+
 ------------------|----------|----------|----------|----------|----------------|
 File              |  % Stmts | % Branch |  % Funcs |  % Lines |Uncovered Lines |
 ------------------|----------|----------|----------|----------|----------------|
- contracts/       |     92.5 |    42.86 |    83.33 |     92.5 |                |
-  Enum.sol        |      100 |      100 |      100 |      100 |                |
-  Error.sol       |      100 |      100 |      100 |      100 |                |
-  Event.sol       |      100 |      100 |      100 |      100 |                |
-  FileSystem.sol  |     92.5 |    42.86 |    83.33 |     92.5 |    195,199,203 |
+ contracts/       |    70.45 |    47.22 |    85.71 |    67.68 |                |
+  FileSystem.sol  |    70.45 |    47.22 |    85.71 |    67.68 |... 366,389,402 |
   IFileSystem.sol |      100 |      100 |      100 |      100 |                |
-  Struct.sol      |      100 |      100 |      100 |      100 |                |
+  Types.sol       |      100 |      100 |      100 |      100 |                |
 ------------------|----------|----------|----------|----------|----------------|
-All files         |     92.5 |    42.86 |    83.33 |     92.5 |                |
+All files         |    70.45 |    47.22 |    85.71 |    67.68 |                |
 ------------------|----------|----------|----------|----------|----------------|
+
+> Istanbul reports written to ./coverage/ and ./coverage.json
 ```
 
-## Introduction
-
-This project demonstrates an advanced Hardhat use case, integrating other tools commonly used alongside Hardhat in the ecosystem.
-
-The project comes with a sample contract, a test for that contract, a sample script that deploys that contract, and an example of a task implementation, which simply lists the available accounts. It also comes with a variety of other tools, preconfigured to work with the project code.
+## How to use
 
 Try running some of the following tasks:
 
@@ -52,23 +144,3 @@ npx prettier '**/*.{json,sol,md}' --write
 npx solhint 'contracts/**/*.sol'
 npx solhint 'contracts/**/*.sol' --fix
 ```
-
-## Etherscan verification
-
-To try out Etherscan verification, you first need to deploy a contract to an Ethereum network that's supported by Etherscan, such as Ropsten.
-
-In this project, copy the .env.example file to a file named .env, and then edit it to fill in the details. Enter your Etherscan API key, your Ropsten node URL (eg from Alchemy), and the private key of the account which will send the deployment transaction. With a valid .env file in place, first deploy your contract:
-
-```shell
-hardhat run --network ropsten scripts/sample-script.ts
-```
-
-Then, copy the deployment address and paste it in to replace `DEPLOYED_CONTRACT_ADDRESS` in this command:
-
-```shell
-npx hardhat verify --network ropsten DEPLOYED_CONTRACT_ADDRESS "Hello, Hardhat!"
-```
-
-## Performance optimizations
-
-For faster runs of your tests and scripts, consider skipping ts-node's type checking by setting the environment variable `TS_NODE_TRANSPILE_ONLY` to `1` in hardhat's environment. For more details see [the documentation](https://hardhat.org/guides/typescript.html#performance-optimizations).
