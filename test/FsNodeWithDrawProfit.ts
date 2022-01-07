@@ -13,19 +13,21 @@ describe("FileSystem", () => {
 
   it("FsNodeWithDrawProfit", async () => {
     let tx = fs.FsNodeRegister({
-      Pledge: 0,
-      Profit: 0,
+      Pledge: 2,
+      Profit: 2,
       Volume: 1000 * 1000,
-      RestVol: 0,
-      ServiceTime: 0,
+      RestVol: 3,
+      ServiceTime: 4,
       WalletAddr: "0x5FbDB2315678afecb367f032d93F642f64180aa3",
       NodeAddr: "0x5FbDB2315678afecb367f032d93F642f64180aa3",
     }, {
       value: 1000000
     });
-    await (await tx).wait();
+    let r = await (await tx).wait();
+    // console.log(r)
 
     const res = fs.FsNodeWithDrawProfit("0x5FbDB2315678afecb367f032d93F642f64180aa3");
-    expect(res).to.not.be.reverted;
+    // must be recerted because profit is 0
+    expect(res).to.be.reverted;
   });
 });

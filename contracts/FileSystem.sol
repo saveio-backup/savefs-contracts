@@ -329,8 +329,10 @@ contract FileSystem is Initializable, IFileSystem {
         FsNodeInfo memory fsNodeInfo = nodesInfo[walletAddr];
         if (fsNodeInfo.Profit > 0) {
             payable(fsNodeInfo.WalletAddr).transfer(fsNodeInfo.Profit);
+            fsNodeInfo.Profit = 0;
+        } else {
+            revert ZeroProfit();
         }
-        fsNodeInfo.Profit = 0;
         nodesInfo[walletAddr] = fsNodeInfo;
     }
     /**

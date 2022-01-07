@@ -9,7 +9,7 @@ describe("FileSystem", () => {
 
   let fs: FileSystem;
 
-  it("Deploy", async () => {
+  it("FsDeploy", async () => {
     const FS = await ethers.getContractFactory("FileSystem");
     fs = await FS.deploy();
     await fs.deployed();
