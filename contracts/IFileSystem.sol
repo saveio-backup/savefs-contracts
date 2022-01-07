@@ -38,4 +38,10 @@ abstract contract IFileSystem {
         view
         virtual
         returns (StorageFee memory);
+
+    function GetFileInfos(FileList memory fileList)
+        public
+        view
+        virtual
+        returns (FileInfo[] memory);
 }

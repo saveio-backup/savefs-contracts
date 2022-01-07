@@ -13,6 +13,7 @@ contract FileSystem is Initializable, IFileSystem {
     mapping(address => NodeInfo) nodesInfo; // walletAddr => NodeInfo
     NodeList nodeList; // nodeAddr list
     mapping(address => SectorInfos) sectorInfos; // nodeAddr => SectorInfos
+    mapping(bytes => FileInfo) fileInfos; // fileHash => FileInfo
 
     /************************************************************************
      * Enum define ******************************************************
@@ -118,6 +119,7 @@ contract FileSystem is Initializable, IFileSystem {
      */
     error NotEnoughPledge(uint256 got, uint256 want);
     error ZeroProfit();
+    error FileNotExist(bytes);
     /************************************************************************
      * Modifier define ******************************************************
      */
@@ -321,7 +323,7 @@ contract FileSystem is Initializable, IFileSystem {
         StorageFee memory storageFee;
         uint64 fee;
         uint64 txGas = 10000000;
-        if (uploadOption.WhiteList.Num > 0) {
+        if (uploadOption.WhiteList_.Num > 0) {
             fee = txGas * 4;
         } else {
             fee = txGas * 3;
@@ -343,5 +345,25 @@ contract FileSystem is Initializable, IFileSystem {
         storageFee.ValidationFee = validFee;
         storageFee.SpaceFee = spaceFee;
         return storageFee;
+    }
+
+    function GetFileInfos(FileList memory fileList)
+        public
+        view
+        override
+        returns (FileInfo[] memory)
+    {
+        require(fileList.List.length > 0, "fileList is empty");
+        require(fileList.FileNum == fileList.List.length, "fileNum is wrong");
+        FileInfo[] memory _fileInfos = new FileInfo[](fileList.List.length);
+        for (uint256 i = 0; i < fileList.List.length; i++) {
+            bytes memory fileHash = fileList.List[i];
+            FileInfo memory fileInfo = fileInfos[fileHash];
+            if (fileInfo.FileHash.length == 0) {
+                revert FileNotExist(fileHash);
+            }
+            _fileInfos[i] = fileInfos[fileHash];
+        }
+        return _fileInfos;
     }
 }

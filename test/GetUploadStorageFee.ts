@@ -26,7 +26,7 @@ describe("FileSystem", () => {
       RegisterDNS: true,
       BindDNS: true,
       DnsURL: [],
-      WhiteList: {
+      WhiteList_: {
         Num: 0,
         List: [
           {
@@ -56,7 +56,7 @@ describe("FileSystem", () => {
       RegisterDNS: true,
       BindDNS: true,
       DnsURL: [],
-      WhiteList: {
+      WhiteList_: {
         Num: 0,
         List: [
           {
@@ -86,7 +86,7 @@ describe("FileSystem", () => {
       RegisterDNS: true,
       BindDNS: true,
       DnsURL: [],
-      WhiteList: {
+      WhiteList_: {
         Num: 1,
         List: [
           {

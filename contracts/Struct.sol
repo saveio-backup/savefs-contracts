@@ -1,6 +1,7 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.0;
 
+/** setting ********************** */
 struct Setting {
     uint64 GasPrice;
     uint64 GasPerGBPerBlock;
@@ -13,12 +14,7 @@ struct Setting {
     uint64 DefaultCopyNum;
 }
 
-struct StorageFee {
-    uint64 TxnFee;
-    uint64 SpaceFee;
-    uint64 ValidationFee;
-}
-
+/** node info ******************** */
 struct NodeInfo {
     uint64 Pledge;
     uint64 Profit;
@@ -34,19 +30,26 @@ struct NodeList {
     address[] AddrList;
 }
 
+/** file ********************** */
+struct StorageFee {
+    uint64 TxnFee;
+    uint64 SpaceFee;
+    uint64 ValidationFee;
+}
+
 struct Role {
     address Addr;
     uint64 BaseHeight;
     uint64 ExpireHeight;
 }
 
-struct WhiteListT {
+struct WhiteList {
     uint64 Num;
     Role[] List;
 }
 
 struct UploadOption {
-    bytes[] FileDesc;
+    bytes FileDesc;
     uint64 FileSize;
     uint64 ProveInterval;
     uint64 ProveLevel;
@@ -54,22 +57,53 @@ struct UploadOption {
     uint64 Privilege;
     uint64 CopyNum;
     bool Encrypt;
-    bytes[] EncryptPassword;
+    bytes EncryptPassword;
     bool RegisterDNS;
     bool BindDNS;
-    bytes[] DnsURL;
-    WhiteListT WhiteList;
+    bytes DnsURL;
+    WhiteList WhiteList_;
     bool Share;
     uint64 StorageType;
 }
 
-struct FileHash {
-    bytes[] Hash;
+struct SectorRef {
+    address NodeAddr;
+    uint64 SectorID;
 }
 
-struct FileListT {
+struct PlotInfo {
+    uint64 NumberID;
+    uint64 StartNonce;
+    uint64 Nonces;
+}
+
+struct FileInfo {
+    bytes FileHash;
+    address FileOwner;
+    bytes FileDesc;
+    uint64 Privilege;
+    uint64 FileBlockSize;
+    uint64 ProveInterval;
+    uint64 ProveTimes;
+    uint64 ExpiredHeight;
+    uint64 CopyNum;
+    uint64 Deposit;
+    bytes FileProveParam;
+    uint64 BlockHeight;
+    bool ValidFlag;
+    uint64 StorageType;
+    uint64 RealFileSize;
+    NodeList PrimaryNodes;
+    NodeList CandidateNodes;
+    bytes ProveLevel;
+    SectorRef[] SectorRes;
+    bool IsPlotFile;
+    PlotInfo PlotInfo_;
+}
+
+struct FileList {
     uint64 FileNum;
-    FileHash[] List;
+    bytes[] List;   // fileHash = bytes
 }
 
 struct SectorInfo {
@@ -84,7 +118,7 @@ struct SectorInfo {
     uint64 FileNum;
     uint64 GroupNum;
     bool IsPlots;
-    FileListT FileList;
+    FileList FileList_;
 }
 
 struct SectorInfos {
