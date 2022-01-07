@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 import "hardhat/console.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "./IFileSystem.sol";
-import "./Struct.sol";
+import "./Types.sol";
 
 contract FileSystem is Initializable, IFileSystem {
     /************************************************************************
@@ -15,22 +15,7 @@ contract FileSystem is Initializable, IFileSystem {
     mapping(address => SectorInfos) sectorInfos; // nodeAddr => SectorInfos
     mapping(bytes => FileInfo) fileInfos; // fileHash => FileInfo
     mapping(address => FileList) fileList; // walletAddr => fileHash list
-
-    /************************************************************************
-     * Enum define ******************************************************
-     */
-    enum FsEvent {
-        EVENT_FS_STORE_FILE,
-        EVENT_FS_DELETE_FILE,
-        EVENT_FS_DELETE_FILES,
-        EVENT_FS_SET_USER_SPACE,
-        EVENT_FS_REG_NODE,
-        EVENT_FS_UN_REG_NODE,
-        EVENT_FS_PROVE_FILE,
-        EVENT_FS_FILE_PDP_SUCCESS,
-        EVENT_FS_CREATE_SECTOR,
-        EVENT_FS_DELETE_SECTOR
-    }
+    mapping(bytes => WhiteList) whiteList; // fileHash => whileList
 
     /**********************************************************************
      * Event define *******************************************************
@@ -142,6 +127,11 @@ contract FileSystem is Initializable, IFileSystem {
         _;
     }
 
+    modifier NotEmptyFileHash(bytes memory fileHash) {
+        require(fileHash.length > 0, "fileHash must be empty");
+        _;
+    }
+
     /****************************************************************************
      * Constract method *********************************************************
      */
@@ -196,7 +186,7 @@ contract FileSystem is Initializable, IFileSystem {
         nodesInfo[nodeInfo.WalletAddr] = nodeInfo;
         nodeList.AddrList.push(nodeInfo.WalletAddr);
         emit RegisterNodeEvent(
-            FsEvent.EVENT_FS_REG_NODE,
+            FsEvent.REG_NODE,
             block.number,
             nodeInfo.WalletAddr,
             nodeInfo.NodeAddr,
@@ -247,11 +237,7 @@ contract FileSystem is Initializable, IFileSystem {
         delete sectorInfos[nodeInfo.NodeAddr];
         delete nodesInfo[walletAddr];
         NodeListRemove(walletAddr);
-        emit UnRegisterNodeEvent(
-            FsEvent.EVENT_FS_UN_REG_NODE,
-            block.number,
-            walletAddr
-        );
+        emit UnRegisterNodeEvent(FsEvent.UN_REG_NODE, block.number, walletAddr);
     }
 
     function NodeListRemove(address addr) public {
@@ -352,9 +338,9 @@ contract FileSystem is Initializable, IFileSystem {
         public
         view
         override
+        NotEmptyFileHash(fileHash)
         returns (FileInfo memory)
     {
-        require(fileHash.length > 0, "fileHash must be greater than 0");
         FileInfo memory fileInfo = fileInfos[fileHash];
         return fileInfo;
     }
@@ -386,5 +372,18 @@ contract FileSystem is Initializable, IFileSystem {
         returns (FileList memory)
     {
         return fileList[walletAddr];
+    }
+
+    /****************************************************************************
+     * WhiteList mamanagement ***************************************************
+     */
+    function GetWhiteList(bytes memory fileHash)
+        public
+        view
+        override
+        NotEmptyFileHash(fileHash)
+        returns (WhiteList memory)
+    {
+        return whiteList[fileHash];
     }
 }

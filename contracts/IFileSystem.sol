@@ -1,6 +1,6 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.0;
-import "./Struct.sol";
+import "./Types.sol";
 
 abstract contract IFileSystem {
     function GetSetting() public pure virtual returns (Setting memory);
@@ -56,4 +56,10 @@ abstract contract IFileSystem {
         view
         virtual
         returns (FileList memory);
+
+    function GetWhiteList(bytes memory fileHash)
+        public
+        view
+        virtual
+        returns (WhiteList memory);
 }

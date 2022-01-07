@@ -1,6 +1,28 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.0;
 
+/** enum ********************** */
+enum FsEvent {
+    STORE_FILE,
+    DELETE_FILE,
+    DELETE_FILES,
+    SET_USER_SPACE,
+    REG_NODE,
+    UN_REG_NODE,
+    PROVE_FILE,
+    FILE_PDP_SUCCESS,
+    CREATE_SECTOR,
+    DELETE_SECTOR
+}
+
+enum WHileListOp {
+    ADD,
+    DEL,
+    ADD_COV,
+    DEL_ALL,
+    UPDATE
+}
+
 /** setting ********************** */
 struct Setting {
     uint64 GasPrice;
@@ -41,6 +63,12 @@ struct Role {
     address Addr;
     uint64 BaseHeight;
     uint64 ExpireHeight;
+}
+
+struct WhiteListOp {
+    bytes FileHash;
+    WHileListOp Op;
+    WhiteList List;
 }
 
 struct WhiteList {
@@ -103,7 +131,7 @@ struct FileInfo {
 
 struct FileList {
     uint64 FileNum;
-    bytes[] List;   // fileHash = bytes
+    bytes[] List; // fileHash = bytes
 }
 
 struct SectorInfo {
