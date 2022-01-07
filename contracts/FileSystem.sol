@@ -5,16 +5,33 @@ import "hardhat/console.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "./IFileSystem.sol";
 import "./Struct.sol";
-import "./Error.sol";
-import "./Enum.sol";
 
 contract FileSystem is Initializable, IFileSystem {
-    mapping(address => FsNodeInfo) nodesInfo; // walletAddr => FsNodeInfo
+    /************************************************************************
+     * Field define ******************************************************
+     */
+    mapping(address => NodeInfo) nodesInfo; // walletAddr => NodeInfo
     NodeList nodeList; // nodeAddr list
     mapping(address => SectorInfos) sectorInfos; // nodeAddr => SectorInfos
 
+    /************************************************************************
+     * Enum define ******************************************************
+     */
+    enum FsEvent {
+        EVENT_FS_STORE_FILE,
+        EVENT_FS_DELETE_FILE,
+        EVENT_FS_DELETE_FILES,
+        EVENT_FS_SET_USER_SPACE,
+        EVENT_FS_REG_NODE,
+        EVENT_FS_UN_REG_NODE,
+        EVENT_FS_PROVE_FILE,
+        EVENT_FS_FILE_PDP_SUCCESS,
+        EVENT_FS_CREATE_SECTOR,
+        EVENT_FS_DELETE_SECTOR
+    }
+
     /**********************************************************************
-     * event define start *************************************************
+     * Event define *******************************************************
      */
     event StoreFileEvent(
         FsEvent eventType,
@@ -95,16 +112,18 @@ contract FileSystem is Initializable, IFileSystem {
         address walletAddr,
         uint64 sectorId
     );
-    /**
-     * event define end ****************************************************
-     ***********************************************************************/
 
     /************************************************************************
-     * modifier define start ************************************************
+     * Error define ******************************************************
      */
-    modifier VolumeRequire(FsNodeInfo memory fsNodeInfo) {
+    error NotEnoughPledge(uint256 got, uint256 want);
+    error ZeroProfit();
+    /************************************************************************
+     * Modifier define ******************************************************
+     */
+    modifier VolumeRequire(NodeInfo memory nodeInfo) {
         require(
-            fsNodeInfo.Volume >= FsGetSettings().MinVolume,
+            nodeInfo.Volume >= GetSetting().MinVolume,
             "Volume is too small"
         );
         _;
@@ -120,150 +139,109 @@ contract FileSystem is Initializable, IFileSystem {
         _;
     }
 
-    /**
-     * modifier define end ***************************************************
-     *************************************************************************/
-
+    /****************************************************************************
+     * Constract method *********************************************************
+     */
     function initialize() public initializer {
         console.log("initializer");
     }
 
-    function FsGetSettings() public pure override returns (FsSetting memory) {
-        FsSetting memory fsSetting;
-        fsSetting.FsGasPrice = 1;
-        fsSetting.GasPerGBPerBlock = 1;
-        fsSetting.GasPerKBPerBlock = 1;
-        fsSetting.GasForChallenge = 200000;
-        fsSetting.MaxProveBlocks = 32;
-        fsSetting.MinVolume = 1000 * 1000;
-        fsSetting.DefaultProvePeriod = (3600 * 24) / 5;
-        fsSetting.DefaultProveLevel = 1;
-        fsSetting.DefaultCopyNum = 2;
-        return fsSetting;
-    }
-
-    function FsGetUploadStorageFee(UploadOption memory uploadOption)
-        public
-        view
-        override
-        returns (StorageFee memory)
-    {
-        require(uploadOption.FileSize > 0, "fileSize must be greater than 0");
-        FsSetting memory fsSetting = FsGetSettings();
-        StorageFee memory storageFee;
-        uint64 fee;
-        uint64 txGas = 10000000;
-        if (uploadOption.WhiteList.Num > 0) {
-            fee = txGas * 4;
-        } else {
-            fee = txGas * 3;
-        }
-
-        uint64 proveTime = (uploadOption.ExpiredHeight - uint64(block.number)) /
-            uploadOption.ProveInterval +
-            1;
-        uint64 validFee = (uploadOption.CopyNum + 1) *
-            uint64(
-                proveTime +
-                    (fsSetting.GasForChallenge * uploadOption.FileSize) /
-                    1024000
-            );
-        uint64 spaceFee = ((uploadOption.CopyNum + 1) *
-            fsSetting.GasPerGBPerBlock *
-            uploadOption.FileSize) / uint64(1024000);
-        storageFee.TxnFee = fee;
-        storageFee.ValidationFee = validFee;
-        storageFee.SpaceFee = spaceFee;
-        return storageFee;
+    /****************************************************************************
+     * Setting info mamanagement ************************************************
+     */
+    function GetSetting() public pure override returns (Setting memory) {
+        Setting memory setting;
+        setting.GasPrice = 1;
+        setting.GasPerGBPerBlock = 1;
+        setting.GasPerKBPerBlock = 1;
+        setting.GasForChallenge = 200000;
+        setting.MaxProveBlocks = 32;
+        setting.MinVolume = 1000 * 1000;
+        setting.DefaultProvePeriod = (3600 * 24) / 5;
+        setting.DefaultProveLevel = 1;
+        setting.DefaultCopyNum = 2;
+        return setting;
     }
 
     /****************************************************************************
-     * Node info mamanagement start *********************************************
+     * Node info mamanagement ***************************************************
      */
-
-    function CalculateNodePledge(FsNodeInfo memory fsNodeInfo)
+    function CalculateNodePledge(NodeInfo memory nodeInfo)
         public
         pure
         override
         returns (uint64)
     {
-        FsSetting memory fsSetting = FsGetSettings();
-        return
-            fsSetting.FsGasPrice *
-            fsSetting.GasPerGBPerBlock *
-            fsNodeInfo.Volume;
+        Setting memory setting = GetSetting();
+        return setting.GasPrice * setting.GasPerGBPerBlock * nodeInfo.Volume;
     }
 
-    function FsNodeRegister(FsNodeInfo memory fsNodeInfo)
+    function NodeRegister(NodeInfo memory nodeInfo)
         public
         payable
         override
-        VolumeRequire(fsNodeInfo)
-        NodeNotRegisted(fsNodeInfo.WalletAddr)
+        VolumeRequire(nodeInfo)
+        NodeNotRegisted(nodeInfo.WalletAddr)
     {
-        uint64 pledge = CalculateNodePledge(fsNodeInfo);
+        uint64 pledge = CalculateNodePledge(nodeInfo);
         if (msg.value < pledge) {
             revert NotEnoughPledge(msg.value, pledge);
         }
-        fsNodeInfo.Pledge = pledge;
-        fsNodeInfo.Profit = 0;
-        fsNodeInfo.RestVol = fsNodeInfo.Volume;
-        nodesInfo[fsNodeInfo.WalletAddr] = fsNodeInfo;
-        nodeList.AddrList.push(fsNodeInfo.WalletAddr);
+        nodeInfo.Pledge = pledge;
+        nodeInfo.Profit = 0;
+        nodeInfo.RestVol = nodeInfo.Volume;
+        nodesInfo[nodeInfo.WalletAddr] = nodeInfo;
+        nodeList.AddrList.push(nodeInfo.WalletAddr);
         emit RegisterNodeEvent(
             FsEvent.EVENT_FS_REG_NODE,
             block.number,
-            fsNodeInfo.WalletAddr,
-            fsNodeInfo.NodeAddr,
-            fsNodeInfo.Volume,
-            fsNodeInfo.ServiceTime
+            nodeInfo.WalletAddr,
+            nodeInfo.NodeAddr,
+            nodeInfo.Volume,
+            nodeInfo.ServiceTime
         );
     }
 
-    function FsNodeUpdate(FsNodeInfo memory fsNodeInfo)
+    function NodeUpdate(NodeInfo memory nodeInfo)
         public
         payable
         override
-        VolumeRequire(fsNodeInfo)
-        NodeRegisted(fsNodeInfo.WalletAddr)
+        VolumeRequire(nodeInfo)
+        NodeRegisted(nodeInfo.WalletAddr)
     {
         require(
-            nodesInfo[fsNodeInfo.WalletAddr].WalletAddr ==
-                fsNodeInfo.WalletAddr,
+            nodesInfo[nodeInfo.WalletAddr].WalletAddr == nodeInfo.WalletAddr,
             "Node walletAddr changed"
         );
-        FsNodeInfo memory oldNode = nodesInfo[fsNodeInfo.WalletAddr];
-        uint64 newPledge = CalculateNodePledge(fsNodeInfo);
+        NodeInfo memory oldNode = nodesInfo[nodeInfo.WalletAddr];
+        uint64 newPledge = CalculateNodePledge(nodeInfo);
         uint64 oldPledge = oldNode.Pledge;
         if (newPledge < oldPledge) {
-            payable(fsNodeInfo.WalletAddr).transfer(oldPledge - newPledge);
+            payable(nodeInfo.WalletAddr).transfer(oldPledge - newPledge);
         } else {
             uint64 pledge = newPledge - oldPledge;
             if (msg.value < pledge) {
                 revert NotEnoughPledge(msg.value, pledge);
             }
         }
-        fsNodeInfo.Pledge = newPledge;
-        fsNodeInfo.Profit = oldNode.Profit;
-        fsNodeInfo.RestVol =
-            oldNode.RestVol +
-            fsNodeInfo.Volume -
-            oldNode.Volume;
-        nodesInfo[fsNodeInfo.WalletAddr] = fsNodeInfo;
+        nodeInfo.Pledge = newPledge;
+        nodeInfo.Profit = oldNode.Profit;
+        nodeInfo.RestVol = oldNode.RestVol + nodeInfo.Volume - oldNode.Volume;
+        nodesInfo[nodeInfo.WalletAddr] = nodeInfo;
     }
 
-    function FsNodeCancel(address walletAddr)
+    function NodeCancel(address walletAddr)
         public
         override
         NodeRegisted(walletAddr)
     {
-        FsNodeInfo memory fsNodeInfo = nodesInfo[walletAddr];
-        if (fsNodeInfo.Pledge > 0) {
-            payable(fsNodeInfo.WalletAddr).transfer(
-                fsNodeInfo.Pledge + fsNodeInfo.Profit
+        NodeInfo memory nodeInfo = nodesInfo[walletAddr];
+        if (nodeInfo.Pledge > 0) {
+            payable(nodeInfo.WalletAddr).transfer(
+                nodeInfo.Pledge + nodeInfo.Profit
             );
         }
-        delete sectorInfos[fsNodeInfo.NodeAddr];
+        delete sectorInfos[nodeInfo.NodeAddr];
         delete nodesInfo[walletAddr];
         NodeListRemove(walletAddr);
         emit UnRegisterNodeEvent(
@@ -286,56 +264,84 @@ contract FileSystem is Initializable, IFileSystem {
      * description: Actually I can't understand why do this
      *              mixed use nodeAddr and walletAddr
      *
-     * @return nodeAddr => FsNodeInfo
+     * @return nodeAddr => NodeInfo
      */
-    function FsGetNodeList()
-        public
-        view
-        override
-        returns (FsNodeInfo[] memory)
-    {
-        FsNodeInfo[] memory _nodesInfo = new FsNodeInfo[](
-            nodeList.AddrList.length
-        );
+    function GetNodeList() public view override returns (NodeInfo[] memory) {
+        NodeInfo[] memory _nodesInfo = new NodeInfo[](nodeList.AddrList.length);
         for (uint256 i = 0; i < nodeList.AddrList.length; i++) {
             _nodesInfo[i] = nodesInfo[nodeList.AddrList[i]];
         }
         return _nodesInfo;
     }
 
-    function FsGetNodeInfoByWalletAddr(address walletAddr)
+    function GetNodeInfoByWalletAddr(address walletAddr)
         public
         view
         override
-        returns (FsNodeInfo memory)
+        returns (NodeInfo memory)
     {
         return nodesInfo[walletAddr];
     }
 
-    function FsGetNodeInfoByNodeAddr(address nodeAddr)
+    function GetNodeInfoByNodeAddr(address nodeAddr)
         public
         view
         override
-        returns (FsNodeInfo memory)
+        returns (NodeInfo memory)
     {
         return nodesInfo[nodeAddr];
     }
 
-    function FsNodeWithDrawProfit(address walletAddr)
+    function NodeWithDrawProfit(address walletAddr)
         public
         override
         NodeRegisted(walletAddr)
     {
-        FsNodeInfo memory fsNodeInfo = nodesInfo[walletAddr];
-        if (fsNodeInfo.Profit > 0) {
-            payable(fsNodeInfo.WalletAddr).transfer(fsNodeInfo.Profit);
-            fsNodeInfo.Profit = 0;
+        NodeInfo memory nodeInfo = nodesInfo[walletAddr];
+        if (nodeInfo.Profit > 0) {
+            payable(nodeInfo.WalletAddr).transfer(nodeInfo.Profit);
+            nodeInfo.Profit = 0;
         } else {
             revert ZeroProfit();
         }
-        nodesInfo[walletAddr] = fsNodeInfo;
+        nodesInfo[walletAddr] = nodeInfo;
     }
-    /**
-     * Node info mamanagement end ************************************************
-     *****************************************************************************/
+
+    /****************************************************************************
+     * File info mamanagement ***************************************************
+     */
+    function GetUploadStorageFee(UploadOption memory uploadOption)
+        public
+        view
+        override
+        returns (StorageFee memory)
+    {
+        require(uploadOption.FileSize > 0, "fileSize must be greater than 0");
+        Setting memory setting = GetSetting();
+        StorageFee memory storageFee;
+        uint64 fee;
+        uint64 txGas = 10000000;
+        if (uploadOption.WhiteList.Num > 0) {
+            fee = txGas * 4;
+        } else {
+            fee = txGas * 3;
+        }
+
+        uint64 proveTime = (uploadOption.ExpiredHeight - uint64(block.number)) /
+            uploadOption.ProveInterval +
+            1;
+        uint64 validFee = (uploadOption.CopyNum + 1) *
+            uint64(
+                proveTime +
+                    (setting.GasForChallenge * uploadOption.FileSize) /
+                    1024000
+            );
+        uint64 spaceFee = ((uploadOption.CopyNum + 1) *
+            setting.GasPerGBPerBlock *
+            uploadOption.FileSize) / uint64(1024000);
+        storageFee.TxnFee = fee;
+        storageFee.ValidationFee = validFee;
+        storageFee.SpaceFee = spaceFee;
+        return storageFee;
+    }
 }

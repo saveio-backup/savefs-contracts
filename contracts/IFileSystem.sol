@@ -3,42 +3,39 @@ pragma solidity ^0.8.0;
 import "./Struct.sol";
 
 abstract contract IFileSystem {
-    function FsGetSettings() public pure virtual returns (FsSetting memory);
+    function GetSetting() public pure virtual returns (Setting memory);
 
-    function FsGetUploadStorageFee(UploadOption memory uploadOption)
-        public
-        view
-        virtual
-        returns (StorageFee memory);
-
-    function CalculateNodePledge(FsNodeInfo memory fsNodeInfo)
+    function CalculateNodePledge(NodeInfo memory nodeInfo)
         public
         pure
         virtual
         returns (uint64);
 
-    function FsNodeRegister(FsNodeInfo memory fsNodeInfo)
-        public
-        payable
-        virtual;
+    function NodeRegister(NodeInfo memory nodeInfo) public payable virtual;
 
-    function FsNodeUpdate(FsNodeInfo memory fsNodeInfo) public payable virtual;
+    function NodeUpdate(NodeInfo memory nodeInfo) public payable virtual;
 
-    function FsNodeCancel(address walletAddr) public virtual;
+    function NodeCancel(address walletAddr) public virtual;
 
-    function FsGetNodeList() public view virtual returns (FsNodeInfo[] memory);
+    function GetNodeList() public view virtual returns (NodeInfo[] memory);
 
-    function FsGetNodeInfoByWalletAddr(address walletAddr)
+    function GetNodeInfoByWalletAddr(address walletAddr)
         public
         view
         virtual
-        returns (FsNodeInfo memory);
+        returns (NodeInfo memory);
 
-    function FsGetNodeInfoByNodeAddr(address nodeAddr)
+    function GetNodeInfoByNodeAddr(address nodeAddr)
         public
         view
         virtual
-        returns (FsNodeInfo memory);
+        returns (NodeInfo memory);
 
-    function FsNodeWithDrawProfit(address walletAddr) public virtual;
+    function NodeWithDrawProfit(address walletAddr) public virtual;
+
+    function GetUploadStorageFee(UploadOption memory uploadOption)
+        public
+        view
+        virtual
+        returns (StorageFee memory);
 }

@@ -5,14 +5,15 @@ import { FileSystem } from "../typechain";
 describe("FileSystem", () => {
   let fs: FileSystem;
 
-  it("FsDeploy", async () => {
+  it("Deploy", async () => {
     const FS = await ethers.getContractFactory("FileSystem");
     fs = await FS.deploy();
-    await fs.deployed();
+    let res = await fs.deployed();
+    assert(res != undefined)
   });
 
-  it("FsNodeUpdate", async () => {
-    let tx = fs.FsNodeRegister({
+  it("GetNodeInfoByWalletAddr", async () => {
+    let tx = fs.NodeRegister({
       Pledge: 0,
       Profit: 0,
       Volume: 1000 * 1000,
@@ -25,17 +26,7 @@ describe("FileSystem", () => {
     });
     await (await tx).wait();
 
-    let tx2 = fs.FsNodeUpdate({
-      Pledge: 0,
-      Profit: 0,
-      Volume: 1000 * 1000,
-      RestVol: 0,
-      ServiceTime: 0,
-      WalletAddr: "0x5FbDB2315678afecb367f032d93F642f64180aa3",
-      NodeAddr: "0x5FbDB2315678afecb367f032d93F642f64180aa3",
-    }, {
-      value: 1000000
-    });
-    expect(tx2).to.not.be.reverted;
+    const res = await fs.GetNodeInfoByWalletAddr("0x5FbDB2315678afecb367f032d93F642f64180aa3");
+    assert(res.WalletAddr == "0x5FbDB2315678afecb367f032d93F642f64180aa3");
   });
 });

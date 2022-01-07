@@ -1,4 +1,4 @@
-import { expect } from "chai";
+import { expect, assert } from "chai";
 import { ethers } from "hardhat";
 import { FileSystem } from "../typechain";
 
@@ -8,11 +8,12 @@ describe("FileSystem", () => {
   it("Deploy", async () => {
     const FS = await ethers.getContractFactory("FileSystem");
     fs = await FS.deploy();
-    await fs.deployed();
+    let res = await fs.deployed();
+    assert(res != undefined)
   });
 
-  it("FsGetSettings", async () => {
-    const setting = await fs.FsGetSettings();
+  it("GetSettings", async () => {
+    const setting = await fs.GetSetting();
     expect(setting).to.not.equal(null);
   });
 });

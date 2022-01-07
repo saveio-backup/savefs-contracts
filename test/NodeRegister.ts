@@ -9,14 +9,15 @@ describe("FileSystem", () => {
 
   let fs: FileSystem;
 
-  it("FsDeploy", async () => {
+  it("Deploy", async () => {
     const FS = await ethers.getContractFactory("FileSystem");
     fs = await FS.deploy();
-    await fs.deployed();
+    let res = await fs.deployed();
+    assert(res != undefined)
   });
 
-  it("FsNodeRegister require 1", async () => {
-    let tx = fs.FsNodeRegister({
+  it("NodeRegister require 1", async () => {
+    let tx = fs.NodeRegister({
       Pledge: 0,
       Profit: 0,
       Volume: 0,
@@ -27,7 +28,7 @@ describe("FileSystem", () => {
     });
     expect(tx).to.be.reverted;
 
-    const tx2 = fs.FsNodeRegister({
+    const tx2 = fs.NodeRegister({
       Pledge: 0,
       Profit: 0,
       Volume: 1000 * 1000,
@@ -39,8 +40,8 @@ describe("FileSystem", () => {
     expect(tx2).to.not.be.reverted;
   });
 
-  it("FsNodeRegister require 2", async () => {
-    let tx = fs.FsNodeRegister({
+  it("NodeRegister require 2", async () => {
+    let tx = fs.NodeRegister({
       Pledge: 0,
       Profit: 0,
       Volume: 1000 * 1000,
@@ -51,7 +52,7 @@ describe("FileSystem", () => {
     });
     expect(tx).to.not.be.reverted;
 
-    const tx2 = fs.FsNodeRegister({
+    const tx2 = fs.NodeRegister({
       Pledge: 0,
       Profit: 0,
       Volume: 1000 * 1000,
@@ -63,8 +64,8 @@ describe("FileSystem", () => {
     expect(tx2).to.be.reverted;
   });
 
-  it("FsNodeRegister event", async () => {
-    const tx = fs.FsNodeRegister({
+  it("NodeRegister event", async () => {
+    const tx = fs.NodeRegister({
       Pledge: 0,
       Profit: 0,
       Volume: 1000 * 1000,

@@ -5,14 +5,15 @@ import { FileSystem } from "../typechain";
 describe("FileSystem", () => {
   let fs: FileSystem;
 
-  it("FsDeploy", async () => {
+  it("Deploy", async () => {
     const FS = await ethers.getContractFactory("FileSystem");
     fs = await FS.deploy();
-    await fs.deployed();
+    let res = await fs.deployed();
+    assert(res != undefined)
   });
 
-  it("FsGetNodeList", async () => {
-    let tx = fs.FsNodeRegister({
+  it("GetNodeList", async () => {
+    let tx = fs.NodeRegister({
       Pledge: 0,
       Profit: 0,
       Volume: 1000 * 1000,
@@ -26,7 +27,7 @@ describe("FileSystem", () => {
     let r = await (await tx).wait();
     // console.log(r)
 
-    const res = await fs.FsGetNodeList();
+    const res = await fs.GetNodeList();
     assert(res.length == 1);
   });
 });

@@ -5,14 +5,15 @@ import { FileSystem } from "../typechain";
 describe("FileSystem", () => {
   let fs: FileSystem;
 
-  it("FsDeploy", async () => {
+  it("Deploy", async () => {
     const FS = await ethers.getContractFactory("FileSystem");
     fs = await FS.deploy();
-    await fs.deployed();
+    let res = await fs.deployed();
+    assert(res != undefined)
   });
 
-  it("FsGetNodeInfoByNodeAddr", async () => {
-    let tx = fs.FsNodeRegister({
+  it("NodeCancel", async () => {
+    let tx = fs.NodeRegister({
       Pledge: 0,
       Profit: 0,
       Volume: 1000 * 1000,
@@ -25,7 +26,8 @@ describe("FileSystem", () => {
     });
     await (await tx).wait();
 
-    const res = await fs.FsGetNodeInfoByNodeAddr("0x5FbDB2315678afecb367f032d93F642f64180aa3");
-    assert(res.NodeAddr == "0x5FbDB2315678afecb367f032d93F642f64180aa3");
+    let tx2 = fs.NodeCancel("0x5FbDB2315678afecb367f032d93F642f64180aa3");
+    // reverted because transfer will failed
+    expect(tx2).to.be.reverted;
   });
 });

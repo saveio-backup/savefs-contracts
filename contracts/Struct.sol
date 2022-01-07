@@ -1,8 +1,8 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.0;
 
-struct FsSetting {
-    uint64 FsGasPrice;
+struct Setting {
+    uint64 GasPrice;
     uint64 GasPerGBPerBlock;
     uint64 GasPerKBPerBlock;
     uint64 GasForChallenge;
@@ -19,7 +19,7 @@ struct StorageFee {
     uint64 ValidationFee;
 }
 
-struct FsNodeInfo {
+struct NodeInfo {
     uint64 Pledge;
     uint64 Profit;
     uint64 Volume;

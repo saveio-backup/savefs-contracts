@@ -1,4 +1,4 @@
-import { expect } from "chai";
+import { expect, assert } from "chai";
 import { ethers } from "hardhat";
 import { FileSystem } from "../typechain";
 
@@ -8,11 +8,12 @@ describe("FileSystem", () => {
   it("Deploy", async () => {
     const FS = await ethers.getContractFactory("FileSystem");
     fs = await FS.deploy();
-    await fs.deployed();
+    let res = await fs.deployed();
+    assert(res != undefined)
   });
 
-  it("FsGetUploadStorageFee fileSize<0", async () => {
-    const res = fs.FsGetUploadStorageFee({
+  it("GetUploadStorageFee fileSize<0", async () => {
+    const res = fs.GetUploadStorageFee({
       FileDesc: [],
       FileSize: 0,
       ProveInterval: 1,
@@ -41,8 +42,8 @@ describe("FileSystem", () => {
     expect(res).to.be.reverted;
   });
 
-  it("FsGetUploadStorageFee fileSize>0 num==0", async () => {
-    const res2 = fs.FsGetUploadStorageFee({
+  it("GetUploadStorageFee fileSize>0 num==0", async () => {
+    const res2 = fs.GetUploadStorageFee({
       FileDesc: [],
       FileSize: 1,
       ProveInterval: 1,
@@ -71,8 +72,8 @@ describe("FileSystem", () => {
     expect(res2).to.not.be.reverted;
   });
 
-  it("FsGetUploadStorageFee fileSize>0 num>0", async () => {
-    const res2 = fs.FsGetUploadStorageFee({
+  it("GetUploadStorageFee fileSize>0 num>0", async () => {
+    const res2 = fs.GetUploadStorageFee({
       FileDesc: [],
       FileSize: 1,
       ProveInterval: 1,

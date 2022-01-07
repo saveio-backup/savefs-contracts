@@ -22,7 +22,7 @@ async function main() {
   let tx = fs.initialize();
   await (await tx).wait();
 
-  let tx2 = fs.FsNodeRegister({
+  let tx2 = fs.NodeRegister({
     Pledge: 0,
     Profit: 0,
     Volume: 1000 * 1000,
@@ -34,7 +34,7 @@ async function main() {
     value: 1000000,
   });
   let res = await (await tx2).wait();
-  console.log("FsNodeRegister done");
+  console.log("NodeRegister done");
 }
 
 // We recommend this pattern to be able to use async/await everywhere
