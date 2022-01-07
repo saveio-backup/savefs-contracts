@@ -3,7 +3,10 @@ import { BigNumber } from "ethers";
 import { ethers, network } from "hardhat";
 import { FileSystem } from "../typechain";
 
-describe("FileSystem", () => {
+var path = require('path');
+var scriptName = path.basename(__filename);
+
+describe(scriptName, () => {
   let fs: FileSystem;
 
   it("Deploy", async () => {
@@ -13,7 +16,7 @@ describe("FileSystem", () => {
     assert(res != undefined)
   });
 
-  it("CalculateNodePledge", async () => {
+  it(scriptName, async () => {
     const tx = fs.CalculateNodePledge({
       Pledge: 0,
       Profit: 0,

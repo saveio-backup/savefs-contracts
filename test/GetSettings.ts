@@ -2,7 +2,10 @@ import { expect, assert } from "chai";
 import { ethers } from "hardhat";
 import { FileSystem } from "../typechain";
 
-describe("FileSystem", () => {
+var path = require('path');
+var scriptName = path.basename(__filename);
+
+describe(scriptName, () => {
   let fs: FileSystem;
 
   it("Deploy", async () => {
@@ -12,7 +15,7 @@ describe("FileSystem", () => {
     assert(res != undefined)
   });
 
-  it("GetSettings", async () => {
+  it(scriptName, async () => {
     const setting = await fs.GetSetting();
     expect(setting).to.not.equal(null);
   });

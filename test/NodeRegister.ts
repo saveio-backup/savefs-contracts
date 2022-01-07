@@ -2,7 +2,10 @@ import { expect, assert } from "chai";
 import { ethers, network } from "hardhat";
 import { FileSystem } from "../typechain";
 
-describe("FileSystem", () => {
+var path = require('path');
+var scriptName = path.basename(__filename);
+
+describe(scriptName, () => {
   beforeEach(async function () {
     await network.provider.send("hardhat_reset")
   })
@@ -16,7 +19,7 @@ describe("FileSystem", () => {
     assert(res != undefined)
   });
 
-  it("NodeRegister require 1", async () => {
+  it(`${scriptName} require 1`, async () => {
     let tx = fs.NodeRegister({
       Pledge: 0,
       Profit: 0,
@@ -40,7 +43,7 @@ describe("FileSystem", () => {
     expect(tx2).to.not.be.reverted;
   });
 
-  it("NodeRegister require 2", async () => {
+  it(`${scriptName} require 2`, async () => {
     let tx = fs.NodeRegister({
       Pledge: 0,
       Profit: 0,
@@ -64,7 +67,7 @@ describe("FileSystem", () => {
     expect(tx2).to.be.reverted;
   });
 
-  it("NodeRegister event", async () => {
+  it(`${scriptName} event`, async () => {
     const tx = fs.NodeRegister({
       Pledge: 0,
       Profit: 0,

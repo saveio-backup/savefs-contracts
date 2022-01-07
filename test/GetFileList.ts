@@ -2,7 +2,10 @@ import { expect, assert } from "chai";
 import { ethers, network } from "hardhat";
 import { FileSystem } from "../typechain";
 
-describe("FileSystem", () => {
+var path = require('path');
+var scriptName = path.basename(__filename);
+
+describe(scriptName, () => {
   let fs: FileSystem;
 
   it("Deploy", async () => {
@@ -12,7 +15,7 @@ describe("FileSystem", () => {
     assert(res != undefined)
   });
 
-  it("GetFileList", async () => {
+  it(scriptName, async () => {
     const res = fs.GetFileList("0x0000000000000000000000000000000000000000");
     expect(res).to.not.be.reverted;
   });

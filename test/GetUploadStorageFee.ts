@@ -2,7 +2,10 @@ import { expect, assert } from "chai";
 import { ethers } from "hardhat";
 import { FileSystem } from "../typechain";
 
-describe("FileSystem", () => {
+var path = require('path');
+var scriptName = path.basename(__filename);
+
+describe(scriptName, () => {
   let fs: FileSystem;
 
   it("Deploy", async () => {
@@ -12,7 +15,7 @@ describe("FileSystem", () => {
     assert(res != undefined)
   });
 
-  it("GetUploadStorageFee fileSize<0", async () => {
+  it(`${scriptName} fileSize<0`, async () => {
     const res = fs.GetUploadStorageFee({
       FileDesc: [],
       FileSize: 0,
@@ -42,7 +45,7 @@ describe("FileSystem", () => {
     expect(res).to.be.reverted;
   });
 
-  it("GetUploadStorageFee fileSize>0 num==0", async () => {
+  it(`${scriptName} fileSize>0 num==0`, async () => {
     const res2 = fs.GetUploadStorageFee({
       FileDesc: [],
       FileSize: 1,
@@ -72,7 +75,7 @@ describe("FileSystem", () => {
     expect(res2).to.not.be.reverted;
   });
 
-  it("GetUploadStorageFee fileSize>0 num>0", async () => {
+  it(`${scriptName} fileSize>0 num>0`, async () => {
     const res2 = fs.GetUploadStorageFee({
       FileDesc: [],
       FileSize: 1,

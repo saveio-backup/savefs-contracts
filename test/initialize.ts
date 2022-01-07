@@ -2,7 +2,10 @@ import { assert } from "console";
 import { ethers } from "hardhat";
 import { FileSystem } from "../typechain";
 
-describe("FileSystem", function () {
+var path = require('path');
+var scriptName = path.basename(__filename);
+
+describe(scriptName, function () {
   let fs: FileSystem;
 
   it("Deploy", async () => {
@@ -12,7 +15,7 @@ describe("FileSystem", function () {
     assert(res != undefined)
   });
 
-  it("initialize", async () => {
+  it(scriptName, async () => {
     let tx = fs.initialize();
     await (await tx).wait();
   });

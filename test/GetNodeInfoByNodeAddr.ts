@@ -2,7 +2,10 @@ import { expect, assert } from "chai";
 import { ethers, network } from "hardhat";
 import { FileSystem } from "../typechain";
 
-describe("FileSystem", () => {
+var path = require('path');
+var scriptName = path.basename(__filename);
+
+describe(scriptName, () => {
   let fs: FileSystem;
 
   it("FDeploy", async () => {
@@ -12,7 +15,7 @@ describe("FileSystem", () => {
     assert(res != undefined)
   });
 
-  it("GetNodeInfoByNodeAddr", async () => {
+  it(scriptName, async () => {
     let tx = fs.NodeRegister({
       Pledge: 0,
       Profit: 0,
