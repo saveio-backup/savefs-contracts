@@ -50,4 +50,10 @@ abstract contract IFileSystem {
         view
         virtual
         returns (FileInfo[] memory);
+
+    function GetFileList(address walletAddr)
+        public
+        view
+        virtual
+        returns (FileList memory);
 }

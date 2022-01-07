@@ -14,6 +14,7 @@ contract FileSystem is Initializable, IFileSystem {
     NodeList nodeList; // nodeAddr list
     mapping(address => SectorInfos) sectorInfos; // nodeAddr => SectorInfos
     mapping(bytes => FileInfo) fileInfos; // fileHash => FileInfo
+    mapping(address => FileList) fileList; // walletAddr => fileHash list
 
     /************************************************************************
      * Enum define ******************************************************
@@ -358,17 +359,17 @@ contract FileSystem is Initializable, IFileSystem {
         return fileInfo;
     }
 
-    function GetFileInfos(FileList memory fileList)
+    function GetFileInfos(FileList memory _fileList)
         public
         view
         override
         returns (FileInfo[] memory)
     {
-        require(fileList.List.length > 0, "fileList is empty");
-        require(fileList.FileNum == fileList.List.length, "fileNum is wrong");
-        FileInfo[] memory _fileInfos = new FileInfo[](fileList.List.length);
-        for (uint256 i = 0; i < fileList.List.length; i++) {
-            bytes memory fileHash = fileList.List[i];
+        require(_fileList.List.length > 0, "fileList is empty");
+        require(_fileList.FileNum == _fileList.List.length, "fileNum is wrong");
+        FileInfo[] memory _fileInfos = new FileInfo[](_fileList.List.length);
+        for (uint256 i = 0; i < _fileList.List.length; i++) {
+            bytes memory fileHash = _fileList.List[i];
             FileInfo memory fileInfo = fileInfos[fileHash];
             if (fileInfo.FileHash.length == 0) {
                 revert FileNotExist(fileHash);
@@ -376,5 +377,14 @@ contract FileSystem is Initializable, IFileSystem {
             _fileInfos[i] = fileInfos[fileHash];
         }
         return _fileInfos;
+    }
+
+    function GetFileList(address walletAddr)
+        public
+        view
+        override
+        returns (FileList memory)
+    {
+        return fileList[walletAddr];
     }
 }
