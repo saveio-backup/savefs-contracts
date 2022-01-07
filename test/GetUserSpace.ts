@@ -12,12 +12,8 @@ describe("FileSystem", () => {
     assert(res != undefined)
   });
 
-  it("GetWhiteList", async () => {
-    const res = fs.GetWhiteList([]);
+  it("GetUserSpace", async () => {
+    const res = fs.GetUserSpace("0x0000000000000000000000000000000000000000");
     expect(res).to.be.reverted;
-
-    const res2 = fs.GetWhiteList([1, 2, 3]);
-    // because list is empty
-    expect(res2).to.be.reverted;
   });
 });

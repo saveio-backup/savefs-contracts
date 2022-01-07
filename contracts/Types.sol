@@ -52,6 +52,15 @@ struct NodeList {
     address[] AddrList;
 }
 
+/** userspace ******************** */
+struct UserSpace {
+    uint64 Used;
+    uint64 Remain;
+    uint64 ExpireHeight;
+    uint64 Balance;
+    uint64 UpdateHeight;
+}
+
 /** file ********************** */
 struct StorageFee {
     uint64 TxnFee;

@@ -16,6 +16,7 @@ contract FileSystem is Initializable, IFileSystem {
     mapping(bytes => FileInfo) fileInfos; // fileHash => FileInfo
     mapping(address => FileList) fileList; // walletAddr => fileHash list
     mapping(bytes => WhiteList) whiteList; // fileHash => whileList
+    mapping(address => UserSpace) userSpace; // walletAddr => UserSpace
 
     /**********************************************************************
      * Event define *******************************************************
@@ -384,6 +385,20 @@ contract FileSystem is Initializable, IFileSystem {
         NotEmptyFileHash(fileHash)
         returns (WhiteList memory)
     {
+        require(whiteList[fileHash].List.length > 0, "whiteList is empty");
         return whiteList[fileHash];
+    }
+
+    /****************************************************************************
+     * Users=Space mamanagement ***************************************************
+     */
+    function GetUserSpace(address walletAddr)
+        public
+        view
+        override
+        returns (UserSpace memory)
+    {
+        require(userSpace[walletAddr].UpdateHeight > 0, "userSpace is empty");
+        return userSpace[walletAddr];
     }
 }

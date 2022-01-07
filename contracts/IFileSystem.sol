@@ -62,4 +62,10 @@ abstract contract IFileSystem {
         view
         virtual
         returns (WhiteList memory);
+
+    function GetUserSpace(address walletAddr)
+        public
+        view
+        virtual
+        returns (UserSpace memory);
 }
