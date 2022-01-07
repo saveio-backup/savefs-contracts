@@ -180,6 +180,20 @@ contract FileSystem is Initializable, IFileSystem {
     /****************************************************************************
      * Node info mamanagement start *********************************************
      */
+
+    function CalculateNodePledge(FsNodeInfo memory fsNodeInfo)
+        public
+        pure
+        override
+        returns (uint64)
+    {
+        FsSetting memory fsSetting = FsGetSettings();
+        return
+            fsSetting.FsGasPrice *
+            fsSetting.GasPerGBPerBlock *
+            fsNodeInfo.Volume;
+    }
+
     function FsNodeRegister(FsNodeInfo memory fsNodeInfo)
         public
         payable
@@ -204,19 +218,6 @@ contract FileSystem is Initializable, IFileSystem {
             fsNodeInfo.Volume,
             fsNodeInfo.ServiceTime
         );
-    }
-
-    function CalculateNodePledge(FsNodeInfo memory fsNodeInfo)
-        public
-        pure
-        override
-        returns (uint64)
-    {
-        FsSetting memory fsSetting = FsGetSettings();
-        return
-            fsSetting.FsGasPrice *
-            fsSetting.GasPerGBPerBlock *
-            fsNodeInfo.Volume;
     }
 
     function FsNodeUpdate(FsNodeInfo memory fsNodeInfo)
@@ -282,6 +283,9 @@ contract FileSystem is Initializable, IFileSystem {
     }
 
     /**
+     * description: Actually I can't understand why do this
+     *              mixed use nodeAddr and walletAddr
+     *
      * @return nodeAddr => FsNodeInfo
      */
     function FsGetNodeList()
@@ -315,6 +319,19 @@ contract FileSystem is Initializable, IFileSystem {
         returns (FsNodeInfo memory)
     {
         return nodesInfo[nodeAddr];
+    }
+
+    function FsNodeWithDrawProfit(address walletAddr)
+        public
+        override
+        NodeRegisted(walletAddr)
+    {
+        FsNodeInfo memory fsNodeInfo = nodesInfo[walletAddr];
+        if (fsNodeInfo.Profit > 0) {
+            payable(fsNodeInfo.WalletAddr).transfer(fsNodeInfo.Profit);
+        }
+        fsNodeInfo.Profit = 0;
+        nodesInfo[walletAddr] = fsNodeInfo;
     }
     /**
      * Node info mamanagement end ************************************************

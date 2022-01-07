@@ -11,16 +11,16 @@ abstract contract IFileSystem {
         virtual
         returns (StorageFee memory);
 
-    function FsNodeRegister(FsNodeInfo memory fsNodeInfo)
-        public
-        payable
-        virtual;
-
     function CalculateNodePledge(FsNodeInfo memory fsNodeInfo)
         public
         pure
         virtual
         returns (uint64);
+
+    function FsNodeRegister(FsNodeInfo memory fsNodeInfo)
+        public
+        payable
+        virtual;
 
     function FsNodeUpdate(FsNodeInfo memory fsNodeInfo) public payable virtual;
 
@@ -39,4 +39,6 @@ abstract contract IFileSystem {
         view
         virtual
         returns (FsNodeInfo memory);
+
+    function FsNodeWithDrawProfit(address walletAddr) public virtual;
 }
