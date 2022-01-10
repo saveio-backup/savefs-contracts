@@ -795,6 +795,8 @@ contract FileSystem is Initializable, IFileSystem {
         // store file
         fileInfos[fileInfo.FileHash] = fileInfo;
         FileList storage f = fileList[fileInfo.FileOwner];
+        f.FileNum++;
+        // TODO should unique file hash
         f.List.push(fileInfo.FileHash);
         for (uint256 i = 0; i < fileInfo.PrimaryNodes.AddrList.length; i++) {
             FileList storage p = fileList[fileInfo.PrimaryNodes.AddrList[i]];

@@ -17,6 +17,9 @@ describe(scriptName, () => {
 
   it(scriptName, async () => {
     const res = fs.GetUserSpace("0x0000000000000000000000000000000000000000");
+    // because empty
     expect(res).to.be.reverted;
+    // let tx = await res;
+    // console.log(tx)
   });
 });
