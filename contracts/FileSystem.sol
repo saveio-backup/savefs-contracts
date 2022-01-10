@@ -727,7 +727,7 @@ contract FileSystem is Initializable, IFileSystem {
 
     function StoreFile(FileInfo memory fileInfo) public payable override {
         require(
-            fileInfos[fileInfo.FileHash].BlockHeight != 0,
+            fileInfos[fileInfo.FileHash].BlockHeight == 0,
             "file already exist"
         );
         require(fileInfo.ExpiredHeight > block.number, "file expired");
@@ -794,8 +794,8 @@ contract FileSystem is Initializable, IFileSystem {
         fileInfo.BlockHeight = block.number;
         // store file
         fileInfos[fileInfo.FileHash] = fileInfo;
-        FileList memory f = fileList[fileInfo.FileOwner];
-        f.List[f.List.length] = fileInfo.FileHash;
+        FileList storage f = fileList[fileInfo.FileOwner];
+        f.List.push(fileInfo.FileHash);
         for (uint256 i = 0; i < fileInfo.PrimaryNodes.AddrList.length; i++) {
             FileList storage p = fileList[fileInfo.PrimaryNodes.AddrList[i]];
             p.List.push(fileInfo.FileHash);
