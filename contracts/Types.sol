@@ -105,7 +105,7 @@ struct UploadOption {
 
 struct SectorRef {
     address NodeAddr;
-    uint64 SectorID;
+    uint64 SectorId;
 }
 
 struct PlotInfo {
@@ -161,4 +161,10 @@ struct SectorInfo {
 struct SectorInfos {
     uint64 SectorCount;
     uint64[] SectorIds;
+}
+
+struct PocProve {
+    address Miner;
+    uint32 Height;
+    uint64 PlotSize;
 }

@@ -12,11 +12,12 @@ contract FileSystem is Initializable, IFileSystem {
      */
     mapping(address => NodeInfo) nodesInfo; // walletAddr => NodeInfo
     NodeList nodeList; // nodeAddr list
-    mapping(address => SectorInfos) sectorInfos; // nodeAddr => SectorInfos
+    mapping(address => mapping(uint64 => SectorInfo)) sectorInfos; // nodeAddr => (sectorId => SectorInfo)
     mapping(bytes => FileInfo) fileInfos; // fileHash => FileInfo
     mapping(address => FileList) fileList; // walletAddr => fileHash list
     mapping(bytes => WhiteList) whiteList; // fileHash => whileList
     mapping(address => UserSpace) userSpace; // walletAddr => UserSpace
+    mapping(uint32 => PocProve[]) pocProveList; // blockNumber => PocProve
 
     /**********************************************************************
      * Event define *******************************************************
@@ -235,7 +236,7 @@ contract FileSystem is Initializable, IFileSystem {
                 nodeInfo.Pledge + nodeInfo.Profit
             );
         }
-        delete sectorInfos[nodeInfo.NodeAddr];
+        // TODO delete sector
         delete nodesInfo[walletAddr];
         NodeListRemove(walletAddr);
         emit UnRegisterNodeEvent(FsEvent.UN_REG_NODE, block.number, walletAddr);
@@ -400,5 +401,31 @@ contract FileSystem is Initializable, IFileSystem {
     {
         require(userSpace[walletAddr].UpdateHeight > 0, "userSpace is empty");
         return userSpace[walletAddr];
+    }
+
+    /****************************************************************************
+     * Sector mamanagement ***************************************************
+     */
+    function GetSectorInfo(SectorRef memory sectorRef)
+        public
+        view
+        override
+        returns (SectorInfo memory)
+    {
+        require(sectorRef.SectorId > 0, "sectorId must be greater than 0");
+        return sectorInfos[sectorRef.NodeAddr][sectorRef.SectorId];
+    }
+
+    /****************************************************************************
+     * Sector mamanagement ***************************************************
+     */
+    function GetPocProveList(uint32 height)
+        public
+        view
+        override
+        returns (PocProve[] memory)
+    {
+        require(height > 0, "Block number must lager than 0");
+        return pocProveList[height];
     }
 }

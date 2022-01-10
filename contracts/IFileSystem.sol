@@ -68,4 +68,16 @@ abstract contract IFileSystem {
         view
         virtual
         returns (UserSpace memory);
+
+    function GetSectorInfo(SectorRef memory sectorRef)
+        public
+        view
+        virtual
+        returns (SectorInfo memory);
+
+    function GetPocProveList(uint32 height)
+        public
+        view
+        virtual
+        returns (PocProve[] memory);
 }
