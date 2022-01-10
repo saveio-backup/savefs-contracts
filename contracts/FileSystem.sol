@@ -3,8 +3,287 @@ pragma solidity ^0.8.0;
 
 import "hardhat/console.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import "./IFileSystem.sol";
-import "./Types.sol";
+
+/************************************************************************
+ * Struct define ******************************************************
+ */
+/** enum ********************** */
+enum FsEvent {
+    STORE_FILE,
+    DELETE_FILE,
+    DELETE_FILES,
+    SET_USER_SPACE,
+    REG_NODE,
+    UN_REG_NODE,
+    PROVE_FILE,
+    FILE_PDP_SUCCESS,
+    CREATE_SECTOR,
+    DELETE_SECTOR
+}
+
+enum WHileListOp {
+    ADD,
+    DEL,
+    ADD_COV,
+    DEL_ALL,
+    UPDATE
+}
+
+enum ProveLevel {
+    HIGH,
+    MEDIEUM,
+    LOW
+}
+
+enum StorageType {
+    Normal,
+    Professional
+}
+/** setting ********************** */
+struct Setting {
+    uint64 GasPrice;
+    uint64 GasPerGBPerBlock;
+    uint64 GasPerKBPerBlock;
+    uint64 GasForChallenge;
+    uint64 MaxProveBlockNum;
+    uint64 MinVolume;
+    uint64 DefaultProvePeriod;
+    uint64 DefaultProveLevel;
+    uint64 DefaultCopyNum;
+}
+
+/** node info ******************** */
+struct NodeInfo {
+    uint64 Pledge;
+    uint64 Profit;
+    uint64 Volume;
+    uint64 RestVol;
+    uint64 ServiceTime;
+    address WalletAddr;
+    address NodeAddr;
+}
+
+struct NodeList {
+    uint64 AddrNum;
+    address[] AddrList;
+}
+
+/** userspace ******************** */
+struct UserSpace {
+    uint64 Used;
+    uint64 Remain;
+    uint64 ExpireHeight;
+    uint64 Balance;
+    uint64 UpdateHeight;
+}
+
+/** file ********************** */
+struct StorageFee {
+    uint64 TxnFee;
+    uint64 SpaceFee;
+    uint64 ValidationFee;
+}
+
+struct Role {
+    address Addr;
+    uint64 BaseHeight;
+    uint64 ExpireHeight;
+}
+
+struct WhiteListOp {
+    bytes FileHash;
+    WHileListOp Op;
+    WhiteList List;
+}
+
+struct WhiteList {
+    uint64 Num;
+    Role[] List;
+}
+
+struct UploadOption {
+    bytes FileDesc;
+    uint64 FileSize;
+    uint64 ProveInterval;
+    uint64 ProveLevel;
+    uint64 ExpiredHeight;
+    uint64 Privilege;
+    uint64 CopyNum;
+    bool Encrypt;
+    bytes EncryptPassword;
+    bool RegisterDNS;
+    bool BindDNS;
+    bytes DnsURL;
+    WhiteList WhiteList_;
+    bool Share;
+    StorageType StorageType_;
+}
+
+struct SectorRef {
+    address NodeAddr;
+    uint64 SectorId;
+}
+
+struct PlotInfo {
+    uint64 NumberID;
+    uint64 StartNonce;
+    uint64 Nonces;
+}
+
+struct FileInfo {
+    bytes FileHash;
+    address FileOwner;
+    bytes FileDesc;
+    uint64 Privilege;
+    uint64 FileBlockNum;
+    uint64 FileBlockSize;
+    uint64 ProveInterval;
+    uint64 ProveTimes;
+    uint64 ExpiredHeight;
+    uint64 CopyNum;
+    uint64 Deposit;
+    bytes FileProveParam;
+    uint64 ProveBlockNum;
+    uint256 BlockHeight;
+    bool ValidFlag;
+    StorageType StorageType_;
+    uint64 RealFileSize;
+    NodeList PrimaryNodes;
+    NodeList CandidateNodes;
+    ProveLevel ProveLevel_;
+    // SectorRef[] SectorRefs; // TODO
+    bool IsPlotFile;
+    PlotInfo PlotInfo_;
+}
+
+struct FileList {
+    uint64 FileNum;
+    bytes[] List;
+}
+
+struct SectorInfo {
+    address NodeAddr;
+    uint64 SectorID;
+    uint64 Size;
+    uint64 Used;
+    ProveLevel ProveLevel_;
+    uint64 FirstProveHeight;
+    uint64 NextProveHeight;
+    uint64 TotalBlockNum;
+    uint64 FileNum;
+    uint64 GroupNum;
+    bool IsPlots;
+    FileList FileList_;
+}
+
+struct SectorInfos {
+    uint64 SectorCount;
+    uint64[] SectorIds;
+}
+
+/** prove ********************** */
+
+struct PocProve {
+    address Miner;
+    uint32 Height;
+    uint64 PlotSize;
+}
+
+struct ProveDetail {
+    address NodeAddr;
+    address WalletAddr;
+    uint64 ProveTimes;
+    uint64 BlockHeight;
+    bool Finished;
+}
+
+struct ProveDetails {
+    uint64 CopyNum;
+    uint64 ProveDetailNum;
+    // ProveDetail[] ProveDetails; // TODO
+}
+
+abstract contract IFileSystem {
+    function GetSetting() public pure virtual returns (Setting memory);
+
+    function CalculateNodePledge(NodeInfo memory nodeInfo)
+        public
+        pure
+        virtual
+        returns (uint64);
+
+    function NodeRegister(NodeInfo memory nodeInfo) public payable virtual;
+
+    function NodeUpdate(NodeInfo memory nodeInfo) public payable virtual;
+
+    function NodeCancel(address walletAddr) public virtual;
+
+    function GetNodeList() public view virtual returns (NodeInfo[] memory);
+
+    function GetNodeInfoByWalletAddr(address walletAddr)
+        public
+        view
+        virtual
+        returns (NodeInfo memory);
+
+    function GetNodeInfoByNodeAddr(address nodeAddr)
+        public
+        view
+        virtual
+        returns (NodeInfo memory);
+
+    function NodeWithDrawProfit(address walletAddr) public virtual;
+
+    function GetUploadStorageFee(UploadOption memory uploadOption)
+        public
+        view
+        virtual
+        returns (StorageFee memory);
+
+    function StoreFile(FileInfo memory fileInfo) public payable virtual;
+
+    function GetFileInfo(bytes memory fileHash)
+        public
+        view
+        virtual
+        returns (FileInfo memory);
+
+    function GetFileInfos(FileList memory fileList)
+        public
+        view
+        virtual
+        returns (FileInfo[] memory);
+
+    function GetFileList(address walletAddr)
+        public
+        view
+        virtual
+        returns (FileList memory);
+
+    function GetWhiteList(bytes memory fileHash)
+        public
+        view
+        virtual
+        returns (WhiteList memory);
+
+    function GetUserSpace(address walletAddr)
+        public
+        view
+        virtual
+        returns (UserSpace memory);
+
+    function GetSectorInfo(SectorRef memory sectorRef)
+        public
+        view
+        virtual
+        returns (SectorInfo memory);
+
+    function GetPocProveList(uint32 height)
+        public
+        view
+        virtual
+        returns (PocProve[] memory);
+}
 
 contract FileSystem is Initializable, IFileSystem {
     /************************************************************************
@@ -20,7 +299,10 @@ contract FileSystem is Initializable, IFileSystem {
     NodeList nodeList; // nodeAddr list
     mapping(address => mapping(uint64 => SectorInfo)) sectorInfos; // nodeAddr => (sectorId => SectorInfo)
     mapping(bytes => FileInfo) fileInfos; // fileHash => FileInfo
-    mapping(address => FileList) fileList; // walletAddr => fileHash list
+    mapping(bytes => ProveDetails) proveDetails; // fileHash => ProveDetails
+    mapping(address => FileList) fileList; // walletAddr => filelist
+    mapping(address => FileList) primaryFileList; // walletAddr => filelist
+    mapping(address => FileList) candidateFileList; // walletAddr => filelist
     mapping(bytes => WhiteList) whiteList; // fileHash => whileList
     mapping(address => UserSpace) userSpace; // walletAddr => UserSpace
     mapping(uint32 => PocProve[]) pocProveList; // blockNumber => PocProve
@@ -114,6 +396,9 @@ contract FileSystem is Initializable, IFileSystem {
     error NotEnoughPledge(uint256 got, uint256 want);
     error ZeroProfit();
     error FileNotExist(bytes);
+    error UserspaceInsufficientBalance(uint256 got, uint256 want);
+    error UserspaceInsufficientSpace(uint256 got, uint256 want);
+    error UserspaceWrongExpiredHeight(uint256 got, uint256 want);
     /************************************************************************
      * Modifier define ******************************************************
      */
@@ -156,7 +441,7 @@ contract FileSystem is Initializable, IFileSystem {
         setting.GasPerGBPerBlock = 1;
         setting.GasPerKBPerBlock = 1;
         setting.GasForChallenge = 200000;
-        setting.MaxProveBlocks = 32;
+        setting.MaxProveBlockNum = 32;
         setting.MinVolume = 1000 * 1000;
         setting.DefaultProvePeriod = (3600 * 24) / 5;
         setting.DefaultProveLevel = 1;
@@ -440,7 +725,7 @@ contract FileSystem is Initializable, IFileSystem {
         return calcUploadFee(uploadOption, setting, block.number);
     }
 
-    function StoreFile(FileInfo memory fileInfo) public payable {
+    function StoreFile(FileInfo memory fileInfo) public payable override {
         require(
             fileInfos[fileInfo.FileHash].BlockHeight != 0,
             "file already exist"
@@ -475,7 +760,54 @@ contract FileSystem is Initializable, IFileSystem {
             uploadOption,
             block.number
         );
-        // TODO
+        if (fileInfo.StorageType_ == StorageType.Normal) {
+            UserSpace memory _userSpace = userSpace[fileInfo.FileOwner];
+            if (_userSpace.Balance < fileInfo.Deposit) {
+                revert UserspaceInsufficientBalance(
+                    _userSpace.Balance,
+                    fileInfo.Deposit
+                );
+            }
+            if (
+                _userSpace.Remain <
+                fileInfo.FileBlockSize * fileInfo.FileBlockNum
+            ) {
+                revert UserspaceInsufficientSpace(
+                    _userSpace.Remain,
+                    fileInfo.FileBlockSize
+                );
+            }
+            if (_userSpace.ExpireHeight < fileInfo.ExpiredHeight) {
+                revert UserspaceWrongExpiredHeight(
+                    _userSpace.ExpireHeight,
+                    fileInfo.ExpiredHeight
+                );
+            }
+            _userSpace.Balance -= fileInfo.Deposit;
+            _userSpace.Remain -= fileInfo.FileBlockNum * fileInfo.FileBlockSize;
+            _userSpace.Used += fileInfo.FileBlockNum * fileInfo.FileBlockSize;
+        } else {
+            require(msg.value >= fileInfo.Deposit, "insufficient deposit");
+            fileInfo.StorageType_ = StorageType.Professional;
+        }
+        fileInfo.ProveBlockNum = setting.MaxProveBlockNum;
+        fileInfo.BlockHeight = block.number;
+        // store file
+        fileInfos[fileInfo.FileHash] = fileInfo;
+        FileList memory f = fileList[fileInfo.FileOwner];
+        f.List[f.List.length] = fileInfo.FileHash;
+        for (uint256 i = 0; i < fileInfo.PrimaryNodes.AddrList.length; i++) {
+            FileList storage p = fileList[fileInfo.PrimaryNodes.AddrList[i]];
+            p.List.push(fileInfo.FileHash);
+        }
+        for (uint256 i = 0; i < fileInfo.CandidateNodes.AddrList.length; i++) {
+            FileList storage p = fileList[fileInfo.CandidateNodes.AddrList[i]];
+            p.List.push(fileInfo.FileHash);
+        }
+        ProveDetails memory _proveDetails;
+        _proveDetails.CopyNum = fileInfo.CopyNum;
+        _proveDetails.ProveDetailNum = 0;
+        proveDetails[fileInfo.FileHash] = _proveDetails;
     }
 
     function GetFileInfo(bytes memory fileHash)
