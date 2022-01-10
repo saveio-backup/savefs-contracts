@@ -8,6 +8,12 @@ import "./Types.sol";
 
 contract FileSystem is Initializable, IFileSystem {
     /************************************************************************
+     * Constant define ******************************************************
+     */
+    uint64 DEFAULT_BLOCK_INTERVAL = 5;
+    uint64 DEFAULT_PROVE_PERIOD = (3600 * 24) / DEFAULT_BLOCK_INTERVAL;
+
+    /************************************************************************
      * Field define ******************************************************
      */
     mapping(address => NodeInfo) nodesInfo; // walletAddr => NodeInfo
@@ -301,6 +307,128 @@ contract FileSystem is Initializable, IFileSystem {
     /****************************************************************************
      * File info mamanagement ***************************************************
      */
+    function calcProveTimesByUploadInfo(
+        UploadOption memory uploadOption,
+        uint256 beginHeight
+    ) public pure returns (uint64) {
+        return
+            (uploadOption.ExpiredHeight - uint64(beginHeight)) /
+            uploadOption.ProveInterval +
+            1;
+    }
+
+    function calcSingleValidFeeForFile(Setting memory setting, uint64 fileSize)
+        public
+        pure
+        returns (uint64)
+    {
+        return (setting.GasForChallenge * fileSize) / 1024000;
+    }
+
+    function calcValidFeeForOneNode(
+        Setting memory setting,
+        uint64 proveTime,
+        uint64 fileSize
+    ) public pure returns (uint64) {
+        return proveTime * calcSingleValidFeeForFile(setting, fileSize);
+    }
+
+    function calcValidFee(
+        Setting memory setting,
+        uint64 proveTime,
+        uint64 copyNum,
+        uint64 fileSize
+    ) public pure returns (uint64) {
+        return
+            (copyNum + 1) *
+            calcValidFeeForOneNode(setting, proveTime, fileSize);
+    }
+
+    function calcStorageFeeForOneNode(
+        Setting memory setting,
+        uint64 fileSize,
+        uint64 duration
+    ) public pure returns (uint64) {
+        return (setting.GasPerGBPerBlock * fileSize * duration) / 1024000;
+    }
+
+    function calcStorageFee(
+        Setting memory setting,
+        uint64 copyNum,
+        uint64 fileSize,
+        uint64 duration
+    ) public pure returns (uint64) {
+        return
+            (copyNum + 1) *
+            calcStorageFeeForOneNode(setting, fileSize, duration);
+    }
+
+    function calcFee(
+        Setting memory setting,
+        uint64 proveTime,
+        uint64 copyNum,
+        uint64 fileSize,
+        uint64 duration
+    ) public pure returns (StorageFee memory) {
+        StorageFee memory fee;
+        uint64 validFee = calcValidFee(setting, proveTime, copyNum, fileSize);
+        uint64 storageFee = calcStorageFee(
+            setting,
+            copyNum,
+            fileSize,
+            duration
+        );
+        fee.ValidationFee = validFee;
+        fee.SpaceFee = storageFee;
+        return fee;
+    }
+
+    function calcDepositFee(
+        UploadOption memory uploadOption,
+        Setting memory setting,
+        uint256 currentHeight
+    ) public pure returns (StorageFee memory) {
+        uint64 proveTime = calcProveTimesByUploadInfo(
+            uploadOption,
+            currentHeight
+        );
+        StorageFee memory fee = calcFee(
+            setting,
+            proveTime,
+            uploadOption.CopyNum,
+            uploadOption.FileSize,
+            uploadOption.ExpiredHeight - uint64(currentHeight)
+        );
+        return fee;
+    }
+
+    function calcUploadFee(
+        UploadOption memory uploadOption,
+        Setting memory setting,
+        uint256 currentHeight
+    ) public pure returns (StorageFee memory) {
+        uint64 fee;
+        uint64 txGas = 10000000;
+        if (uploadOption.WhiteList_.Num > 0) {
+            fee = txGas * 4;
+        } else {
+            fee = txGas * 3;
+        }
+        StorageFee memory sf;
+        sf.TxnFee = fee;
+        if (uploadOption.StorageType_ == StorageType.Normal) {
+            return sf;
+        }
+        StorageFee memory depositFee = calcDepositFee(
+            uploadOption,
+            setting,
+            currentHeight
+        );
+        sf.ValidationFee = depositFee.ValidationFee;
+        sf.SpaceFee = depositFee.SpaceFee;
+        return sf;
+    }
+
     function GetUploadStorageFee(UploadOption memory uploadOption)
         public
         view
@@ -309,31 +437,45 @@ contract FileSystem is Initializable, IFileSystem {
     {
         require(uploadOption.FileSize > 0, "fileSize must be greater than 0");
         Setting memory setting = GetSetting();
-        StorageFee memory storageFee;
-        uint64 fee;
-        uint64 txGas = 10000000;
-        if (uploadOption.WhiteList_.Num > 0) {
-            fee = txGas * 4;
-        } else {
-            fee = txGas * 3;
-        }
+        return calcUploadFee(uploadOption, setting, block.number);
+    }
 
-        uint64 proveTime = (uploadOption.ExpiredHeight - uint64(block.number)) /
-            uploadOption.ProveInterval +
-            1;
-        uint64 validFee = (uploadOption.CopyNum + 1) *
-            uint64(
-                proveTime +
-                    (setting.GasForChallenge * uploadOption.FileSize) /
-                    1024000
-            );
-        uint64 spaceFee = ((uploadOption.CopyNum + 1) *
-            setting.GasPerGBPerBlock *
-            uploadOption.FileSize) / uint64(1024000);
-        storageFee.TxnFee = fee;
-        storageFee.ValidationFee = validFee;
-        storageFee.SpaceFee = spaceFee;
-        return storageFee;
+    function StoreFile(FileInfo memory fileInfo) public payable {
+        require(
+            fileInfos[fileInfo.FileHash].BlockHeight != 0,
+            "file already exist"
+        );
+        require(fileInfo.ExpiredHeight > block.number, "file expired");
+        Setting memory setting = GetSetting();
+        if (fileInfo.ProveLevel_ == ProveLevel.HIGH) {
+            fileInfo.ProveInterval = DEFAULT_PROVE_PERIOD;
+        }
+        if (fileInfo.ProveLevel_ == ProveLevel.MEDIEUM) {
+            fileInfo.ProveInterval = DEFAULT_PROVE_PERIOD;
+        }
+        if (fileInfo.ProveLevel_ == ProveLevel.LOW) {
+            fileInfo.ProveInterval = DEFAULT_PROVE_PERIOD;
+        }
+        fileInfo.ValidFlag = true;
+        UploadOption memory uploadOption;
+        uploadOption.ExpiredHeight = fileInfo.ExpiredHeight;
+        uploadOption.ProveInterval = fileInfo.ProveInterval;
+        uploadOption.CopyNum = fileInfo.CopyNum;
+        uploadOption.FileSize = fileInfo.FileBlockSize * fileInfo.FileBlockNum;
+        StorageFee memory uploadFee = calcDepositFee(
+            uploadOption,
+            setting,
+            block.number
+        );
+        fileInfo.Deposit =
+            uploadFee.TxnFee +
+            uploadFee.SpaceFee +
+            uploadFee.ValidationFee;
+        fileInfo.ProveTimes = calcProveTimesByUploadInfo(
+            uploadOption,
+            block.number
+        );
+        // TODO
     }
 
     function GetFileInfo(bytes memory fileHash)

@@ -40,7 +40,7 @@ describe(scriptName, () => {
         ],
       },
       Share: true,
-      StorageType: 0,
+      StorageType_: 0,
     });
     expect(res).to.be.reverted;
   });
@@ -70,7 +70,7 @@ describe(scriptName, () => {
         ],
       },
       Share: true,
-      StorageType: 0,
+      StorageType_: 0,
     });
     expect(res2).to.not.be.reverted;
   });
@@ -100,7 +100,7 @@ describe(scriptName, () => {
         ],
       },
       Share: true,
-      StorageType: 0,
+      StorageType_: 0,
     });
     expect(res2).to.not.be.reverted;
   });

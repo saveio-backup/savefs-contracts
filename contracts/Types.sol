@@ -23,6 +23,17 @@ enum WHileListOp {
     UPDATE
 }
 
+enum ProveLevel {
+    HIGH,
+    MEDIEUM,
+    LOW
+}
+
+enum StorageType {
+    Normal,
+Professional
+}
+
 /** setting ********************** */
 struct Setting {
     uint64 GasPrice;
@@ -100,7 +111,7 @@ struct UploadOption {
     bytes DnsURL;
     WhiteList WhiteList_;
     bool Share;
-    uint64 StorageType;
+    StorageType StorageType_;
 }
 
 struct SectorRef {
@@ -119,6 +130,7 @@ struct FileInfo {
     address FileOwner;
     bytes FileDesc;
     uint64 Privilege;
+    uint64 FileBlockNum;
     uint64 FileBlockSize;
     uint64 ProveInterval;
     uint64 ProveTimes;
@@ -132,7 +144,7 @@ struct FileInfo {
     uint64 RealFileSize;
     NodeList PrimaryNodes;
     NodeList CandidateNodes;
-    bytes ProveLevel;
+    ProveLevel ProveLevel_;
     SectorRef[] SectorRes;
     bool IsPlotFile;
     PlotInfo PlotInfo_;
@@ -148,7 +160,7 @@ struct SectorInfo {
     uint64 SectorID;
     uint64 Size;
     uint64 Used;
-    uint64 ProveLevel;
+    ProveLevel ProveLevel_;
     uint64 FirstProveHeight;
     uint64 NextProveHeight;
     uint64 TotalBlockNum;
