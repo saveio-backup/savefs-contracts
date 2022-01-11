@@ -4,9 +4,6 @@ pragma solidity ^0.8.0;
 import "hardhat/console.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
-/************************************************************************
- * Struct define ******************************************************
- */
 /** enum ********************** */
 enum FsEvent {
     STORE_FILE,
@@ -39,6 +36,7 @@ enum StorageType {
     Normal,
     Professional
 }
+
 /** setting ********************** */
 struct Setting {
     uint64 GasPrice;
@@ -181,8 +179,13 @@ struct SectorInfos {
     uint64[] SectorIds;
 }
 
-/** prove ********************** */
+struct FileReNewInfo {
+    bytes FileHash;
+    address FromAddr;
+    uint64 ReNewTimes;
+}
 
+/** prove ********************** */
 struct PocProve {
     address Miner;
     uint32 Height;
@@ -203,9 +206,14 @@ struct ProveDetails {
     // ProveDetail[] ProveDetails; // TODO
 }
 
+/**
+ * @title IFileSystem
+ * @dev IFileSystem contract
+ */
 abstract contract IFileSystem {
     function GetSetting() public pure virtual returns (Setting memory);
 
+    /** node ****************************************************** */
     function CalculateNodePledge(NodeInfo memory nodeInfo)
         public
         pure
@@ -234,6 +242,7 @@ abstract contract IFileSystem {
 
     function NodeWithDrawProfit(address walletAddr) public virtual;
 
+    /** file ****************************************************** */
     function GetUploadStorageFee(UploadOption memory uploadOption)
         public
         view
@@ -241,6 +250,11 @@ abstract contract IFileSystem {
         returns (StorageFee memory);
 
     function StoreFile(FileInfo memory fileInfo) public payable virtual;
+
+    function FileReNew(FileReNewInfo memory fileReNewInfo)
+        public
+        payable
+        virtual;
 
     function GetFileInfo(bytes memory fileHash)
         public
@@ -260,24 +274,28 @@ abstract contract IFileSystem {
         virtual
         returns (FileList memory);
 
+    /** white list ****************************************************** */
     function GetWhiteList(bytes memory fileHash)
         public
         view
         virtual
         returns (WhiteList memory);
 
+    /** userspace ****************************************************** */
     function GetUserSpace(address walletAddr)
         public
         view
         virtual
         returns (UserSpace memory);
 
+    /** sector ****************************************************** */
     function GetSectorInfo(SectorRef memory sectorRef)
         public
         view
         virtual
         returns (SectorInfo memory);
 
+    /** prove ****************************************************** */
     function GetPocProveList(uint32 height)
         public
         view
@@ -285,6 +303,10 @@ abstract contract IFileSystem {
         returns (PocProve[] memory);
 }
 
+/**
+ * @title FileSystem
+ * @dev FileSystem contract
+ */
 contract FileSystem is Initializable, IFileSystem {
     /************************************************************************
      * Constant define ******************************************************
@@ -399,6 +421,7 @@ contract FileSystem is Initializable, IFileSystem {
     error UserspaceInsufficientBalance(uint256 got, uint256 want);
     error UserspaceInsufficientSpace(uint256 got, uint256 want);
     error UserspaceWrongExpiredHeight(uint256 got, uint256 want);
+    error NotEnoughTransfer(uint256 got, uint256 want);
     /************************************************************************
      * Modifier define ******************************************************
      */
@@ -810,6 +833,45 @@ contract FileSystem is Initializable, IFileSystem {
         _proveDetails.CopyNum = fileInfo.CopyNum;
         _proveDetails.ProveDetailNum = 0;
         proveDetails[fileInfo.FileHash] = _proveDetails;
+    }
+
+    function FileReNew(FileReNewInfo memory fileReNewInfo)
+        public
+        payable
+        override
+    {
+        require(
+            fileInfos[fileReNewInfo.FileHash].BlockHeight > 0,
+            "file not exist"
+        );
+        require(
+            fileInfos[fileReNewInfo.FileHash].StorageType_ ==
+                StorageType.Professional,
+            "file type error"
+        );
+        require(
+            fileInfos[fileReNewInfo.FileHash].ExpiredHeight > block.number,
+            "file expired"
+        );
+        Setting memory setting = GetSetting();
+        FileInfo memory fileInfo = fileInfos[fileReNewInfo.FileHash];
+        StorageFee memory totalRenew = calcFee(
+            setting,
+            fileReNewInfo.ReNewTimes,
+            fileInfo.CopyNum,
+            fileInfo.FileBlockNum * fileInfo.FileBlockSize,
+            fileReNewInfo.ReNewTimes * fileInfo.ProveInterval
+        );
+        uint64 reNewFee = totalRenew.ValidationFee + totalRenew.SpaceFee;
+        if (msg.value < reNewFee) {
+            revert NotEnoughTransfer(msg.value, reNewFee);
+        }
+        fileInfo.ProveTimes += fileReNewInfo.ReNewTimes;
+        fileInfo.Deposit += reNewFee;
+        fileInfo.ExpiredHeight +=
+            fileInfo.ProveInterval *
+            fileReNewInfo.ReNewTimes;
+        fileInfos[fileReNewInfo.FileHash] = fileInfo;
     }
 
     function GetFileInfo(bytes memory fileHash)
