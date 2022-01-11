@@ -43,11 +43,40 @@ describe(scriptName, () => {
   // -------------------------------------------------------
 
   it(scriptName, async () => {
-    const tx = sector.GetSectorInfo({
-      SectorId: "1",
-      NodeAddr: "0x0000000000000000000000000000000000000000",
+    const tx2 = node.NodeRegister({
+      Pledge: 0,
+      Profit: 0,
+      Volume: 1000 * 1000,
+      RestVol: 0,
+      ServiceTime: 0,
+      WalletAddr: "0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199",
+      NodeAddr: "0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199",
+    },
+      {
+        value: 1000000
+      }
+    );
+    let s = await (await tx2).wait();
+    // console.log(s)
+
+    const tx = sector.CreateSector({
+      NodeAddr: "0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199",
+      SectorID: 1,
+      Size: 1,
+      Used: 0,
+      ProveLevel_: 1,
+      FirstProveHeight: 1,
+      NextProveHeight: 1,
+      TotalBlockNum: 1,
+      FileNum: 1,
+      GroupNum: 1,
+      IsPlots: false,
+      FileList_: {
+        FileNum: 0,
+        List: []
+      }
     });
-    let res = await tx;
-    assert(res.Size.eq(0));
+    // expect(tx).to.not.be.reverted;
+    console.log(await (await tx).wait())
   });
 });
