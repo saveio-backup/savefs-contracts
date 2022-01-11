@@ -1,21 +1,35 @@
 import { expect, assert } from "chai";
 import { ethers, network } from "hardhat";
-import { FileSystem } from "../typechain";
+import { FileSystem, Config, Node } from "../typechain";
 
 var path = require('path');
 var scriptName = path.basename(__filename);
 
 describe(scriptName, () => {
-  let fs: FileSystem;
+  let node: Node;
+  let config: Config;
 
-  it("Deploy", async () => {
-    const FS = await ethers.getContractFactory("FileSystem");
-    fs = await FS.deploy();
-    await fs.deployed();
+  it("Deploy Config", async () => {
+    const Config = await ethers.getContractFactory("Config");
+    config = await Config.deploy();
+    let res = config.deployed();
+    expect(res).to.not.be.reverted;
+  });
+
+  it("Deploy Node", async () => {
+    const Node = await ethers.getContractFactory("Node");
+    node = await Node.deploy();
+    let res = node.deployed();
+    expect(res).to.not.be.reverted;
+  });
+
+  it("Node initialize", async () => {
+    let tx = node.initialize(config.address);
+    expect(tx).to.not.be.reverted;
   });
 
   it(scriptName, async () => {
-    let tx = fs.NodeRegister({
+    let tx = node.NodeRegister({
       Pledge: 0,
       Profit: 0,
       Volume: 1000 * 1000,
@@ -28,7 +42,7 @@ describe(scriptName, () => {
     });
     await (await tx).wait();
 
-    let tx2 = fs.NodeUpdate({
+    let tx2 = node.NodeUpdate({
       Pledge: 0,
       Profit: 0,
       Volume: 1000 * 1000,

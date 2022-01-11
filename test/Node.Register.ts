@@ -1,6 +1,6 @@
 import { expect, assert } from "chai";
 import { ethers, network } from "hardhat";
-import { FileSystem } from "../typechain";
+import { FileSystem, Node, Config } from "../typechain";
 
 var path = require('path');
 var scriptName = path.basename(__filename);
@@ -10,17 +10,30 @@ describe(scriptName, () => {
     await network.provider.send("hardhat_reset")
   })
 
-  let fs: FileSystem;
+  let node: Node;
+  let config: Config;
 
-  it("Deploy", async () => {
-    const FS = await ethers.getContractFactory("FileSystem");
-    fs = await FS.deploy();
-    let res = await fs.deployed();
-    assert(res != undefined)
+  it("Deploy Config", async () => {
+    const Config = await ethers.getContractFactory("Config");
+    config = await Config.deploy();
+    let res = config.deployed();
+    expect(res).to.not.be.reverted;
+  });
+
+  it("Deploy Node", async () => {
+    const Node = await ethers.getContractFactory("Node");
+    node = await Node.deploy();
+    let res = node.deployed();
+    expect(res).to.not.be.reverted;
+  });
+
+  it("Node initialize", async () => {
+    let tx = node.initialize(config.address);
+    expect(tx).to.not.be.reverted;
   });
 
   it(`${scriptName} require 1`, async () => {
-    let tx = fs.NodeRegister({
+    let tx = node.NodeRegister({
       Pledge: 0,
       Profit: 0,
       Volume: 0,
@@ -31,7 +44,7 @@ describe(scriptName, () => {
     });
     expect(tx).to.be.reverted;
 
-    const tx2 = fs.NodeRegister({
+    const tx2 = node.NodeRegister({
       Pledge: 0,
       Profit: 0,
       Volume: 1000 * 1000,
@@ -44,7 +57,7 @@ describe(scriptName, () => {
   });
 
   it(`${scriptName} require 2`, async () => {
-    let tx = fs.NodeRegister({
+    let tx = node.NodeRegister({
       Pledge: 0,
       Profit: 0,
       Volume: 1000 * 1000,
@@ -55,7 +68,7 @@ describe(scriptName, () => {
     });
     expect(tx).to.not.be.reverted;
 
-    const tx2 = fs.NodeRegister({
+    const tx2 = node.NodeRegister({
       Pledge: 0,
       Profit: 0,
       Volume: 1000 * 1000,
@@ -68,7 +81,7 @@ describe(scriptName, () => {
   });
 
   it(`${scriptName} event`, async () => {
-    const tx = fs.NodeRegister({
+    const tx = node.NodeRegister({
       Pledge: 0,
       Profit: 0,
       Volume: 1000 * 1000,
