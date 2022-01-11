@@ -24,7 +24,6 @@ contract FileSystem is Initializable {
     mapping(address => FileList) fileList; // walletAddr => filelist
     mapping(address => FileList) primaryFileList; // walletAddr => filelist
     mapping(address => FileList) candidateFileList; // walletAddr => filelist
-    mapping(address => mapping(uint64 => SectorInfo)) sectorInfos; // nodeAddr => (sectorId => SectorInfo)
     mapping(bytes => ProveDetails) proveDetails; // fileHash => ProveDetails
     mapping(bytes => WhiteList) whiteList; // fileHash => whileList
     mapping(address => UserSpace) userSpace; // walletAddr => UserSpace
@@ -109,7 +108,7 @@ contract FileSystem is Initializable {
     function initialize(Config _config, Node _node) public initializer {
         config = _config;
         node = _node;
-    }   
+    }
 
     function calcProveTimesByUploadInfo(
         UploadOption memory uploadOption,
@@ -425,36 +424,6 @@ contract FileSystem is Initializable {
     {
         require(userSpace[walletAddr].UpdateHeight > 0, "userSpace is empty");
         return userSpace[walletAddr];
-    }
-
-    /****************************************************************************
-     * Sector mamanagement ***************************************************
-     */
-    function getSectorTotalSizeForNode(address nodeAddr)
-        public
-        pure
-        returns (uint64)
-    {
-        // uint64 totalSize = 0;
-        // mapping(uint64 => SectorInfo) memory nodeSectorInfos = sectorInfos[nodeAddr];
-    }
-
-    function CreateSector(SectorInfo memory sectorInfo) public view {
-        require(sectorInfo.SectorID > 0, "sectorId is wrong");
-        require(sectorInfo.Size > 0, "sector size is wrong");
-        require(
-            node.IsNodeRegisted(sectorInfo.NodeAddr),
-            "node not registered"
-        );
-    }
-
-    function GetSectorInfo(SectorRef memory sectorRef)
-        public
-        view
-        returns (SectorInfo memory)
-    {
-        require(sectorRef.SectorId > 0, "sectorId must be greater than 0");
-        return sectorInfos[sectorRef.NodeAddr][sectorRef.SectorId];
     }
 
     /****************************************************************************

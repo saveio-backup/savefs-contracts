@@ -1,21 +1,30 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.0;
 
-struct IndexValue { uint keyIndex; uint value; }
-struct KeyFlag { uint key; bool deleted; }
+struct IndexValue {
+    uint256 keyIndex;
+    uint256 value;
+}
+struct KeyFlag {
+    uint256 key;
+    bool deleted;
+}
 
 struct itmap {
-    mapping(uint => IndexValue) data;
+    mapping(uint256 => IndexValue) data;
     KeyFlag[] keys;
-    uint size;
+    uint256 size;
 }
 
 library IterableMapping {
-    function insert(itmap storage self, uint key, uint value) internal returns (bool replaced) {
-        uint keyIndex = self.data[key].keyIndex;
+    function insert(
+        itmap storage self,
+        uint64 key,
+        uint256 value
+    ) internal returns (bool replaced) {
+        uint256 keyIndex = self.data[key].keyIndex;
         self.data[key].value = value;
-        if (keyIndex > 0)
-            return true;
+        if (keyIndex > 0) return true;
         else {
             keyIndex = self.keys.length;
             self.keys.push();
@@ -26,35 +35,57 @@ library IterableMapping {
         }
     }
 
-    function remove(itmap storage self, uint key) internal returns (bool success) {
-        uint keyIndex = self.data[key].keyIndex;
-        if (keyIndex == 0)
-            return false;
+    function remove(itmap storage self, uint256 key)
+        internal
+        returns (bool success)
+    {
+        uint256 keyIndex = self.data[key].keyIndex;
+        if (keyIndex == 0) return false;
         delete self.data[key];
         self.keys[keyIndex - 1].deleted = true;
-        self.size --;
+        self.size--;
     }
 
-    function contains(itmap storage self, uint key) internal view returns (bool) {
+    function contains(itmap storage self, uint256 key)
+        internal
+        view
+        returns (bool)
+    {
         return self.data[key].keyIndex > 0;
     }
 
-    function iterate_start(itmap storage self) internal view returns (uint keyIndex) {
-        return iterate_next(self, type(uint).max);
+    function iterate_start(itmap storage self)
+        internal
+        view
+        returns (uint256 keyIndex)
+    {
+        return iterate_next(self, type(uint256).max);
     }
 
-    function iterate_valid(itmap storage self, uint keyIndex) internal view returns (bool) {
+    function iterate_valid(itmap storage self, uint256 keyIndex)
+        internal
+        view
+        returns (bool)
+    {
         return keyIndex < self.keys.length;
     }
 
-    function iterate_next(itmap storage self, uint keyIndex) internal view returns (uint r_keyIndex) {
+    function iterate_next(itmap storage self, uint256 keyIndex)
+        internal
+        view
+        returns (uint256 r_keyIndex)
+    {
         keyIndex++;
         while (keyIndex < self.keys.length && self.keys[keyIndex].deleted)
             keyIndex++;
         return keyIndex;
     }
 
-    function iterate_get(itmap storage self, uint keyIndex) internal view returns (uint key, uint value) {
+    function iterate_get(itmap storage self, uint256 keyIndex)
+        internal
+        view
+        returns (uint256 key, uint256 value)
+    {
         key = self.keys[keyIndex].key;
         value = self.data[key].value;
     }
