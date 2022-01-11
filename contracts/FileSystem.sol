@@ -3,9 +3,10 @@ pragma solidity ^0.8.0;
 
 import "hardhat/console.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import "./Library.sol";
 import "./Type.sol";
+import "./Config.sol";
 import "./Node.sol";
+import "./Library.sol";
 
 /**
  * @title FileSystem
@@ -105,9 +106,10 @@ contract FileSystem is Initializable {
         _;
     }
 
-    function initialize() public initializer {
-        console.log("initializer");
-    }
+    function initialize(Config _config, Node _node) public initializer {
+        config = _config;
+        node = _node;
+    }   
 
     function calcProveTimesByUploadInfo(
         UploadOption memory uploadOption,

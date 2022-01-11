@@ -1,10 +1,9 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.0;
 
-import "./Type.sol";
-import "./FileSystem.sol";
 import "hardhat/console.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "./Type.sol";
 
 contract Config is Initializable {
     function GetSetting() external pure returns (Setting memory) {
