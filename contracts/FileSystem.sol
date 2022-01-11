@@ -12,19 +12,12 @@ import "./Node.sol";
  * @dev FileSystem contract
  */
 contract FileSystem is Initializable {
-    /************************************************************************
-     * Constant define ******************************************************
-     */
-    uint64 DEFAULT_BLOCK_INTERVAL = 5;
-    uint64 DEFAULT_PROVE_PERIOD = (3600 * 24) / DEFAULT_BLOCK_INTERVAL;
-    uint64 IN_SECTOR_SIZE = 1000 * 1000;
-
     Config config;
     Node node;
 
-    /************************************************************************
-     * Field define ******************************************************
-     */
+    uint64 DEFAULT_BLOCK_INTERVAL = 5;
+    uint64 DEFAULT_PROVE_PERIOD = (3600 * 24) / DEFAULT_BLOCK_INTERVAL;
+    uint64 IN_SECTOR_SIZE = 1000 * 1000;
 
     mapping(bytes => FileInfo) fileInfos; // fileHash => FileInfo
     mapping(address => FileList) fileList; // walletAddr => filelist
@@ -36,9 +29,6 @@ contract FileSystem is Initializable {
     mapping(address => UserSpace) userSpace; // walletAddr => UserSpace
     mapping(uint32 => PocProve[]) pocProveList; // blockNumber => PocProve
 
-    /**********************************************************************
-     * Event define *******************************************************
-     */
     event StoreFileEvent(
         FsEvent eventType,
         uint256 blockHeight,
@@ -104,32 +94,21 @@ contract FileSystem is Initializable {
         uint64 sectorId
     );
 
-    /************************************************************************
-     * Error define ******************************************************
-     */
     error FileNotExist(bytes);
     error UserspaceInsufficientBalance(uint256 got, uint256 want);
     error UserspaceInsufficientSpace(uint256 got, uint256 want);
     error UserspaceWrongExpiredHeight(uint256 got, uint256 want);
     error NotEnoughTransfer(uint256 got, uint256 want);
-    /************************************************************************
-     * Modifier define ******************************************************
-     */
+
     modifier NotEmptyFileHash(bytes memory fileHash) {
         require(fileHash.length > 0, "fileHash must be empty");
         _;
     }
 
-    /****************************************************************************
-     * Constract method *********************************************************
-     */
     function initialize() public initializer {
         console.log("initializer");
     }
 
-    /****************************************************************************
-     * File info mamanagement ***************************************************
-     */
     function calcProveTimesByUploadInfo(
         UploadOption memory uploadOption,
         uint256 beginHeight
