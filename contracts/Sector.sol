@@ -4,7 +4,6 @@ pragma solidity ^0.8.0;
 import "hardhat/console.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "./Type.sol";
-import "./Config.sol";
 import "./Node.sol";
 
 contract Sector is Initializable {
@@ -47,14 +46,10 @@ contract Sector is Initializable {
             ).Size == 0,
             "sector already exists"
         );
-        console.log(2);
         NodeInfo memory nodeInfo = node.GetNodeInfoByNodeAddr(
             sectorInfo.NodeAddr
         );
-        console.log(3);
         uint64 totalSize = getSectorTotalSizeForNode(sectorInfo.NodeAddr);
-        console.log(4);
-        console.log("totalSize", totalSize,sectorInfo.Size + totalSize > nodeInfo.Volume);
         if (sectorInfo.Size + totalSize > nodeInfo.Volume) {
             revert NotEnoughVolume(
                 nodeInfo.Volume,
@@ -78,5 +73,13 @@ contract Sector is Initializable {
         }
         SectorInfo memory emptySectorInfo;
         return emptySectorInfo;
+    }
+
+    function GetSectorInfos(address nodeAddr)
+        public
+        view
+        returns (SectorInfo[] memory)
+    {
+        return sectorInfos[nodeAddr];
     }
 }

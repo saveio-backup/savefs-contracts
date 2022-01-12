@@ -6,8 +6,8 @@ var path = require('path');
 var scriptName = path.basename(__filename);
 
 describe(scriptName, function () {
-  let node: Node;
   let config: Config;
+  let node: Node;
   let sector: Sector;
 
   it("Deploy Config", async () => {
@@ -32,12 +32,12 @@ describe(scriptName, function () {
   it("Deploy Sector", async () => {
     const S = await ethers.getContractFactory("Sector");
     sector = await S.deploy();
-    let res = node.deployed();
+    let res = sector.deployed();
     expect(res).to.not.be.reverted;
   });
 
   it("Sector initialize", async () => {
-    let tx = node.initialize(node.address);
+    let tx = sector.initialize(node.address);
     expect(tx).to.not.be.reverted;
   });
 

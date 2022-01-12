@@ -1,13 +1,13 @@
 import { expect, assert } from "chai";
 import { ethers, network } from "hardhat";
-import { FileSystem, Node, Config, Sector } from "../typechain";
+import { Node, Config, Sector } from "../typechain";
 
 var path = require('path');
 var scriptName = path.basename(__filename);
 
 describe(scriptName, () => {
-  let node: Node;
   let config: Config;
+  let node: Node;
   let sector: Sector;
 
   it("Deploy Config", async () => {
@@ -43,6 +43,10 @@ describe(scriptName, () => {
   // -------------------------------------------------------
 
   it(scriptName, async () => {
+    const tx = sector.GetSectorInfos("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266");
+    let res = await tx;
+    assert(res.length == 0);
+
     const tx2 = node.NodeRegister({
       Pledge: 0,
       Profit: 0,
@@ -59,7 +63,7 @@ describe(scriptName, () => {
     let s = await (await tx2).wait();
     // console.log(s)
 
-    const tx = sector.CreateSector({
+    const tx3 = sector.CreateSector({
       NodeAddr: "0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199",
       SectorID: 1,
       Size: 1,
@@ -76,7 +80,11 @@ describe(scriptName, () => {
         List: []
       }
     });
-    expect(tx).to.not.be.reverted;
-    // console.log(await (await tx).wait())
+    let r3 = await (await tx3).wait()
+    // console.log(r2)
+
+    const tx4 = sector.GetSectorInfos("0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199");
+    let res4 = await tx4;
+    assert(res4.length == 1);
   });
 });
