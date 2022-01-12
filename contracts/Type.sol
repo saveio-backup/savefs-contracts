@@ -34,6 +34,12 @@ enum StorageType {
     Professional
 }
 
+enum UserSpaceType {
+    None,
+    Add,
+    Revoke
+}
+
 /** setting ********************** */
 struct Setting {
     uint64 GasPrice;
@@ -73,7 +79,7 @@ struct UserSpace {
 }
 
 struct UserSpaceOperation {
-    uint64 Type;
+    UserSpaceType Type;
     uint64 Value;
 }
 

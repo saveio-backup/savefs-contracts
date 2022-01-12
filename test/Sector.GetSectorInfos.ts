@@ -1,50 +1,17 @@
 import { expect, assert } from "chai";
 import { ethers, network } from "hardhat";
 import { Node, Config, Sector } from "../typechain";
+import { config, fs, node, space, sector } from "./initialize";
 
 var path = require('path');
 var scriptName = path.basename(__filename);
 
 describe(scriptName, () => {
-  let config: Config;
-  let node: Node;
-  let sector: Sector;
-
-  it("Deploy Config", async () => {
-    const Config = await ethers.getContractFactory("Config");
-    config = await Config.deploy();
-    let res = config.deployed();
-    expect(res).to.not.be.reverted;
-  });
-
-  it("Deploy Node", async () => {
-    const Node = await ethers.getContractFactory("Node");
-    node = await Node.deploy();
-    let res = node.deployed();
-    expect(res).to.not.be.reverted;
-  });
-
-  it("Node initialize", async () => {
-    let tx = node.initialize(config.address);
-    expect(tx).to.not.be.reverted;
-  });
-
-  it("Deploy Sector", async () => {
-    const S = await ethers.getContractFactory("Sector");
-    sector = await S.deploy();
-    let res = sector.deployed();
-    expect(res).to.not.be.reverted;
-  });
-
-  it("Sector initialize", async () => {
-    let tx = sector.initialize(node.address);
-    expect(tx).to.not.be.reverted;
-  });
-  // -------------------------------------------------------
 
   it(scriptName, async () => {
-    const tx = sector.GetSectorInfos("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266");
+    const tx = sector.GetSectorInfos("0xdD2FD4581271e230360230F9337D5c0430Bf44C0");
     let res = await tx;
+    // console.log(res)
     assert(res.length == 0);
 
     const tx2 = node.NodeRegister({
@@ -53,8 +20,8 @@ describe(scriptName, () => {
       Volume: 1000 * 1000,
       RestVol: 0,
       ServiceTime: 0,
-      WalletAddr: "0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199",
-      NodeAddr: "0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199",
+      WalletAddr: "0xdD2FD4581271e230360230F9337D5c0430Bf44C0",
+      NodeAddr: "0xdD2FD4581271e230360230F9337D5c0430Bf44C0",
     },
       {
         value: 1000000
@@ -64,7 +31,7 @@ describe(scriptName, () => {
     // console.log(s)
 
     const tx3 = sector.CreateSector({
-      NodeAddr: "0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199",
+      NodeAddr: "0xdD2FD4581271e230360230F9337D5c0430Bf44C0",
       SectorID: 1,
       Size: 1,
       Used: 0,
@@ -81,10 +48,11 @@ describe(scriptName, () => {
       }
     });
     let r3 = await (await tx3).wait()
-    // console.log(r2)
+    // console.log(r3)
 
-    const tx4 = sector.GetSectorInfos("0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199");
+    const tx4 = sector.GetSectorInfos("0xdD2FD4581271e230360230F9337D5c0430Bf44C0");
     let res4 = await tx4;
     assert(res4.length == 1);
+    // console.log(res4)
   });
 });

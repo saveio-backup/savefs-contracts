@@ -1,32 +1,12 @@
 import { expect, assert } from "chai";
 import { ethers, network } from "hardhat";
 import { FileSystem, Config, Node } from "../typechain";
+import { config, fs, node, space } from "./initialize";
 
 var path = require('path');
 var scriptName = path.basename(__filename);
 
 describe(scriptName, () => {
-  let node: Node;
-  let config: Config;
-
-  it("Deploy Config", async () => {
-    const Config = await ethers.getContractFactory("Config");
-    config = await Config.deploy();
-    let res = config.deployed();
-    expect(res).to.not.be.reverted;
-  });
-
-  it("Deploy Node", async () => {
-    const Node = await ethers.getContractFactory("Node");
-    node = await Node.deploy();
-    let res = node.deployed();
-    expect(res).to.not.be.reverted;
-  });
-
-  it("Node initialize", async () => {
-    let tx = node.initialize(config.address);
-    expect(tx).to.not.be.reverted;
-  });
 
   it(scriptName, async () => {
     let tx = node.NodeRegister({
