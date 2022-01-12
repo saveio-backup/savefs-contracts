@@ -72,6 +72,18 @@ struct UserSpace {
     uint64 UpdateHeight;
 }
 
+struct UserSpaceOperation {
+    uint64 Type;
+    uint64 Value;
+}
+
+struct UserSpaceParams {
+    address WalletAddr;
+    address Owner;
+    UserSpaceOperation Size;
+    UserSpaceOperation BlockCount;
+}
+
 /** file ********************** */
 struct StorageFee {
     uint64 TxnFee;

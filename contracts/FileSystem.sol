@@ -6,6 +6,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "./Type.sol";
 import "./Config.sol";
 import "./Node.sol";
+import "./Space.sol";
 
 /**
  * @title FileSystem
@@ -14,6 +15,7 @@ import "./Node.sol";
 contract FileSystem is Initializable {
     Config config;
     Node node;
+    Space space;
 
     uint64 DEFAULT_BLOCK_INTERVAL = 5;
     uint64 DEFAULT_PROVE_PERIOD = (3600 * 24) / DEFAULT_BLOCK_INTERVAL;
@@ -25,7 +27,6 @@ contract FileSystem is Initializable {
     mapping(address => FileList) candidateFileList; // walletAddr => filelist
     mapping(bytes => ProveDetails) proveDetails; // fileHash => ProveDetails
     mapping(bytes => WhiteList) whiteList; // fileHash => whileList
-    mapping(address => UserSpace) userSpace; // walletAddr => UserSpace
     mapping(uint32 => PocProve[]) pocProveList; // blockNumber => PocProve
 
     event StoreFileEvent(
@@ -104,9 +105,10 @@ contract FileSystem is Initializable {
         _;
     }
 
-    function initialize(Config _config, Node _node) public initializer {
+    function initialize(Config _config, Node _node, Space _space) public initializer {
         config = _config;
         node = _node;
+        space = _space;
     }
 
     function calcProveTimesByUploadInfo(
@@ -277,7 +279,7 @@ contract FileSystem is Initializable {
             block.number
         );
         if (fileInfo.StorageType_ == StorageType.Normal) {
-            UserSpace memory _userSpace = userSpace[fileInfo.FileOwner];
+            UserSpace memory _userSpace = space.GetUserSpace(fileInfo.FileOwner);
             if (_userSpace.Balance < fileInfo.Deposit) {
                 revert UserspaceInsufficientBalance(
                     _userSpace.Balance,
@@ -413,21 +415,6 @@ contract FileSystem is Initializable {
         return whiteList[fileHash];
     }
 
-    /****************************************************************************
-     * Users=Space mamanagement ***************************************************
-     */
-    function GetUserSpace(address walletAddr)
-        public
-        view
-        returns (UserSpace memory)
-    {
-        require(userSpace[walletAddr].UpdateHeight > 0, "userSpace is empty");
-        return userSpace[walletAddr];
-    }
-
-    /****************************************************************************
-     * Sector mamanagement ***************************************************
-     */
     function GetPocProveList(uint32 height)
         public
         view

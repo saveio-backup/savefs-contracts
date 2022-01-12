@@ -1,14 +1,15 @@
-import { expect, assert } from "chai";
-import { ethers, network } from "hardhat";
-import { FileSystem, Node, Config } from "../typechain";
+import { assert, expect } from "chai";
+import { ethers } from "hardhat";
+import { FileSystem, Node, Config, Space } from "../typechain";
 
 var path = require('path');
 var scriptName = path.basename(__filename);
 
-describe(scriptName, () => {
+describe(scriptName, function () {
   let config: Config;
   let node: Node;
   let fs: FileSystem;
+  let space: Space;
 
   it("Deploy Config", async () => {
     const Config = await ethers.getContractFactory("Config");
@@ -29,6 +30,18 @@ describe(scriptName, () => {
     expect(tx).to.not.be.reverted;
   });
 
+  it("Deploy Space", async () => {
+    const Space = await ethers.getContractFactory("Space");
+    space = await Space.deploy();
+    let res = space.deployed();
+    expect(res).to.not.be.reverted;
+  });
+
+  it("Space initialize", async () => {
+    let tx = space.initialize();
+    expect(tx).to.not.be.reverted;
+  });
+
   it("Deploy FileSystem", async () => {
     const FS = await ethers.getContractFactory("FileSystem");
     fs = await FS.deploy();
@@ -37,7 +50,7 @@ describe(scriptName, () => {
   });
 
   it("initialize FileSystem", async () => {
-    let tx = fs.initialize(config.address, node.address);
+    let tx = fs.initialize(config.address, node.address, space.address);
     expect(tx).to.not.be.reverted;
   });
   // --------------------------------------------------
