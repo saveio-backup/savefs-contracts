@@ -15,14 +15,14 @@ describe(scriptName, () => {
       Volume: 1000 * 1000,
       RestVol: 0,
       ServiceTime: 0,
-      WalletAddr: "0xbDA5747bFD65F08deb54cb465eB87D40e51B197E",
-      NodeAddr: "0xbDA5747bFD65F08deb54cb465eB87D40e51B197E",
+      WalletAddr: "0x14dC79964da2C08b23698B3D3cc7Ca32193d9955",
+      NodeAddr: "0x14dC79964da2C08b23698B3D3cc7Ca32193d9955",
     }, {
       value: 1000000
     });
     expect(tx).to.not.be.reverted;
 
-    const res = await node.GetNodeInfoByWalletAddr("0xbDA5747bFD65F08deb54cb465eB87D40e51B197E");
-    assert(res.WalletAddr == "0xbDA5747bFD65F08deb54cb465eB87D40e51B197E");
+    const res = await node.GetNodeInfoByWalletAddr("0x14dC79964da2C08b23698B3D3cc7Ca32193d9955");
+    assert(res.WalletAddr == "0x14dC79964da2C08b23698B3D3cc7Ca32193d9955");
   });
 });

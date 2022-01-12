@@ -9,9 +9,10 @@ var scriptName = path.basename(__filename);
 describe(scriptName, () => {
 
   it(scriptName, async () => {
+
     const tx = sector.GetSectorInfos("0xdD2FD4581271e230360230F9337D5c0430Bf44C0");
     let res = await tx;
-    // console.log(res)
+    console.log(res)
     assert(res.length == 0);
 
     const tx2 = node.NodeRegister({

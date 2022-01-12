@@ -9,9 +9,10 @@ var scriptName = path.basename(__filename);
 describe(scriptName, () => {
 
   it(scriptName, async () => {
+
     const tx0 = sector.GetSectorInfo({
-      SectorId: "1",
       NodeAddr: "0xbDA5747bFD65F08deb54cb465eB87D40e51B197E",
+      SectorId: "1",
     });
     let res0 = await tx0;
     // console.log(res0)
@@ -52,10 +53,10 @@ describe(scriptName, () => {
     });
     let r2 = await (await tx).wait()
     // console.log(r2)
-    
+
     const tx3 = sector.GetSectorInfo({
-      SectorId: "1",
       NodeAddr: "0xbDA5747bFD65F08deb54cb465eB87D40e51B197E",
+      SectorId: "1",
     });
     let res3 = await tx3;
     assert(res3.Size.eq(1));

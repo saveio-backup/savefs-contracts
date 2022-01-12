@@ -73,9 +73,9 @@ struct NodeList {
 struct UserSpace {
     uint64 Used;
     uint64 Remain;
-    uint64 ExpireHeight;
     uint64 Balance;
-    uint64 UpdateHeight;
+    uint256 ExpireHeight;
+    uint256 UpdateHeight;
 }
 
 struct UserSpaceOperation {

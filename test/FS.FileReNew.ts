@@ -10,7 +10,7 @@ describe(scriptName, function () {
 
   it(scriptName, async () => {
     const res = fs.StoreFile({
-      FileHash: [1, 2, 3, 4, 5, 6],
+      FileHash: [1, 2, 3, 4, 5, 6, 7],
       FileOwner: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
       FileDesc: [],
       Privilege: 1,
@@ -41,13 +41,13 @@ describe(scriptName, function () {
     })
     expect(res).to.not.be.reverted;
 
-    const res2 = fs.GetFileInfo([1, 2, 3, 4, 5, 6]);
+    const res2 = fs.GetFileInfo([1, 2, 3, 4, 5, 6, 7]);
     let tx2 = await res2;
     assert(tx2.ExpiredHeight.eq(10000000))
     // console.log(tx2.ExpiredHeight)
 
     const res3 = fs.FileReNew({
-      FileHash: [1, 2, 3, 4, 5, 6],
+      FileHash: [1, 2, 3, 4, 5, 6, 7],
       FromAddr: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
       ReNewTimes: 123,
     }, {
@@ -56,7 +56,7 @@ describe(scriptName, function () {
     let tx3 = await res3;
     // console.log(tx3)
 
-    const res4 = fs.GetFileInfo([1, 2, 3, 4, 5, 6]);
+    const res4 = fs.GetFileInfo([1, 2, 3, 4, 5, 6, 7]);
     let tx4 = await res4;
     assert(tx4.ExpiredHeight.eq(12125440))
     // console.log(tx4.ExpiredHeight)

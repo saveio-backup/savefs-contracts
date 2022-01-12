@@ -11,9 +11,29 @@ contract Space is Initializable {
     Config config;
     FileSystem fs;
 
+    uint64 UserSpaceOps_None_None =
+        (uint8(UserSpaceType.None) << 4) | uint8(UserSpaceType.None);
+    uint64 UserspaceOps_None_Add =
+        (uint8(UserSpaceType.None) << 4) | uint8(UserSpaceType.Add);
+    uint64 UserspaceOps_None_Revoke =
+        (uint8(UserSpaceType.None) << 4) | uint8(UserSpaceType.Revoke);
+    uint64 UserspaceOps_Add_None =
+        (uint8(UserSpaceType.Add) << 4) | uint8(UserSpaceType.None);
+    uint64 UserspaceOps_Add_Add =
+        (uint8(UserSpaceType.Add) << 4) | uint8(UserSpaceType.Add);
+    uint64 UserspaceOps_Add_Revoke =
+        (uint8(UserSpaceType.Add) << 4) | uint8(UserSpaceType.Revoke);
+    uint64 UserspaceOps_Revoke_None =
+        (uint8(UserSpaceType.Revoke) << 4) | uint8(UserSpaceType.None);
+    uint64 UserspaceOps_Revoke_Add =
+        (uint8(UserSpaceType.Revoke) << 4) | uint8(UserSpaceType.Add);
+    uint64 UserspaceOps_Revoke_Revoke =
+        (uint8(UserSpaceType.Revoke) << 4) | uint8(UserSpaceType.Revoke);
+
     mapping(address => UserSpace) userSpace; // walletAddr => UserSpace
 
     error ParamsError();
+    error FirstUserSpaceOperation();
 
     function initialize(Config _config, FileSystem _fs) public initializer {
         config = _config;
@@ -55,32 +75,12 @@ contract Space is Initializable {
         return false;
     }
 
-    function getValueByUserSpaceType(UserSpaceType t)
-        public
-        pure
-        returns (uint8)
-    {
-        if (t == UserSpaceType.Revoke) {
-            return 2;
-        }
-        if (t == UserSpaceType.Add) {
-            return 1;
-        }
-        if (t == UserSpaceType.None) {
-            return 0;
-        }
-        return 0;
-    }
-
     function combineUserSpaceTypes(UserSpaceType t1, UserSpaceType t2)
         public
         pure
         returns (uint64)
     {
-        uint8 n1 = getValueByUserSpaceType(t1);
-        uint8 n2 = getValueByUserSpaceType(t2);
-        // TODO What is this means?
-        uint64 n = (n1 << 4) | n2;
+        uint64 n = (uint8(t1) << 4) | uint8(t2);
         return n;
     }
 
@@ -114,7 +114,11 @@ contract Space is Initializable {
             params.BlockCount.Type == UserSpaceType.Revoke;
     }
 
-    function checkForUserSpaceRevoke(UserSpaceParams memory params)  public view returns(bool) {
+    function checkForUserSpaceRevoke(UserSpaceParams memory params)
+        public
+        view
+        returns (bool)
+    {
         FileList memory fileList = fs.GetFileList(params.Owner);
         if (fileList.FileNum > 0) {
             return false;
@@ -139,8 +143,7 @@ contract Space is Initializable {
             "params.BlockCount.value must be greater than 0"
         );
         uint64 n = getUserSpaceOperationsFromParams(params);
-        uint8 t = getValueByUserSpaceType(UserSpaceType.None);
-        if (n == t) {
+        if (n == uint64(UserSpaceType.None)) {
             return false;
         }
         bool b1 = isRevokeUserSpace(params);
@@ -153,13 +156,67 @@ contract Space is Initializable {
         return true;
     }
 
+    function getOldUserSpace(address owner)
+        public
+        view
+        returns (UserSpace memory)
+    {
+        return userSpace[owner];
+    }
+
+    function processExpiredUserSpace(
+        UserSpace memory _userSpace,
+        uint256 currentHeight
+    ) public pure returns (UserSpace memory) {
+        _userSpace.Used = 0;
+        _userSpace.Remain = 0;
+        //_userSpace.Balance = 0
+        _userSpace.ExpireHeight = currentHeight;
+        _userSpace.UpdateHeight = currentHeight;
+        return _userSpace;
+    }
+
+    function checkForFirstUserSpaceOperation(
+        Setting memory setting,
+        UserSpaceParams memory params
+    ) public view returns (bool) {
+        uint64 ops = getUserSpaceOperationsFromParams(params);
+        if (ops != UserspaceOps_Add_Add) {
+            return false;
+        }
+        if (params.Size.Value == 0 || params.BlockCount.Value == 0) {
+            return false;
+        }
+        if (params.BlockCount.Value < setting.DefaultProvePeriod) {
+            return false;
+        }
+        return true;
+    }
+
     function getUserspaceChange(UserSpaceParams memory params) public view {
-        // Setting memory setting = config.GetSetting();
+        Setting memory setting = config.GetSetting();
         bool checkRes = checkUserSpaceParams(params);
         if (!checkRes) {
             revert ParamsError();
         }
+        UserSpace memory oldUserSpace = getOldUserSpace(params.Owner);
+        if (
+            oldUserSpace.ExpireHeight > 0 &&
+            oldUserSpace.ExpireHeight <= block.number
+        ) {
+            oldUserSpace = processExpiredUserSpace(oldUserSpace, block.number);
+        }
+        if (
+            oldUserSpace.ExpireHeight > 0 &&
+            oldUserSpace.ExpireHeight == block.number
+        ) {
+            bool b = checkForFirstUserSpaceOperation(setting, params);
+            if (!b) {
+                revert FirstUserSpaceOperation();
+            }
+        }
         // TODO
+        // processForUserSpaceOperations();
     }
 
     function ManageUserSpace(UserSpaceParams memory params) public payable {
