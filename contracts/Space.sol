@@ -33,7 +33,7 @@ contract Space is Initializable {
     mapping(address => UserSpace) userSpace; // walletAddr => UserSpace
 
     error ParamsError();
-    error FirstUserSpaceOperation();
+    error FirstUserSpaceOperationError();
 
     function initialize(Config _config, FileSystem _fs) public initializer {
         config = _config;
@@ -193,7 +193,189 @@ contract Space is Initializable {
         return true;
     }
 
-    function getUserspaceChange(UserSpaceParams memory params) public view {
+    function fsAddUserSpace(
+        UserSpace memory oldUserspace,
+        uint64 addSize,
+        uint64 addBlockCount,
+        uint256 currentHeight,
+        Setting memory setting,
+        FileList memory fileList
+    )
+        public
+        view
+        returns (
+            UserSpace memory,
+            uint64,
+            FileInfo[] memory,
+            bool
+        )
+    {
+        // TODO
+    }
+
+    function fsRevokeUserspace(
+        UserSpace memory oldUserspace,
+        uint64 revokeSize,
+        uint64 revokeBlockCount,
+        uint256 currentHeight,
+        Setting memory setting
+    )
+        public
+        view
+        returns (
+            UserSpace memory,
+            uint64,
+            bool
+        )
+    {
+        // TODO
+    }
+
+    function processForUserSpaceOneAddOneRevoke(
+        UserSpaceParams memory params,
+        UserSpace memory oldUserspace,
+        Setting memory setting,
+        FileList memory fileList,
+        uint64 ops
+    )
+        public
+        view
+        returns (
+            UserSpace memory,
+            uint64,
+            uint64,
+            FileInfo[] memory,
+            bool
+        )
+    {
+        // TODO
+    }
+
+    function processForUserSpaceOperations(
+        UserSpaceParams memory params,
+        UserSpace memory oldUserSpace,
+        Setting memory setting
+    )
+        public
+        view
+        returns (
+            UserSpace memory,
+            TransferState memory,
+            FileInfo[] memory,
+            bool
+        )
+    {
+        UserSpace memory newUserSpace;
+        FileInfo[] memory updatedFiles;
+        uint64 transferIn;
+        uint64 transferOut;
+        TransferState memory state;
+        bool res;
+
+        // avoid stack too deep error
+        UserSpaceParams memory _params;
+        _params.WalletAddr = params.WalletAddr;
+        _params.Owner = params.Owner;
+        _params.Size = params.Size;
+        _params.BlockCount = params.BlockCount;
+        // avoid stack too deep error
+        Setting memory _setting;
+        _setting.GasPrice = setting.GasPrice;
+        _setting.GasPerGBPerBlock = setting.GasPerGBPerBlock;
+        _setting.GasPerKBPerBlock = setting.GasPerKBPerBlock;
+        _setting.GasForChallenge = setting.GasForChallenge;
+        _setting.MaxProveBlockNum = setting.MaxProveBlockNum;
+        _setting.MinVolume = setting.MinVolume;
+        _setting.DefaultProvePeriod = setting.DefaultProvePeriod;
+        _setting.DefaultProveLevel = setting.DefaultProveLevel;
+        _setting.DefaultCopyNum = setting.DefaultCopyNum;
+        // avoid stack too deep error
+        UserSpace memory _oldUserSpace;
+        _oldUserSpace.Used = oldUserSpace.Used;
+        _oldUserSpace.Remain = oldUserSpace.Remain;
+        _oldUserSpace.Balance = oldUserSpace.Balance;
+        _oldUserSpace.ExpireHeight = oldUserSpace.ExpireHeight;
+        _oldUserSpace.UpdateHeight = oldUserSpace.UpdateHeight;
+
+        FileList memory fileList = fs.GetFileList(_params.Owner);
+        uint64 ops = getUserSpaceOperationsFromParams(_params);
+        if (
+            ops == UserspaceOps_Add_Add ||
+            ops == UserspaceOps_Add_None ||
+            ops == UserspaceOps_None_Add
+        ) {
+            (newUserSpace, transferIn, updatedFiles, res) = fsAddUserSpace(
+                _oldUserSpace,
+                _params.Size.Value,
+                _params.BlockCount.Value,
+                block.number,
+                _setting,
+                fileList
+            );
+            if (!res) {
+                return (newUserSpace, state, updatedFiles, false);
+            }
+        }
+        if (
+            ops == UserspaceOps_Revoke_Revoke ||
+            ops == UserspaceOps_None_Revoke ||
+            ops == UserspaceOps_Revoke_None
+        ) {
+            (newUserSpace, transferOut, res) = fsRevokeUserspace(
+                _oldUserSpace,
+                _params.Size.Value,
+                _params.BlockCount.Value,
+                block.number,
+                _setting
+            );
+            if (!res) {
+                return (newUserSpace, state, updatedFiles, false);
+            }
+        }
+        if (ops == UserspaceOps_Add_Revoke || ops == UserspaceOps_Revoke_Add) {
+            (
+                newUserSpace,
+                transferIn,
+                transferOut,
+                updatedFiles,
+                res
+            ) = processForUserSpaceOneAddOneRevoke(
+                _params,
+                _oldUserSpace,
+                _setting,
+                fileList,
+                ops
+            );
+            if (!res) {
+                return (newUserSpace, state, updatedFiles, false);
+            }
+        }
+        if (newUserSpace.ExpireHeight == 0) {
+            return (newUserSpace, state, updatedFiles, false);
+        }
+        newUserSpace.UpdateHeight = block.number;
+        if (transferIn >= transferOut) {
+            state.From = _params.WalletAddr;
+            state.To = address(this);
+            state.Value = transferIn - transferOut;
+        } else {
+            state.From = address(this);
+            state.To = _params.WalletAddr;
+            state.Value = transferOut - transferIn;
+        }
+        return (newUserSpace, state, updatedFiles, true);
+    }
+
+    function getUserspaceChange(UserSpaceParams memory params)
+        public
+        view
+        returns (
+            UserSpace memory,
+            TransferState memory,
+            FileInfo[] memory,
+            bool
+        )
+    {
         Setting memory setting = config.GetSetting();
         bool checkRes = checkUserSpaceParams(params);
         if (!checkRes) {
@@ -212,14 +394,28 @@ contract Space is Initializable {
         ) {
             bool b = checkForFirstUserSpaceOperation(setting, params);
             if (!b) {
-                revert FirstUserSpaceOperation();
+                revert FirstUserSpaceOperationError();
             }
         }
-        // TODO
-        // processForUserSpaceOperations();
+        UserSpace memory newUserSpace;
+        TransferState memory state;
+        FileInfo[] memory updatedFiles;
+        bool res;
+        (
+            newUserSpace,
+            state,
+            updatedFiles,
+            res
+        ) = processForUserSpaceOperations(params, oldUserSpace, setting);
+        return (newUserSpace, state, updatedFiles, res);
     }
 
     function ManageUserSpace(UserSpaceParams memory params) public payable {
+        UserSpace memory newUserSpace;
+        TransferState memory state;
+        FileInfo[] memory updatedFiles;
+        bool res;
+        (newUserSpace, state, updatedFiles, res) = getUserspaceChange(params);
         // TODO
     }
 }

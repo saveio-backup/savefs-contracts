@@ -220,3 +220,10 @@ struct ProveDetails {
     uint64 ProveDetailNum;
     // ProveDetail[] ProveDetails; // TODO
 }
+
+/** transfer ********************** */
+struct TransferState {
+    address From;
+    address To;
+    uint64 Value;
+}
