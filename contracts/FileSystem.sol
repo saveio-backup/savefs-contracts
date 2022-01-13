@@ -416,7 +416,7 @@ contract FileSystem is Initializable {
         Setting memory setting,
         uint256 newExpireHeight,
         FileInfo memory fileInfo
-    ) public view returns (bool) {
+    ) public pure returns (bool) {
         fileInfo.ExpiredHeight = newExpireHeight;
         UploadOption memory uploadOpt;
         uploadOpt.ExpiredHeight = fileInfo.ExpiredHeight;

@@ -239,46 +239,54 @@ contract Space is Initializable {
         return (fileInfo, true);
     }
 
+    struct AddParams {
+        UserSpace oldUserSpace;
+        uint64 addSize;
+        uint64 addBlockCount;
+        uint256 currentHeight;
+        Setting setting;
+        FileList fileList;
+    }
+
     struct AddReturn {
         UserSpace newUserSpace;
         FileInfo[] updatedFiles;
         bool success;
     }
 
-    function fsAddUserSpace(
-        UserSpace memory oldUserSpace,
-        uint64 addSize,
-        uint64 addBlockCount,
-        uint256 currentHeight,
-        Setting memory setting,
-        FileList memory fileList
-    ) public view returns (AddReturn memory) {
+    function fsAddUserSpace(AddParams memory params)
+        public
+        view
+        returns (AddReturn memory)
+    {
         AddReturn memory ret;
 
         // avoid stack too deep error
         UserSpace memory _oldUserSpace;
-        _oldUserSpace.Used = oldUserSpace.Used;
-        _oldUserSpace.Remain = oldUserSpace.Remain;
-        _oldUserSpace.Balance = oldUserSpace.Balance;
-        _oldUserSpace.ExpireHeight = oldUserSpace.ExpireHeight;
-        _oldUserSpace.UpdateHeight = oldUserSpace.UpdateHeight;
+        _oldUserSpace.Used = params.oldUserSpace.Used;
+        _oldUserSpace.Remain = params.oldUserSpace.Remain;
+        _oldUserSpace.Balance = params.oldUserSpace.Balance;
+        _oldUserSpace.ExpireHeight = params.oldUserSpace.ExpireHeight;
+        _oldUserSpace.UpdateHeight = params.oldUserSpace.UpdateHeight;
 
         // avoid stack too deep error
         Setting memory _setting;
-        _setting.GasPrice = setting.GasPrice;
-        _setting.GasPerGBPerBlock = setting.GasPerGBPerBlock;
-        _setting.GasPerKBPerBlock = setting.GasPerKBPerBlock;
-        _setting.GasForChallenge = setting.GasForChallenge;
-        _setting.MaxProveBlockNum = setting.MaxProveBlockNum;
-        _setting.MinVolume = setting.MinVolume;
-        _setting.DefaultProvePeriod = setting.DefaultProvePeriod;
-        _setting.DefaultProveLevel = setting.DefaultProveLevel;
-        _setting.DefaultCopyNum = setting.DefaultCopyNum;
+        _setting.GasPrice = params.setting.GasPrice;
+        _setting.GasPerGBPerBlock = params.setting.GasPerGBPerBlock;
+        _setting.GasPerKBPerBlock = params.setting.GasPerKBPerBlock;
+        _setting.GasForChallenge = params.setting.GasForChallenge;
+        _setting.MaxProveBlockNum = params.setting.MaxProveBlockNum;
+        _setting.MinVolume = params.setting.MinVolume;
+        _setting.DefaultProvePeriod = params.setting.DefaultProvePeriod;
+        _setting.DefaultProveLevel = params.setting.DefaultProveLevel;
+        _setting.DefaultCopyNum = params.setting.DefaultCopyNum;
 
         if (_oldUserSpace.ExpireHeight == 0) {
             ret.newUserSpace.Used = 0;
-            ret.newUserSpace.Remain = addSize;
-            ret.newUserSpace.ExpireHeight = currentHeight + addBlockCount;
+            ret.newUserSpace.Remain = params.addSize;
+            ret.newUserSpace.ExpireHeight =
+                params.currentHeight +
+                params.addBlockCount;
             ret.newUserSpace.Balance = 0;
             StorageFee memory fee = calcDepositFeeForUserSpace(
                 ret.newUserSpace,
@@ -293,8 +301,8 @@ contract Space is Initializable {
             return ret;
         } else {
             uint256 newExpiredHeight = _oldUserSpace.ExpireHeight +
-                addBlockCount;
-            uint64 newRemain = _oldUserSpace.Remain + addSize;
+                params.addBlockCount;
+            uint64 newRemain = _oldUserSpace.Remain + params.addSize;
             ret.newUserSpace.Used = _oldUserSpace.Used;
             ret.newUserSpace.Remain = newRemain;
             ret.newUserSpace.ExpireHeight = newExpiredHeight;
@@ -337,15 +345,13 @@ contract Space is Initializable {
                 deposit = deposit - availableInBalance;
                 ret.newUserSpace.Balance += deposit;
             }
-            if (addBlockCount != 0) {
-                bool res;
-                (ret.updatedFiles, res) = updateFilesForRenew(
-                    fileList,
+            if (params.addBlockCount != 0) {
+                (ret.updatedFiles, ret.success) = updateFilesForRenew(
+                    params.fileList,
                     _setting,
                     newExpiredHeight
                 );
-                if (!res) {
-                    ret.success = false;
+                if (!ret.success) {
                     return ret;
                 }
             }
@@ -392,26 +398,26 @@ contract Space is Initializable {
         // TODO
     }
 
+    struct ProcessReturn {
+        UserSpace newUserSpace;
+        TransferState state;
+        FileInfo[] updatedFiles;
+        bool success;
+    }
+
     function processForUserSpaceOperations(
         UserSpaceParams memory params,
         UserSpace memory oldUserSpace,
         Setting memory setting
-    )
-        public
-        view
-        returns (
-            UserSpace memory,
-            TransferState memory,
-            FileInfo[] memory,
-            bool
-        )
-    {
-        UserSpace memory newUserSpace;
-        FileInfo[] memory updatedFiles;
+    ) public view returns (ProcessReturn memory) {
+        ProcessReturn memory ret;
+
+        // UserSpace memory newUserSpace;
+        // FileInfo[] memory updatedFiles;
         uint64 transferIn;
         uint64 transferOut;
-        TransferState memory state;
-        bool res;
+        // TransferState memory state;
+        // bool res;
 
         // avoid stack too deep error
         UserSpaceParams memory _params;
@@ -445,22 +451,23 @@ contract Space is Initializable {
             ops == UserspaceOps_Add_None ||
             ops == UserspaceOps_None_Add
         ) {
-            AddReturn memory ret = fsAddUserSpace(
-                _oldUserSpace,
-                _params.Size.Value,
-                _params.BlockCount.Value,
-                block.number,
-                _setting,
-                fileList
+            AddParams memory addParams;
+            addParams.oldUserSpace = _oldUserSpace;
+            addParams.addSize = _params.Size.Value;
+            addParams.addBlockCount = _params.BlockCount.Value;
+            addParams.currentHeight = block.number;
+            addParams.setting = _setting;
+            addParams.fileList = fileList;
+
+            AddReturn memory addRet = fsAddUserSpace(addParams);
+            (ret.newUserSpace, transferIn, ret.updatedFiles, ret.success) = (
+                addRet.newUserSpace,
+                addRet.newUserSpace.Balance,
+                addRet.updatedFiles,
+                addRet.success
             );
-            (newUserSpace, transferIn, updatedFiles, res) = (
-                ret.newUserSpace,
-                ret.newUserSpace.Balance,
-                ret.updatedFiles,
-                ret.success
-            );
-            if (!res) {
-                return (newUserSpace, state, updatedFiles, false);
+            if (!ret.success) {
+                return ret;
             }
         }
         if (
@@ -468,24 +475,24 @@ contract Space is Initializable {
             ops == UserspaceOps_None_Revoke ||
             ops == UserspaceOps_Revoke_None
         ) {
-            (newUserSpace, transferOut, res) = fsRevokeUserspace(
+            (ret.newUserSpace, transferOut, ret.success) = fsRevokeUserspace(
                 _oldUserSpace,
                 _params.Size.Value,
                 _params.BlockCount.Value,
                 block.number,
                 _setting
             );
-            if (!res) {
-                return (newUserSpace, state, updatedFiles, false);
+            if (!ret.success) {
+                return ret;
             }
         }
         if (ops == UserspaceOps_Add_Revoke || ops == UserspaceOps_Revoke_Add) {
             (
-                newUserSpace,
+                ret.newUserSpace,
                 transferIn,
                 transferOut,
-                updatedFiles,
-                res
+                ret.updatedFiles,
+                ret.success
             ) = processForUserSpaceOneAddOneRevoke(
                 _params,
                 _oldUserSpace,
@@ -493,24 +500,25 @@ contract Space is Initializable {
                 fileList,
                 ops
             );
-            if (!res) {
-                return (newUserSpace, state, updatedFiles, false);
+            if (!ret.success) {
+                return ret;
             }
         }
-        if (newUserSpace.ExpireHeight == 0) {
-            return (newUserSpace, state, updatedFiles, false);
+        if (ret.newUserSpace.ExpireHeight == 0) {
+            return ret;
         }
-        newUserSpace.UpdateHeight = block.number;
+        ret.newUserSpace.UpdateHeight = block.number;
         if (transferIn >= transferOut) {
-            state.From = _params.WalletAddr;
-            state.To = address(this);
-            state.Value = transferIn - transferOut;
+            ret.state.From = _params.WalletAddr;
+            ret.state.To = address(this);
+            ret.state.Value = transferIn - transferOut;
         } else {
-            state.From = address(this);
-            state.To = _params.WalletAddr;
-            state.Value = transferOut - transferIn;
+            ret.state.From = address(this);
+            ret.state.To = _params.WalletAddr;
+            ret.state.Value = transferOut - transferIn;
         }
-        return (newUserSpace, state, updatedFiles, true);
+        ret.success = true;
+        return ret;
     }
 
     function getUserspaceChange(UserSpaceParams memory params)
@@ -544,17 +552,12 @@ contract Space is Initializable {
                 revert FirstUserSpaceOperationError();
             }
         }
-        UserSpace memory newUserSpace;
-        TransferState memory state;
-        FileInfo[] memory updatedFiles;
-        bool res;
-        (
-            newUserSpace,
-            state,
-            updatedFiles,
-            res
-        ) = processForUserSpaceOperations(params, oldUserSpace, setting);
-        return (newUserSpace, state, updatedFiles, res);
+        ProcessReturn memory ret = processForUserSpaceOperations(
+            params,
+            oldUserSpace,
+            setting
+        );
+        return (ret.newUserSpace, ret.state, ret.updatedFiles, ret.success);
     }
 
     function ManageUserSpace(UserSpaceParams memory params) public payable {
