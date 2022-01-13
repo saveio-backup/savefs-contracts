@@ -1,7 +1,7 @@
 import { expect, assert } from "chai";
 import { ethers, network } from "hardhat";
 import { FileSystem, Node, Config } from "../typechain";
-import { config, fs, node, space } from "./initialize";
+import { addrs, config, fs, node, space } from "./initialize";
 
 var path = require('path');
 var scriptName = path.basename(__filename);
@@ -15,14 +15,14 @@ describe(scriptName, () => {
       Volume: 1000 * 1000,
       RestVol: 0,
       ServiceTime: 0,
-      WalletAddr: "0x14dC79964da2C08b23698B3D3cc7Ca32193d9955",
-      NodeAddr: "0x14dC79964da2C08b23698B3D3cc7Ca32193d9955",
+      WalletAddr: addrs[5],
+      NodeAddr: addrs[5],
     }, {
       value: 1000000
     });
     expect(tx).to.not.be.reverted;
 
-    const res = await node.GetNodeInfoByWalletAddr("0x14dC79964da2C08b23698B3D3cc7Ca32193d9955");
-    assert(res.WalletAddr == "0x14dC79964da2C08b23698B3D3cc7Ca32193d9955");
+    const res = await node.GetNodeInfoByWalletAddr(addrs[5]);
+    assert(res.WalletAddr == addrs[5]);
   });
 });

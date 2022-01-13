@@ -1,62 +1,26 @@
 import { expect, assert } from "chai";
 import { ethers, network } from "hardhat";
 import { FileSystem, Node, Config } from "../typechain";
-import { config, fs, node, space } from "./initialize";
+import { addrs, config, fs, node, space } from "./initialize";
 
 var path = require('path');
 var scriptName = path.basename(__filename);
 
 describe(scriptName, () => {
-  beforeEach(async function () {
-    await network.provider.send("hardhat_reset")
-  })
-  
-  it(`${scriptName} require 1`, async () => {
-    let tx = node.NodeRegister({
-      Pledge: 0,
-      Profit: 0,
-      Volume: 0,
-      RestVol: 0,
-      ServiceTime: 0,
-      WalletAddr: "0x5FbDB2315678afecb367f032d93F642f64180aa3",
-      NodeAddr: "0x5FbDB2315678afecb367f032d93F642f64180aa3",
-    });
-    expect(tx).to.be.reverted;
 
+  it(`${scriptName} require 1`, async () => {
     const tx2 = node.NodeRegister({
       Pledge: 0,
       Profit: 0,
       Volume: 1000 * 1000,
       RestVol: 0,
       ServiceTime: 0,
-      WalletAddr: "0x5FbDB2315678afecb367f032d93F642f64180aa3",
-      NodeAddr: "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+      WalletAddr: addrs[0],
+      NodeAddr: addrs[0],
+    }, {
+      value: 1000000
     });
     expect(tx2).to.not.be.reverted;
-  });
-
-  it(`${scriptName} require 2`, async () => {
-    let tx = node.NodeRegister({
-      Pledge: 0,
-      Profit: 0,
-      Volume: 1000 * 1000,
-      RestVol: 0,
-      ServiceTime: 0,
-      WalletAddr: "0x5FbDB2315678afecb367f032d93F642f64180aa3",
-      NodeAddr: "0x5FbDB2315678afecb367f032d93F642f64180aa3",
-    });
-    expect(tx).to.not.be.reverted;
-
-    const tx2 = node.NodeRegister({
-      Pledge: 0,
-      Profit: 0,
-      Volume: 1000 * 1000,
-      RestVol: 0,
-      ServiceTime: 0,
-      WalletAddr: "0x5FbDB2315678afecb367f032d93F642f64180aa3",
-      NodeAddr: "0x5FbDB2315678afecb367f032d93F642f64180aa3",
-    });
-    expect(tx2).to.be.reverted;
   });
 
   it(`${scriptName} event`, async () => {
@@ -66,10 +30,13 @@ describe(scriptName, () => {
       Volume: 1000 * 1000,
       RestVol: 0,
       ServiceTime: 0,
-      WalletAddr: "0x5FbDB2315678afecb367f032d93F642f64180aa3",
-      NodeAddr: "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+      WalletAddr: addrs[1],
+      NodeAddr: addrs[1],
+    }, {
+      value: 1000000
     });
     let res = await (await tx).wait();
+    // console.log(res)
     if (res.events?.length == 1) {
       assert(res.events[0].event == "RegisterNodeEvent");
     }

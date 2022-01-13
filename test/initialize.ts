@@ -5,6 +5,7 @@ import { FileSystem, Node, Config, Sector, Space } from "../typechain";
 var path = require('path');
 var scriptName = path.basename(__filename);
 
+let addrs: Array<string> = [];
 let config: Config;
 let node: Node;
 let fs: FileSystem;
@@ -12,6 +13,12 @@ let sector: Sector;
 let space: Space;
 
 describe(scriptName, function () {
+  it("Get addrs", async () => {
+    const accounts = await ethers.getSigners();
+    for (const account of accounts) {
+      addrs.push(account.address)
+    }
+  })
 
   it("Deploy Config", async () => {
     const Config = await ethers.getContractFactory("Config");
@@ -73,6 +80,7 @@ describe(scriptName, function () {
 });
 
 export {
+  addrs,
   config,
   node,
   fs,

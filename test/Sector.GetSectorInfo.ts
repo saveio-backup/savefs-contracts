@@ -18,7 +18,7 @@ describe(scriptName, () => {
     // console.log(res0)
     assert(res0.Size.eq(0));
 
-    const tx2 = node.NodeRegister({
+    const tx1 = node.NodeRegister({
       Pledge: 0,
       Profit: 0,
       Volume: 1000 * 1000,
@@ -31,10 +31,10 @@ describe(scriptName, () => {
         value: 1000000
       }
     );
-    let s = await (await tx2).wait();
+    let s = await (await tx1).wait();
     // console.log(s)
 
-    const tx = sector.CreateSector({
+    const tx2 = sector.CreateSector({
       NodeAddr: "0xbDA5747bFD65F08deb54cb465eB87D40e51B197E",
       SectorID: 1,
       Size: 1,
@@ -51,8 +51,8 @@ describe(scriptName, () => {
         List: []
       }
     });
-    let r2 = await (await tx).wait()
-    // console.log(r2)
+    let res2 = await (await tx2).wait()
+    // console.log(res2)
 
     const tx3 = sector.GetSectorInfo({
       NodeAddr: "0xbDA5747bFD65F08deb54cb465eB87D40e51B197E",
