@@ -119,7 +119,7 @@ struct UploadOption {
     uint64 FileSize;
     uint64 ProveInterval;
     uint64 ProveLevel;
-    uint64 ExpiredHeight;
+    uint256 ExpiredHeight;
     uint64 Privilege;
     uint64 CopyNum;
     bool Encrypt;
@@ -152,7 +152,7 @@ struct FileInfo {
     uint64 FileBlockSize;
     uint64 ProveInterval;
     uint64 ProveTimes;
-    uint64 ExpiredHeight;
+    uint256 ExpiredHeight;
     uint64 CopyNum;
     uint64 Deposit;
     bytes FileProveParam;

@@ -105,18 +105,22 @@ contract FileSystem is Initializable {
         _;
     }
 
-    function initialize(Config _config, Node _node, Space _space) public initializer {
+    function initialize(
+        Config _config,
+        Node _node,
+        Space _space
+    ) public initializer {
         config = _config;
         node = _node;
         space = _space;
     }
 
-    function calcProveTimesByUploadInfo(
+    function CalcProveTimesByUploadInfo(
         UploadOption memory uploadOption,
         uint256 beginHeight
     ) public pure returns (uint64) {
         return
-            (uploadOption.ExpiredHeight - uint64(beginHeight)) /
+            uint64(uploadOption.ExpiredHeight - beginHeight) /
             uploadOption.ProveInterval +
             1;
     }
@@ -187,12 +191,12 @@ contract FileSystem is Initializable {
         return fee;
     }
 
-    function calcDepositFee(
+    function CalcDepositFee(
         UploadOption memory uploadOption,
         Setting memory setting,
         uint256 currentHeight
     ) public pure returns (StorageFee memory) {
-        uint64 proveTime = calcProveTimesByUploadInfo(
+        uint64 proveTime = CalcProveTimesByUploadInfo(
             uploadOption,
             currentHeight
         );
@@ -201,7 +205,7 @@ contract FileSystem is Initializable {
             proveTime,
             uploadOption.CopyNum,
             uploadOption.FileSize,
-            uploadOption.ExpiredHeight - uint64(currentHeight)
+            uint64(uploadOption.ExpiredHeight - currentHeight)
         );
         return fee;
     }
@@ -223,7 +227,7 @@ contract FileSystem is Initializable {
         if (uploadOption.StorageType_ == StorageType.Normal) {
             return sf;
         }
-        StorageFee memory depositFee = calcDepositFee(
+        StorageFee memory depositFee = CalcDepositFee(
             uploadOption,
             setting,
             currentHeight
@@ -265,7 +269,7 @@ contract FileSystem is Initializable {
         uploadOption.ProveInterval = fileInfo.ProveInterval;
         uploadOption.CopyNum = fileInfo.CopyNum;
         uploadOption.FileSize = fileInfo.FileBlockSize * fileInfo.FileBlockNum;
-        StorageFee memory uploadFee = calcDepositFee(
+        StorageFee memory uploadFee = CalcDepositFee(
             uploadOption,
             setting,
             block.number
@@ -274,12 +278,14 @@ contract FileSystem is Initializable {
             uploadFee.TxnFee +
             uploadFee.SpaceFee +
             uploadFee.ValidationFee;
-        fileInfo.ProveTimes = calcProveTimesByUploadInfo(
+        fileInfo.ProveTimes = CalcProveTimesByUploadInfo(
             uploadOption,
             block.number
         );
         if (fileInfo.StorageType_ == StorageType.Normal) {
-            UserSpace memory _userSpace = space.GetUserSpace(fileInfo.FileOwner);
+            UserSpace memory _userSpace = space.GetUserSpace(
+                fileInfo.FileOwner
+            );
             if (_userSpace.Balance < fileInfo.Deposit) {
                 revert UserspaceInsufficientBalance(
                     _userSpace.Balance,
@@ -400,6 +406,41 @@ contract FileSystem is Initializable {
         returns (FileList memory)
     {
         return fileList[walletAddr];
+    }
+
+    function UpdateFileInfo(FileInfo memory f) public payable {
+        fileInfos[f.FileHash] = f;
+    }
+
+    function UpdateFileInfoForRenew(
+        Setting memory setting,
+        uint256 newExpireHeight,
+        FileInfo memory fileInfo
+    ) public view returns (bool) {
+        fileInfo.ExpiredHeight = newExpireHeight;
+        UploadOption memory uploadOpt;
+        uploadOpt.ExpiredHeight = fileInfo.ExpiredHeight;
+        uploadOpt.ProveInterval = fileInfo.ProveInterval;
+        uploadOpt.CopyNum = fileInfo.CopyNum;
+        uploadOpt.FileSize = fileInfo.FileBlockSize * fileInfo.FileBlockNum;
+        uint256 beginHeight = fileInfo.BlockHeight;
+        StorageFee memory newDeposit = CalcDepositFee(
+            uploadOpt,
+            setting,
+            beginHeight
+        );
+        uint64 newDepositSum = newDeposit.TxnFee +
+            newDeposit.SpaceFee +
+            newDeposit.ValidationFee;
+        if (newDepositSum <= fileInfo.Deposit) {
+            return false;
+        }
+        fileInfo.Deposit = newDepositSum;
+        fileInfo.ProveTimes = CalcProveTimesByUploadInfo(
+            uploadOpt,
+            beginHeight
+        );
+        return true;
     }
 
     /****************************************************************************

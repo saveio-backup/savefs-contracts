@@ -34,6 +34,8 @@ contract Space is Initializable {
 
     error ParamsError();
     error FirstUserSpaceOperationError();
+    error UserspaceChangeError();
+    error InsufficientFunds();
 
     function initialize(Config _config, FileSystem _fs) public initializer {
         config = _config;
@@ -193,24 +195,163 @@ contract Space is Initializable {
         return true;
     }
 
+    function calcDepositFeeForUserSpace(
+        UserSpace memory _userSpace,
+        Setting memory setting,
+        uint256 currentHeight
+    ) public view returns (StorageFee memory) {
+        UploadOption memory uploadOpt;
+        uploadOpt.FileSize = _userSpace.Used + _userSpace.Remain;
+        uploadOpt.ProveInterval = setting.DefaultProvePeriod;
+        uploadOpt.ExpiredHeight = _userSpace.ExpireHeight;
+        uploadOpt.CopyNum = setting.DefaultCopyNum;
+        StorageFee memory fee = fs.CalcDepositFee(
+            uploadOpt,
+            setting,
+            currentHeight
+        );
+        return fee;
+    }
+
+    function updateFilesForRenew(
+        FileList memory fileList,
+        Setting memory setting,
+        uint256 newExpireHeight
+    ) public view returns (FileInfo[] memory, bool) {
+        FileInfo[] memory fileInfo;
+        for (uint256 i = 0; i < fileList.List.length; i++) {
+            FileInfo memory _fileInfo = fs.GetFileInfo(fileList.List[i]);
+            if (_fileInfo.StorageType_ != StorageType.Normal) {
+                continue;
+            }
+            if (newExpireHeight <= _fileInfo.ExpiredHeight) {
+                continue;
+            }
+            bool res = fs.UpdateFileInfoForRenew(
+                setting,
+                newExpireHeight,
+                _fileInfo
+            );
+            if (!res) {
+                return (fileInfo, false);
+            }
+        }
+        return (fileInfo, true);
+    }
+
+    struct AddReturn {
+        UserSpace newUserSpace;
+        FileInfo[] updatedFiles;
+        bool success;
+    }
+
     function fsAddUserSpace(
-        UserSpace memory oldUserspace,
+        UserSpace memory oldUserSpace,
         uint64 addSize,
         uint64 addBlockCount,
         uint256 currentHeight,
         Setting memory setting,
         FileList memory fileList
-    )
-        public
-        view
-        returns (
-            UserSpace memory,
-            uint64,
-            FileInfo[] memory,
-            bool
-        )
-    {
-        // TODO
+    ) public view returns (AddReturn memory) {
+        AddReturn memory ret;
+
+        // avoid stack too deep error
+        UserSpace memory _oldUserSpace;
+        _oldUserSpace.Used = oldUserSpace.Used;
+        _oldUserSpace.Remain = oldUserSpace.Remain;
+        _oldUserSpace.Balance = oldUserSpace.Balance;
+        _oldUserSpace.ExpireHeight = oldUserSpace.ExpireHeight;
+        _oldUserSpace.UpdateHeight = oldUserSpace.UpdateHeight;
+
+        // avoid stack too deep error
+        Setting memory _setting;
+        _setting.GasPrice = setting.GasPrice;
+        _setting.GasPerGBPerBlock = setting.GasPerGBPerBlock;
+        _setting.GasPerKBPerBlock = setting.GasPerKBPerBlock;
+        _setting.GasForChallenge = setting.GasForChallenge;
+        _setting.MaxProveBlockNum = setting.MaxProveBlockNum;
+        _setting.MinVolume = setting.MinVolume;
+        _setting.DefaultProvePeriod = setting.DefaultProvePeriod;
+        _setting.DefaultProveLevel = setting.DefaultProveLevel;
+        _setting.DefaultCopyNum = setting.DefaultCopyNum;
+
+        if (_oldUserSpace.ExpireHeight == 0) {
+            ret.newUserSpace.Used = 0;
+            ret.newUserSpace.Remain = addSize;
+            ret.newUserSpace.ExpireHeight = currentHeight + addBlockCount;
+            ret.newUserSpace.Balance = 0;
+            StorageFee memory fee = calcDepositFeeForUserSpace(
+                ret.newUserSpace,
+                _setting,
+                block.number
+            );
+            ret.newUserSpace.Balance =
+                fee.TxnFee +
+                fee.SpaceFee +
+                fee.ValidationFee;
+            ret.success = true;
+            return ret;
+        } else {
+            uint256 newExpiredHeight = _oldUserSpace.ExpireHeight +
+                addBlockCount;
+            uint64 newRemain = _oldUserSpace.Remain + addSize;
+            ret.newUserSpace.Used = _oldUserSpace.Used;
+            ret.newUserSpace.Remain = newRemain;
+            ret.newUserSpace.ExpireHeight = newExpiredHeight;
+            ret.newUserSpace.Balance = _oldUserSpace.Balance;
+            StorageFee memory fee1 = calcDepositFeeForUserSpace(
+                _oldUserSpace,
+                _setting,
+                block.number
+            );
+            StorageFee memory fee2 = calcDepositFeeForUserSpace(
+                ret.newUserSpace,
+                _setting,
+                block.number
+            );
+            uint64 fee1Sum = fee1.TxnFee + fee1.SpaceFee + fee1.ValidationFee;
+            uint64 fee2Sum = fee2.TxnFee + fee2.SpaceFee + fee2.ValidationFee;
+            if (fee2Sum <= fee1Sum) {
+                ret.success = false;
+                return ret;
+            }
+            uint64 deposit = fee2Sum - fee1Sum;
+            _oldUserSpace.Used = 0;
+            StorageFee memory feeForRemaining = calcDepositFeeForUserSpace(
+                _oldUserSpace,
+                _setting,
+                block.number
+            );
+            uint64 feeForRemainingSum = feeForRemaining.TxnFee +
+                feeForRemaining.SpaceFee +
+                feeForRemaining.ValidationFee;
+            if (_oldUserSpace.Balance <= feeForRemainingSum) {
+                ret.success = false;
+                return ret;
+            }
+            uint64 availableInBalance = _oldUserSpace.Balance -
+                feeForRemainingSum;
+            if (availableInBalance > deposit) {
+                deposit = 0;
+            } else {
+                deposit = deposit - availableInBalance;
+                ret.newUserSpace.Balance += deposit;
+            }
+            if (addBlockCount != 0) {
+                bool res;
+                (ret.updatedFiles, res) = updateFilesForRenew(
+                    fileList,
+                    _setting,
+                    newExpiredHeight
+                );
+                if (!res) {
+                    ret.success = false;
+                    return ret;
+                }
+            }
+            ret.success = true;
+            return ret;
+        }
     }
 
     function fsRevokeUserspace(
@@ -304,13 +445,19 @@ contract Space is Initializable {
             ops == UserspaceOps_Add_None ||
             ops == UserspaceOps_None_Add
         ) {
-            (newUserSpace, transferIn, updatedFiles, res) = fsAddUserSpace(
+            AddReturn memory ret = fsAddUserSpace(
                 _oldUserSpace,
                 _params.Size.Value,
                 _params.BlockCount.Value,
                 block.number,
                 _setting,
                 fileList
+            );
+            (newUserSpace, transferIn, updatedFiles, res) = (
+                ret.newUserSpace,
+                ret.newUserSpace.Balance,
+                ret.updatedFiles,
+                ret.success
             );
             if (!res) {
                 return (newUserSpace, state, updatedFiles, false);
@@ -416,6 +563,21 @@ contract Space is Initializable {
         FileInfo[] memory updatedFiles;
         bool res;
         (newUserSpace, state, updatedFiles, res) = getUserspaceChange(params);
-        // TODO
+        if (!res) {
+            revert UserspaceChangeError();
+        }
+        if (state.Value > 0) {
+            if (state.From == address(this)) {
+                payable(state.To).transfer(state.Value);
+            } else {
+                if (msg.value < state.Value) {
+                    revert InsufficientFunds();
+                }
+            }
+        }
+        for (uint256 i = 0; i < updatedFiles.length; i++) {
+            fs.UpdateFileInfo(updatedFiles[i]);
+        }
+        userSpace[params.Owner] = newUserSpace;
     }
 }
