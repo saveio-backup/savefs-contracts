@@ -254,7 +254,7 @@ contract Space is Initializable {
         bool success;
     }
 
-    function fsAddUserSpace(AddParams memory params)
+    function AddUserSpace(AddParams memory params)
         public
         view
         returns (AddReturn memory)
@@ -340,41 +340,88 @@ contract Space is Initializable {
         }
     }
 
-    function fsRevokeUserspace(
-        UserSpace memory oldUserspace,
-        uint64 revokeSize,
-        uint64 revokeBlockCount,
-        uint256 currentHeight,
-        Setting memory setting
-    )
+    struct RevokeParams {
+        UserSpace oldUserspace;
+        uint64 revokeSize;
+        uint64 revokeBlockCount;
+        uint256 currentHeight;
+        Setting setting;
+    }
+
+    struct RevokeReturn {
+        UserSpace newUserSpace;
+        uint64 amount;
+        bool success;
+    }
+
+    function RevokeUserSpace(RevokeParams memory params)
         public
         view
-        returns (
-            UserSpace memory,
-            uint64,
-            bool
-        )
+        returns (RevokeReturn memory)
     {
-        // TODO
+        RevokeReturn memory ret;
+        if (params.oldUserspace.Remain < params.revokeSize) {
+            ret.success = false;
+            return ret;
+        }
+        if (
+            params.oldUserspace.ExpireHeight - params.revokeBlockCount <
+            params.currentHeight
+        ) {
+            ret.success = false;
+            return ret;
+        }
+        UserSpace memory newUserSpace;
+        newUserSpace.Used = params.oldUserspace.Used;
+        newUserSpace.Remain = params.oldUserspace.Remain - params.revokeSize;
+        newUserSpace.ExpireHeight =
+            params.oldUserspace.ExpireHeight -
+            params.revokeBlockCount;
+        newUserSpace.Balance = params.oldUserspace.Balance;
+        StorageFee memory fee1 = calcDepositFeeForUserSpace(
+            params.oldUserspace,
+            params.setting,
+            block.number
+        );
+        StorageFee memory fee2 = calcDepositFeeForUserSpace(
+            newUserSpace,
+            params.setting,
+            block.number
+        );
+        uint64 fee1Sum = fee1.TxnFee + fee1.SpaceFee + fee1.ValidationFee;
+        uint64 fee2Sum = fee2.TxnFee + fee2.SpaceFee + fee2.ValidationFee;
+        if (fee1Sum <= fee2Sum) {
+            ret.success = false;
+            return ret;
+        }
+        uint64 amount = fee1Sum - fee2Sum;
+        if (newUserSpace.Balance < amount) {
+            ret.success = false;
+            return ret;
+        }
+        newUserSpace.Balance -= amount;
+        return ret;
+    }
+
+    struct ProcessRevokeParams {
+        UserSpaceParams params;
+        UserSpace oldUserspace;
+        Setting setting;
+        FileList fileList;
+        uint64 ops;
+    }
+
+    struct ProcessRevokeReturn {
+        UserSpace userSpace;
+        uint64 addedAmount;
+        uint64 revokedAmount;
+        FileInfo[] update;
+        bool success;
     }
 
     function processForUserSpaceOneAddOneRevoke(
-        UserSpaceParams memory params,
-        UserSpace memory oldUserspace,
-        Setting memory setting,
-        FileList memory fileList,
-        uint64 ops
-    )
-        public
-        view
-        returns (
-            UserSpace memory,
-            uint64,
-            uint64,
-            FileInfo[] memory,
-            bool
-        )
-    {
+        ProcessRevokeParams memory params
+    ) public view returns (ProcessRevokeReturn memory) {
         // TODO
     }
 
@@ -416,7 +463,7 @@ contract Space is Initializable {
             addParams.setting = params.setting;
             addParams.fileList = fileList;
 
-            AddReturn memory addRet = fsAddUserSpace(addParams);
+            AddReturn memory addRet = AddUserSpace(addParams);
             (ret.newUserSpace, transferIn, ret.updatedFiles, ret.success) = (
                 addRet.newUserSpace,
                 addRet.newUserSpace.Balance,
@@ -432,30 +479,48 @@ contract Space is Initializable {
             ops == UserspaceOps_None_Revoke ||
             ops == UserspaceOps_Revoke_None
         ) {
-            (ret.newUserSpace, transferOut, ret.success) = fsRevokeUserspace(
-                params.oldUserSpace,
-                params.userSpaceParams.Size.Value,
-                params.userSpaceParams.BlockCount.Value,
-                block.number,
-                params.setting
+            RevokeParams memory revokeParams;
+            revokeParams.oldUserspace = params.oldUserSpace;
+            revokeParams.revokeSize = params.userSpaceParams.Size.Value;
+            revokeParams.revokeBlockCount = params
+                .userSpaceParams
+                .BlockCount
+                .Value;
+            revokeParams.currentHeight = block.number;
+            revokeParams.setting = params.setting;
+            RevokeReturn memory revokeReturn = RevokeUserSpace(revokeParams);
+            (ret.newUserSpace, transferOut, ret.success) = (
+                revokeReturn.newUserSpace,
+                revokeReturn.amount,
+                revokeReturn.success
             );
             if (!ret.success) {
                 return ret;
             }
         }
         if (ops == UserspaceOps_Add_Revoke || ops == UserspaceOps_Revoke_Add) {
+            ProcessRevokeParams memory processRevokeParams;
+            processRevokeParams.params = params.userSpaceParams;
+            processRevokeParams.oldUserspace = params.oldUserSpace;
+            processRevokeParams.setting = params.setting;
+            processRevokeParams.fileList = fileList;
+            processRevokeParams.ops = ops;
+            ProcessRevokeReturn
+                memory processRevokeReturn = processForUserSpaceOneAddOneRevoke(
+                    processRevokeParams
+                );
             (
                 ret.newUserSpace,
                 transferIn,
                 transferOut,
                 ret.updatedFiles,
                 ret.success
-            ) = processForUserSpaceOneAddOneRevoke(
-                params.userSpaceParams,
-                params.oldUserSpace,
-                params.setting,
-                fileList,
-                ops
+            ) = (
+                processRevokeReturn.userSpace,
+                processRevokeReturn.addedAmount,
+                processRevokeReturn.revokedAmount,
+                processRevokeReturn.update,
+                processRevokeReturn.success
             );
             if (!ret.success) {
                 return ret;
