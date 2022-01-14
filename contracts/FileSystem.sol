@@ -26,7 +26,7 @@ contract FileSystem is Initializable {
     mapping(address => FileList) primaryFileList; // walletAddr => filelist
     mapping(address => FileList) candidateFileList; // walletAddr => filelist
     mapping(bytes => ProveDetails) proveDetails; // fileHash => ProveDetails
-    mapping(bytes => WhiteList) whiteList; // fileHash => whileList
+    mapping(bytes => WhiteList[]) whiteList; // fileHash => whileList
     mapping(uint32 => PocProve[]) pocProveList; // blockNumber => PocProve
 
     event StoreFileEvent(
@@ -217,7 +217,7 @@ contract FileSystem is Initializable {
     ) public pure returns (StorageFee memory) {
         uint64 fee;
         uint64 txGas = 10000000;
-        if (uploadOption.WhiteList_.Num > 0) {
+        if (uploadOption.WhiteList_.length > 0) {
             fee = txGas * 4;
         } else {
             fee = txGas * 3;
@@ -443,16 +443,59 @@ contract FileSystem is Initializable {
         return true;
     }
 
-    /****************************************************************************
-     * WhiteList mamanagement ***************************************************
-     */
+    enum WHileListOpType {
+        ADD,
+        DEL,
+        ADD_COV,
+        DEL_ALL,
+        UPDATE
+    }
+
+    struct WhiteListParams {
+        bytes FileHash;
+        WHileListOpType Op;
+        WhiteList[] List;
+    }
+
+    function WhiteListOperate(WhiteListParams memory params) public payable {
+        if (params.Op == WHileListOpType.ADD) {
+            WhiteList[] storage list = whiteList[params.FileHash];
+            for (uint256 i = 0; i < params.List.length; i++) {
+                list.push(params.List[i]);
+            }
+        }
+        if (params.Op == WHileListOpType.DEL) {
+            WhiteList[] storage list = whiteList[params.FileHash];
+            for (uint256 i = 0; i < params.List.length; i++) {
+                for (uint256 j = 0; j < list.length; j++) {
+                    if (list[j].Addr == params.List[i].Addr) {
+                        delete list[j];
+                        break;
+                    }
+                }
+            }
+        }
+        if (params.Op == WHileListOpType.ADD_COV) {
+            WhiteList[] storage list = whiteList[params.FileHash];
+            for (uint256 i = 0; i < list.length; i++) {
+                if (list[i].ExpireHeight <= list[i].BaseHeight) {
+                    delete list[i];
+                }
+            }
+            whiteList[params.FileHash] = list;
+        }
+        if (params.Op == WHileListOpType.DEL_ALL) {
+            delete whiteList[params.FileHash];
+        }
+    }
+
     function GetWhiteList(bytes memory fileHash)
         public
         view
         NotEmptyFileHash(fileHash)
-        returns (WhiteList memory)
+        returns (WhiteList[] memory)
     {
-        require(whiteList[fileHash].List.length > 0, "whiteList is empty");
+        require(whiteList[fileHash].length > 0, "whiteList is empty");
         return whiteList[fileHash];
     }
 

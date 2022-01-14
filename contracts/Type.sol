@@ -15,14 +15,6 @@ enum FsEvent {
     DELETE_SECTOR
 }
 
-enum WHileListOp {
-    ADD,
-    DEL,
-    ADD_COV,
-    DEL_ALL,
-    UPDATE
-}
-
 enum ProveLevel {
     HIGH,
     MEDIEUM,
@@ -97,21 +89,10 @@ struct StorageFee {
     uint64 ValidationFee;
 }
 
-struct Role {
+struct WhiteList {
     address Addr;
     uint64 BaseHeight;
     uint64 ExpireHeight;
-}
-
-struct WhiteListOp {
-    bytes FileHash;
-    WHileListOp Op;
-    WhiteList List;
-}
-
-struct WhiteList {
-    uint64 Num;
-    Role[] List;
 }
 
 struct UploadOption {
@@ -127,7 +108,7 @@ struct UploadOption {
     bool RegisterDNS;
     bool BindDNS;
     bytes DnsURL;
-    WhiteList WhiteList_;
+    WhiteList[] WhiteList_;
     bool Share;
     StorageType StorageType_;
 }

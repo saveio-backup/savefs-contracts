@@ -22,16 +22,13 @@ describe(scriptName, function () {
       RegisterDNS: true,
       BindDNS: true,
       DnsURL: [],
-      WhiteList_: {
-        Num: 0,
-        List: [
-          {
-            Addr: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
-            BaseHeight: 1,
-            ExpireHeight: 100,
-          },
-        ],
-      },
+      WhiteList_: [
+        {
+          Addr: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+          BaseHeight: 1,
+          ExpireHeight: 100,
+        },
+      ],
       Share: true,
       StorageType_: 0,
     });
@@ -52,16 +49,13 @@ describe(scriptName, function () {
       RegisterDNS: true,
       BindDNS: true,
       DnsURL: [],
-      WhiteList_: {
-        Num: 0,
-        List: [
-          {
-            Addr: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
-            BaseHeight: 1,
-            ExpireHeight: 100,
-          },
-        ],
-      },
+      WhiteList_: [
+        {
+          Addr: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+          BaseHeight: 1,
+          ExpireHeight: 100,
+        },
+      ],
       Share: true,
       StorageType_: 0,
     });
@@ -82,16 +76,13 @@ describe(scriptName, function () {
       RegisterDNS: true,
       BindDNS: true,
       DnsURL: [],
-      WhiteList_: {
-        Num: 1,
-        List: [
-          {
-            Addr: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
-            BaseHeight: 1,
-            ExpireHeight: 100,
-          },
-        ],
-      },
+      WhiteList_: [
+        {
+          Addr: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+          BaseHeight: 1,
+          ExpireHeight: 100,
+        },
+      ],
       Share: true,
       StorageType_: 0,
     });
