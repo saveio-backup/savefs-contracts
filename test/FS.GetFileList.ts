@@ -44,7 +44,7 @@ describe(scriptName, function () {
 
     const res2 = fs.GetFileList("0x70997970C51812dc3A010C7d01b50e0d17dc79C8");
     let tx = await res2;
-    assert(tx.FileNum.eq(1))
+    assert(tx.length == 1)
     // console.log(tx)
   });
 });

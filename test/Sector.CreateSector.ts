@@ -38,10 +38,7 @@ describe(scriptName, () => {
       FileNum: 1,
       GroupNum: 1,
       IsPlots: false,
-      FileList_: {
-        FileNum: 0,
-        List: []
-      }
+      FileList: []
     });
     expect(tx).to.not.be.reverted;
     // console.log(await (await tx).wait())

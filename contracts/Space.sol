@@ -35,6 +35,7 @@ contract Space is Initializable {
     error ParamsError();
     error FirstUserSpaceOperationError();
     error UserspaceChangeError();
+    error UserspaceDeleteError();
     error InsufficientFunds();
 
     function initialize(Config _config, FileSystem _fs) public initializer {
@@ -121,8 +122,8 @@ contract Space is Initializable {
         view
         returns (bool)
     {
-        FileList memory fileList = fs.GetFileList(params.Owner);
-        if (fileList.FileNum > 0) {
+        bytes[] memory fileList = fs.GetFileList(params.Owner);
+        if (fileList.length > 0) {
             return false;
         }
         if (params.WalletAddr != params.Owner) {
@@ -156,14 +157,6 @@ contract Space is Initializable {
             }
         }
         return true;
-    }
-
-    function getOldUserSpace(address owner)
-        public
-        view
-        returns (UserSpace memory)
-    {
-        return userSpace[owner];
     }
 
     function processExpiredUserSpace(
@@ -213,39 +206,13 @@ contract Space is Initializable {
         return fee;
     }
 
-    function updateFilesForRenew(
-        FileList memory fileList,
-        Setting memory setting,
-        uint256 newExpireHeight
-    ) public view returns (FileInfo[] memory, bool) {
-        FileInfo[] memory fileInfo;
-        for (uint256 i = 0; i < fileList.List.length; i++) {
-            FileInfo memory _fileInfo = fs.GetFileInfo(fileList.List[i]);
-            if (_fileInfo.StorageType_ != StorageType.Normal) {
-                continue;
-            }
-            if (newExpireHeight <= _fileInfo.ExpiredHeight) {
-                continue;
-            }
-            bool res = fs.UpdateFileInfoForRenew(
-                setting,
-                newExpireHeight,
-                _fileInfo
-            );
-            if (!res) {
-                return (fileInfo, false);
-            }
-        }
-        return (fileInfo, true);
-    }
-
     struct AddParams {
         UserSpace oldUserSpace;
         uint64 addSize;
         uint64 addBlockCount;
         uint256 currentHeight;
         Setting setting;
-        FileList fileList;
+        bytes[] fileList;
     }
 
     struct AddReturn {
@@ -326,7 +293,7 @@ contract Space is Initializable {
                 ret.newUserSpace.Balance += deposit;
             }
             if (params.addBlockCount != 0) {
-                (ret.updatedFiles, ret.success) = updateFilesForRenew(
+                (ret.updatedFiles, ret.success) = fs.UpdateFilesForRenew(
                     params.fileList,
                     params.setting,
                     newExpiredHeight
@@ -407,7 +374,7 @@ contract Space is Initializable {
         UserSpaceParams userSpaceParams;
         UserSpace oldUserspace;
         Setting setting;
-        FileList fileList;
+        bytes[] fileList;
         uint64 ops;
     }
 
@@ -489,7 +456,7 @@ contract Space is Initializable {
         uint64 transferIn;
         uint64 transferOut;
 
-        FileList memory fileList = fs.GetFileList(params.userSpaceParams.Owner);
+        bytes[] memory fileList = fs.GetFileList(params.userSpaceParams.Owner);
         uint64 ops = getUserSpaceOperationsFromParams(params.userSpaceParams);
         if (
             ops == UserspaceOps_Add_Add ||
@@ -602,7 +569,7 @@ contract Space is Initializable {
         if (!checkRes) {
             revert ParamsError();
         }
-        UserSpace memory oldUserSpace = getOldUserSpace(params.Owner);
+        UserSpace memory oldUserSpace = GetUserSpace(params.Owner);
         if (
             oldUserSpace.ExpireHeight > 0 &&
             oldUserSpace.ExpireHeight <= block.number
@@ -650,5 +617,73 @@ contract Space is Initializable {
             fs.UpdateFileInfo(ret.updatedFiles[i]);
         }
         userSpace[params.Owner] = ret.newUserSpace;
+    }
+
+    function deleteExpiredFilesFromList(
+        bytes[] memory fileList,
+        address walletAddr,
+        StorageType storageType
+    )
+        public
+        payable
+        returns (
+            bytes[] memory,
+            uint64,
+            bool
+        )
+    {
+        bytes[] memory deletedFiles;
+        uint64 amount;
+        bool success;
+        // TODO
+        return (deletedFiles, amount, success);
+    }
+
+    function deleteExpiredUserSpace(
+        UserSpace memory _userSpace,
+        address walletAddr
+    ) public payable {
+        Setting memory setting = config.GetSetting();
+        if (
+            setting.DefaultProvePeriod + _userSpace.ExpireHeight > block.number
+        ) {
+            revert UserspaceDeleteError();
+        }
+        bytes[] memory deletedFiles;
+        uint64 amount;
+        bool success;
+        bytes[] memory fileList = fs.GetFileList(walletAddr);
+        (deletedFiles, amount, success) = deleteExpiredFilesFromList(
+            fileList,
+            walletAddr,
+            StorageType.Normal
+        );
+        bytes[] memory unsettledList = fs.GetUnSettledFileList(walletAddr);
+        (deletedFiles, amount, success) = deleteExpiredFilesFromList(
+            unsettledList,
+            walletAddr,
+            StorageType.Normal
+        );
+        for (uint256 i = 0; i < deletedFiles.length; i++) {
+            for (uint256 j = 0; j < unsettledList.length; j++) {
+                if (keccak256(deletedFiles[i]) == keccak256(unsettledList[j])) {
+                    delete unsettledList[j];
+                }
+            }
+        }
+        fs.UpdateFileList(walletAddr, unsettledList);
+    }
+
+    function DeleteUserSpace(address walletAddr) public payable {
+        UserSpace memory _userSpace = GetUserSpace(walletAddr);
+        if (_userSpace.Used == 0 && _userSpace.Balance > 0) {
+            payable(walletAddr).transfer(_userSpace.Balance);
+        }
+        if (
+            _userSpace.ExpireHeight > 0 &&
+            _userSpace.ExpireHeight <= block.number
+        ) {
+            deleteExpiredUserSpace(_userSpace, walletAddr);
+        }
     }
 }

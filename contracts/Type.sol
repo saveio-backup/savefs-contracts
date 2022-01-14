@@ -150,11 +150,6 @@ struct FileInfo {
     PlotInfo PlotInfo_;
 }
 
-struct FileList {
-    uint64 FileNum;
-    bytes[] List;
-}
-
 struct SectorInfo {
     address NodeAddr;
     uint64 SectorID;
@@ -167,7 +162,7 @@ struct SectorInfo {
     uint64 FileNum;
     uint64 GroupNum;
     bool IsPlots;
-    FileList FileList_;
+    bytes[] FileList;
 }
 
 struct SectorInfos {

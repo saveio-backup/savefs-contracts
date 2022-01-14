@@ -22,9 +22,10 @@ contract FileSystem is Initializable {
     uint64 IN_SECTOR_SIZE = 1000 * 1000;
 
     mapping(bytes => FileInfo) fileInfos; // fileHash => FileInfo
-    mapping(address => FileList) fileList; // walletAddr => filelist
-    mapping(address => FileList) primaryFileList; // walletAddr => filelist
-    mapping(address => FileList) candidateFileList; // walletAddr => filelist
+    mapping(address => bytes[]) fileList; // walletAddr => bytes[]
+    mapping(address => bytes[]) primaryFileList; // walletAddr => bytes[]
+    mapping(address => bytes[]) candidateFileList; // walletAddr => bytes[]
+    mapping(address => bytes[]) unSettledFileList; // walletAddr => bytes[]
     mapping(bytes => ProveDetails) proveDetails; // fileHash => ProveDetails
     mapping(bytes => WhiteList[]) whiteList; // fileHash => whileList
     mapping(uint32 => PocProve[]) pocProveList; // blockNumber => PocProve
@@ -318,17 +319,16 @@ contract FileSystem is Initializable {
         fileInfo.BlockHeight = block.number;
         // store file
         fileInfos[fileInfo.FileHash] = fileInfo;
-        FileList storage f = fileList[fileInfo.FileOwner];
-        f.FileNum++;
+        bytes[] storage f = fileList[fileInfo.FileOwner];
         // TODO should unique file hash
-        f.List.push(fileInfo.FileHash);
+        f.push(fileInfo.FileHash);
         for (uint256 i = 0; i < fileInfo.PrimaryNodes.AddrList.length; i++) {
-            FileList storage p = fileList[fileInfo.PrimaryNodes.AddrList[i]];
-            p.List.push(fileInfo.FileHash);
+            bytes[] storage p = fileList[fileInfo.PrimaryNodes.AddrList[i]];
+            p.push(fileInfo.FileHash);
         }
         for (uint256 i = 0; i < fileInfo.CandidateNodes.AddrList.length; i++) {
-            FileList storage p = fileList[fileInfo.CandidateNodes.AddrList[i]];
-            p.List.push(fileInfo.FileHash);
+            bytes[] storage p = fileList[fileInfo.CandidateNodes.AddrList[i]];
+            p.push(fileInfo.FileHash);
         }
         ProveDetails memory _proveDetails;
         _proveDetails.CopyNum = fileInfo.CopyNum;
@@ -381,16 +381,15 @@ contract FileSystem is Initializable {
         return fileInfo;
     }
 
-    function GetFileInfos(FileList memory _fileList)
+    function GetFileInfos(bytes[] memory _fileList)
         public
         view
         returns (FileInfo[] memory)
     {
-        require(_fileList.List.length > 0, "fileList is empty");
-        require(_fileList.FileNum == _fileList.List.length, "fileNum is wrong");
-        FileInfo[] memory _fileInfos = new FileInfo[](_fileList.List.length);
-        for (uint256 i = 0; i < _fileList.List.length; i++) {
-            bytes memory fileHash = _fileList.List[i];
+        require(_fileList.length > 0, "fileList is empty");
+        FileInfo[] memory _fileInfos = new FileInfo[](_fileList.length);
+        for (uint256 i = 0; i < _fileList.length; i++) {
+            bytes memory fileHash = _fileList[i];
             FileInfo memory fileInfo = fileInfos[fileHash];
             if (fileInfo.FileHash.length == 0) {
                 revert FileNotExist(fileHash);
@@ -403,13 +402,46 @@ contract FileSystem is Initializable {
     function GetFileList(address walletAddr)
         public
         view
-        returns (FileList memory)
+        returns (bytes[] memory)
     {
         return fileList[walletAddr];
     }
 
     function UpdateFileInfo(FileInfo memory f) public payable {
         fileInfos[f.FileHash] = f;
+    }
+
+    function UpdateFileList(address walletAddr, bytes[] memory list)
+        public
+        payable
+    {
+        fileList[walletAddr] = list;
+    }
+
+    function UpdateFilesForRenew(
+        bytes[] memory _fileList,
+        Setting memory setting,
+        uint256 newExpireHeight
+    ) public view returns (FileInfo[] memory, bool) {
+        FileInfo[] memory fileInfo;
+        for (uint256 i = 0; i < _fileList.length; i++) {
+            FileInfo memory _fileInfo = GetFileInfo(_fileList[i]);
+            if (_fileInfo.StorageType_ != StorageType.Normal) {
+                continue;
+            }
+            if (newExpireHeight <= _fileInfo.ExpiredHeight) {
+                continue;
+            }
+            bool res = UpdateFileInfoForRenew(
+                setting,
+                newExpireHeight,
+                _fileInfo
+            );
+            if (!res) {
+                return (fileInfo, false);
+            }
+        }
+        return (fileInfo, true);
     }
 
     function UpdateFileInfoForRenew(
@@ -441,6 +473,14 @@ contract FileSystem is Initializable {
             beginHeight
         );
         return true;
+    }
+
+    function GetUnSettledFileList(address walletAddr)
+        public
+        view
+        returns (bytes[] memory)
+    {
+        return unSettledFileList[walletAddr];
     }
 
     enum WHileListOpType {

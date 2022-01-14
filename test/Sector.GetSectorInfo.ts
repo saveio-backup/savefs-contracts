@@ -46,10 +46,7 @@ describe(scriptName, () => {
       FileNum: 1,
       GroupNum: 1,
       IsPlots: false,
-      FileList_: {
-        FileNum: 0,
-        List: []
-      }
+      FileList: []
     });
     let res2 = await (await tx2).wait()
     // console.log(res2)

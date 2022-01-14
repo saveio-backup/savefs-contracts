@@ -1,7 +1,7 @@
 import { assert, expect } from "chai";
-import { ethers } from "hardhat";
+import { ethers, network } from "hardhat";
 import { FileSystem, Node, Config, Space } from "../typechain";
-import { config, fs, node, space } from "./initialize";
+import { addrs, config, fs, node, space } from "./initialize";
 
 var path = require('path');
 var scriptName = path.basename(__filename);
@@ -9,11 +9,9 @@ var scriptName = path.basename(__filename);
 describe(scriptName, function () {
 
   it(scriptName, async () => {
-    const res2 = fs.GetFileInfos(
-      [
-        [65, 66, 67, 68, 69, 70]
-      ]
-    );
-    expect(res2).to.be.reverted;
+    const res2 = fs.GetUnSettledFileList(addrs[7]);
+    let tx = await res2;
+    assert(tx.length == 0)
+    // console.log(tx)
   });
 });
