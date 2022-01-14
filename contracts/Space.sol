@@ -341,7 +341,7 @@ contract Space is Initializable {
     }
 
     struct RevokeParams {
-        UserSpace oldUserspace;
+        UserSpace oldUserSpace;
         uint64 revokeSize;
         uint64 revokeBlockCount;
         uint256 currentHeight;
@@ -360,26 +360,26 @@ contract Space is Initializable {
         returns (RevokeReturn memory)
     {
         RevokeReturn memory ret;
-        if (params.oldUserspace.Remain < params.revokeSize) {
+        if (params.oldUserSpace.Remain < params.revokeSize) {
             ret.success = false;
             return ret;
         }
         if (
-            params.oldUserspace.ExpireHeight - params.revokeBlockCount <
+            params.oldUserSpace.ExpireHeight - params.revokeBlockCount <
             params.currentHeight
         ) {
             ret.success = false;
             return ret;
         }
         UserSpace memory newUserSpace;
-        newUserSpace.Used = params.oldUserspace.Used;
-        newUserSpace.Remain = params.oldUserspace.Remain - params.revokeSize;
+        newUserSpace.Used = params.oldUserSpace.Used;
+        newUserSpace.Remain = params.oldUserSpace.Remain - params.revokeSize;
         newUserSpace.ExpireHeight =
-            params.oldUserspace.ExpireHeight -
+            params.oldUserSpace.ExpireHeight -
             params.revokeBlockCount;
-        newUserSpace.Balance = params.oldUserspace.Balance;
+        newUserSpace.Balance = params.oldUserSpace.Balance;
         StorageFee memory fee1 = calcDepositFeeForUserSpace(
-            params.oldUserspace,
+            params.oldUserSpace,
             params.setting,
             block.number
         );
@@ -404,7 +404,7 @@ contract Space is Initializable {
     }
 
     struct ProcessRevokeParams {
-        UserSpaceParams params;
+        UserSpaceParams userSpaceParams;
         UserSpace oldUserspace;
         Setting setting;
         FileList fileList;
@@ -422,7 +422,48 @@ contract Space is Initializable {
     function processForUserSpaceOneAddOneRevoke(
         ProcessRevokeParams memory params
     ) public view returns (ProcessRevokeReturn memory) {
-        // TODO
+        ProcessRevokeReturn memory ret;
+        uint64 addedSize;
+        uint64 addedBlockCount;
+        uint64 revokedSize;
+        uint64 revokedBlockCount;
+        if (params.ops == UserspaceOps_Add_Revoke) {
+            addedSize = params.userSpaceParams.Size.Value;
+            revokedBlockCount = params.userSpaceParams.BlockCount.Value;
+        }
+        if (params.ops == UserspaceOps_Revoke_Add) {
+            revokedSize = params.userSpaceParams.Size.Value;
+            addedBlockCount = params.userSpaceParams.BlockCount.Value;
+        }
+        AddParams memory addParams;
+        addParams.oldUserSpace = params.oldUserspace;
+        addParams.addSize = addedSize;
+        addParams.addBlockCount = addedBlockCount;
+        addParams.currentHeight = block.number;
+        addParams.setting = params.setting;
+        addParams.fileList = params.fileList;
+        AddReturn memory addReturn = AddUserSpace(addParams);
+        if (!addReturn.success) {
+            ret.success = false;
+            return ret;
+        }
+        RevokeParams memory revokeParams;
+        revokeParams.oldUserSpace = addReturn.newUserSpace;
+        revokeParams.revokeSize = revokedSize;
+        revokeParams.revokeBlockCount = revokedBlockCount;
+        revokeParams.currentHeight = block.number;
+        revokeParams.setting = params.setting;
+        RevokeReturn memory revokeReturn = RevokeUserSpace(revokeParams);
+        if (!revokeReturn.success) {
+            ret.success = false;
+            return ret;
+        }
+        ret.userSpace = revokeReturn.newUserSpace;
+        ret.addedAmount = addReturn.newUserSpace.Balance;
+        ret.revokedAmount = revokeReturn.newUserSpace.Balance;
+        ret.update = addReturn.updatedFiles;
+        ret.success = true;
+        return ret;
     }
 
     struct ProcessParams {
@@ -480,7 +521,7 @@ contract Space is Initializable {
             ops == UserspaceOps_Revoke_None
         ) {
             RevokeParams memory revokeParams;
-            revokeParams.oldUserspace = params.oldUserSpace;
+            revokeParams.oldUserSpace = params.oldUserSpace;
             revokeParams.revokeSize = params.userSpaceParams.Size.Value;
             revokeParams.revokeBlockCount = params
                 .userSpaceParams
@@ -500,7 +541,7 @@ contract Space is Initializable {
         }
         if (ops == UserspaceOps_Add_Revoke || ops == UserspaceOps_Revoke_Add) {
             ProcessRevokeParams memory processRevokeParams;
-            processRevokeParams.params = params.userSpaceParams;
+            processRevokeParams.userSpaceParams = params.userSpaceParams;
             processRevokeParams.oldUserspace = params.oldUserSpace;
             processRevokeParams.setting = params.setting;
             processRevokeParams.fileList = fileList;
