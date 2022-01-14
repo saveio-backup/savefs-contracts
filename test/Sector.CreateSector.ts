@@ -1,7 +1,7 @@
 import { expect, assert } from "chai";
 import { ethers, network } from "hardhat";
 import { FileSystem, Node, Config, Sector } from "../typechain";
-import { config, fs, node, space, sector } from "./initialize";
+import { addrs, config, fs, node, space, sector } from "./initialize";
 
 var path = require('path');
 var scriptName = path.basename(__filename);
@@ -15,8 +15,8 @@ describe(scriptName, () => {
       Volume: 1000 * 1000,
       RestVol: 0,
       ServiceTime: 0,
-      WalletAddr: "0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199",
-      NodeAddr: "0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199",
+      WalletAddr: addrs[9],
+      NodeAddr: addrs[9],
     },
       {
         value: 1000000
@@ -27,7 +27,7 @@ describe(scriptName, () => {
     // console.log(s)
 
     const tx = sector.CreateSector({
-      NodeAddr: "0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199",
+      NodeAddr: addrs[9],
       SectorID: 1,
       Size: 1,
       Used: 0,
@@ -42,5 +42,21 @@ describe(scriptName, () => {
     });
     expect(tx).to.not.be.reverted;
     // console.log(await (await tx).wait())
+
+    const tx3 = sector.CreateSector({
+      NodeAddr: addrs[9],
+      SectorID: 2,
+      Size: 1000 * 1001,
+      Used: 0,
+      ProveLevel_: 1,
+      FirstProveHeight: 1,
+      NextProveHeight: 1,
+      TotalBlockNum: 1,
+      FileNum: 1,
+      GroupNum: 1,
+      IsPlots: false,
+      FileList: []
+    });
+    expect(tx3).to.be.reverted; // sector.Size > node.Volume
   });
 });
