@@ -674,6 +674,32 @@ contract FileSystem is Initializable {
         return unProvePrimaryFiles;
     }
 
+    function GetUnProveCandidateFiles(address walletAddr)
+        public
+        view
+        returns (bytes[] memory)
+    {
+        bytes[] memory list = candidateFileList[walletAddr];
+        bytes[] memory unProveCandidateFiles = new bytes[](list.length);
+        uint64 n = 0;
+        for (uint256 i = 0; i < list.length; i++) {
+            ProveDetail[] memory details = proveDetail[list[i]];
+            bool prove = false;
+            for (uint256 j = 0; j < details.length; j++) {
+                if (details[j].WalletAddr == walletAddr) {
+                    prove = true;
+                    break;
+                }
+            }
+            if (!prove) {
+                continue;
+            }
+            unProveCandidateFiles[n] = list[i];
+            n++;
+        }
+        return unProveCandidateFiles;
+    }
+
     enum WhiteListOpType {
         ADD,
         DEL,
