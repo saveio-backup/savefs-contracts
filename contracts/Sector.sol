@@ -10,8 +10,17 @@ contract Sector is Initializable {
     Node node;
 
     mapping(address => SectorInfo[]) sectorInfos; // nodeAddr => SectorInfo[]
+    mapping(address => mapping(uint64 => uint64)) sectorFileInfoGroup; // nodeAddr => sectorId => groupId
+
+    event DeleteSectorEvent(
+        FsEvent eventType,
+        uint256 blockHeight,
+        address walletAddr,
+        uint64 sectorId
+    );
 
     error NotEnoughVolume(uint64 got, uint64 want);
+    error NotEmptySector(uint64 got, uint64 want);
 
     function initialize(Node _node) public initializer {
         node = _node;
@@ -81,5 +90,63 @@ contract Sector is Initializable {
         returns (SectorInfo[] memory)
     {
         return sectorInfos[nodeAddr];
+    }
+
+    function getSectorFileInfoGroupNum(address nodeAddr, uint64 sectorId)
+        public
+        view
+        returns (uint64)
+    {
+        SectorInfo memory sectorInfo = GetSectorInfo(
+            SectorRef({SectorId: sectorId, NodeAddr: nodeAddr})
+        );
+        return sectorInfo.GroupNum;
+    }
+
+    function deleteSectorFileInfoGroup(
+        address nodeAddr,
+        uint64 sectorId,
+        uint64 groupId
+    ) public {
+        mapping(uint64 => uint64)
+            storage _sectorFileInfoGroup = sectorFileInfoGroup[nodeAddr];
+        delete _sectorFileInfoGroup[groupId];
+    }
+
+    function deleteAllSectorFileInfoGroup(address nodeAddr, uint64 sectorId)
+        public
+    {
+        uint64 groupNum = getSectorFileInfoGroupNum(nodeAddr, sectorId);
+        for (uint64 i = 0; i < groupNum; i++) {
+            deleteSectorFileInfoGroup(nodeAddr, sectorId, i);
+        }
+    }
+
+    function deleteSectorInfo(address nodeAddr, uint64 sectorId) public {
+        for (uint64 i = 0; i < sectorInfos[nodeAddr].length; i++) {
+            if (sectorInfos[nodeAddr][i].SectorID == sectorId) {
+                delete sectorInfos[nodeAddr][i];
+                break;
+            }
+        }
+    }
+
+    function deleteSector(address nodeAddr, uint64 sectorId) public payable {
+        deleteAllSectorFileInfoGroup(nodeAddr, sectorId);
+        deleteSectorInfo(nodeAddr, sectorId);
+    }
+
+    function DeleteSecotr(SectorRef memory sectorRef) public {
+        SectorInfo memory sectorInfo = GetSectorInfo(sectorRef);
+        if (sectorInfo.FileNum > 0) {
+            revert NotEmptySector(0, sectorInfo.FileNum);
+        }
+        deleteSector(sectorRef.NodeAddr, sectorRef.SectorId);
+        emit DeleteSectorEvent(
+            FsEvent.DELETE_SECTOR,
+            block.number,
+            msg.sender,
+            sectorRef.SectorId
+        );
     }
 }

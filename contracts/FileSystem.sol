@@ -88,12 +88,7 @@ contract FileSystem is Initializable {
         bool isPlots
     );
 
-    event DeleteSectorEvent(
-        FsEvent eventType,
-        uint256 blockHeight,
-        address walletAddr,
-        uint64 sectorId
-    );
+
 
     error FileNotExist(bytes);
     error UserspaceInsufficientBalance(uint256 got, uint256 want);

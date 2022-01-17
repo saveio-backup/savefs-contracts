@@ -1,7 +1,7 @@
 import { expect, assert } from "chai";
 import { ethers, network } from "hardhat";
 import { Node, Config, Sector } from "../typechain";
-import { config, fs, node, space, sector } from "./initialize";
+import { addrs, config, fs, node, space, sector } from "./initialize";
 
 var path = require('path');
 var scriptName = path.basename(__filename);
@@ -10,7 +10,7 @@ describe(scriptName, () => {
 
   it(scriptName, async () => {
 
-    const tx = sector.GetSectorInfos("0xdD2FD4581271e230360230F9337D5c0430Bf44C0");
+    const tx = sector.GetSectorInfos(addrs[13]);
     let res = await tx;
     console.log(res)
     assert(res.length == 0);
@@ -21,8 +21,8 @@ describe(scriptName, () => {
       Volume: 1000 * 1000,
       RestVol: 0,
       ServiceTime: 0,
-      WalletAddr: "0xdD2FD4581271e230360230F9337D5c0430Bf44C0",
-      NodeAddr: "0xdD2FD4581271e230360230F9337D5c0430Bf44C0",
+      WalletAddr: addrs[13],
+      NodeAddr: addrs[13],
     },
       {
         value: 1000000
@@ -32,7 +32,7 @@ describe(scriptName, () => {
     // console.log(s)
 
     const tx3 = sector.CreateSector({
-      NodeAddr: "0xdD2FD4581271e230360230F9337D5c0430Bf44C0",
+      NodeAddr: addrs[13],
       SectorID: 1,
       Size: 1,
       Used: 0,
@@ -48,7 +48,7 @@ describe(scriptName, () => {
     let r3 = await (await tx3).wait()
     // console.log(r3)
 
-    const tx4 = sector.GetSectorInfos("0xdD2FD4581271e230360230F9337D5c0430Bf44C0");
+    const tx4 = sector.GetSectorInfos(addrs[13]);
     let res4 = await tx4;
     assert(res4.length == 1);
     // console.log(res4)
