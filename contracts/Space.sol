@@ -1,4 +1,4 @@
-//SPDX-License-Identifier: Unlicense
+//SPDX-License-Identifier: Unlicensed
 pragma solidity ^0.8.0;
 
 import "hardhat/console.sol";
@@ -723,5 +723,13 @@ contract Space is Initializable {
         ) {
             deleteExpiredUserSpace(_userSpace, walletAddr);
         }
+    }
+
+    function GetUpdateCost() public view returns (TransferState memory) {
+        ChangeReturn memory ret;
+        UserSpaceParams memory params;
+        // TODO must be reverted
+        ret = getUserspaceChange(params);
+        return ret.state;
     }
 }

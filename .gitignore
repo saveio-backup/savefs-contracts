@@ -235,3 +235,4 @@ artifacts
 # Local config
 .openzeppelin
 .vscode
+.idea
