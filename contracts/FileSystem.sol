@@ -775,4 +775,19 @@ contract FileSystem is Initializable {
         require(height > 0, "Block number must lager than 0");
         return pocProveList[height];
     }
+
+    function GetFileProveDetails(bytes memory fileHash)
+        public
+        view
+        returns (ProveDetail[] memory)
+    {
+        ProveDetail[] memory details = proveDetail[fileHash];
+        for (uint256 i = 0; i < details.length; i++) {
+            NodeInfo memory nodeInfo = node.GetNodeInfoByWalletAddr(
+                details[i].WalletAddr
+            );
+            details[i].NodeAddr = nodeInfo.NodeAddr;
+        }
+        return details;
+    }
 }
