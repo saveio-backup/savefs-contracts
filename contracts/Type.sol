@@ -1,7 +1,6 @@
 //SPDX-License-Identifier: Unlicensed
 pragma solidity ^0.8.0;
 
-/** enum ********************** */
 enum FsEvent {
     STORE_FILE,
     DELETE_FILE,
@@ -24,12 +23,6 @@ enum ProveLevel {
 enum StorageType {
     Normal,
     Professional
-}
-
-enum UserSpaceType {
-    None,
-    Add,
-    Revoke
 }
 
 /** setting ********************** */
@@ -68,6 +61,12 @@ struct UserSpace {
     uint64 Balance;
     uint256 ExpireHeight;
     uint256 UpdateHeight;
+}
+
+enum UserSpaceType {
+    None,
+    Add,
+    Revoke
 }
 
 struct UserSpaceOperation {

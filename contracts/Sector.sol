@@ -12,6 +12,16 @@ contract Sector is Initializable {
     mapping(address => SectorInfo[]) sectorInfos; // nodeAddr => SectorInfo[]
     mapping(address => mapping(uint64 => uint64[])) sectorFileInfoGroup; // nodeAddr => sectorId => groupId
 
+    event CreateSectorEvent(
+        FsEvent eventType,
+        uint256 blockHeight,
+        address walletAddr,
+        uint64 sectorId,
+        ProveLevel provLevel,
+        uint64 size,
+        bool isPlots
+    );
+
     event DeleteSectorEvent(
         FsEvent eventType,
         uint256 blockHeight,
@@ -66,6 +76,15 @@ contract Sector is Initializable {
             );
         }
         sectorInfos[sectorInfo.NodeAddr].push(sectorInfo);
+        emit CreateSectorEvent(
+            FsEvent.CREATE_SECTOR,
+            block.number,
+            sectorInfo.NodeAddr,
+            sectorInfo.SectorID,
+            sectorInfo.ProveLevel_,
+            sectorInfo.Size,
+            sectorInfo.IsPlots
+        );
     }
 
     function GetSectorInfo(SectorRef memory sectorRef)

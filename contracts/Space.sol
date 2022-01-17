@@ -32,6 +32,16 @@ contract Space is Initializable {
 
     mapping(address => UserSpace) userSpace; // walletAddr => UserSpace
 
+    event SetUserSpaceEvent(
+        FsEvent eventType,
+        uint256 blockHeight,
+        address walletAddr,
+        UserSpaceType sizeType,
+        uint64 size,
+        UserSpaceType countType,
+        uint64 count
+    );
+
     error ParamsError();
     error FirstUserSpaceOperationError();
     error UserspaceChangeError();
@@ -617,6 +627,15 @@ contract Space is Initializable {
             fs.UpdateFileInfo(ret.updatedFiles[i]);
         }
         userSpace[params.Owner] = ret.newUserSpace;
+        emit SetUserSpaceEvent(
+            FsEvent.SET_USER_SPACE,
+            block.number,
+            params.WalletAddr,
+            params.Size.Type,
+            params.Size.Value,
+            params.BlockCount.Type,
+            params.BlockCount.Value
+        );
     }
 
     function deleteExpiredUserSpace(

@@ -34,7 +34,7 @@ contract FileSystem is Initializable {
     event StoreFileEvent(
         FsEvent eventType,
         uint256 blockHeight,
-        string fileHash,
+        bytes fileHash,
         uint64 fileSize,
         address walletAddr,
         uint64 cost,
@@ -55,16 +55,6 @@ contract FileSystem is Initializable {
         address walletAddr
     );
 
-    event SetUserSpaceEvent(
-        FsEvent eventType,
-        uint256 blockHeight,
-        address walletAddr,
-        uint64 sizeType,
-        uint64 size,
-        uint64 countType,
-        uint64 count
-    );
-
     event ProveFileEvent(
         FsEvent eventType,
         uint256 blockHeight,
@@ -77,16 +67,6 @@ contract FileSystem is Initializable {
         uint256 blockHeight,
         string fileHash,
         address walletAddr
-    );
-
-    event CreateSectorEvent(
-        FsEvent eventType,
-        uint256 blockHeight,
-        address walletAddr,
-        uint64 sectorId,
-        uint64 provLevel,
-        uint64 size,
-        bool isPlots
     );
 
     error FileNotExist(bytes);
@@ -328,6 +308,15 @@ contract FileSystem is Initializable {
         _proveDetails.CopyNum = fileInfo.CopyNum;
         _proveDetails.ProveDetailNum = 0;
         proveDetails[fileInfo.FileHash] = _proveDetails;
+        emit StoreFileEvent(
+            FsEvent.STORE_FILE,
+            block.number,
+            fileInfo.FileHash,
+            fileInfo.RealFileSize,
+            fileInfo.FileOwner,
+            fileInfo.Deposit,
+            fileInfo.IsPlotFile
+        );
     }
 
     function FileReNew(FileReNewInfo memory fileReNewInfo) public payable {
