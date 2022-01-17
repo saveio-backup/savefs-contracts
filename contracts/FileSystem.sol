@@ -22,11 +22,11 @@ contract FileSystem is Initializable {
     uint64 IN_SECTOR_SIZE = 1000 * 1000;
 
     mapping(bytes => FileInfo) fileInfos; // fileHash => FileInfo
+    mapping(bytes => ProveDetails) proveDetails; // fileHash => ProveDetails
     mapping(address => bytes[]) fileList; // walletAddr => bytes[]
     mapping(address => bytes[]) primaryFileList; // walletAddr => bytes[]
     mapping(address => bytes[]) candidateFileList; // walletAddr => bytes[]
     mapping(address => bytes[]) unSettledFileList; // walletAddr => bytes[]
-    mapping(bytes => ProveDetails) proveDetails; // fileHash => ProveDetails
     mapping(bytes => WhiteList[]) whiteList; // fileHash => whileList
     mapping(uint32 => PocProve[]) pocProveList; // blockNumber => PocProve
 
@@ -411,6 +411,17 @@ contract FileSystem is Initializable {
         fileInfos[f.FileHash] = f;
     }
 
+    function DeleteFileInfo(bytes memory fileHash) public {
+        delete fileInfos[fileHash];
+    }
+
+    /**
+     * Why same as delete file info method?
+     */
+    function DeleteProveDetails(bytes memory fileHash) public {
+        delete fileInfos[fileHash];
+    }
+
     function UpdateFileList(address walletAddr, bytes[] memory list)
         public
         payable
@@ -483,12 +494,93 @@ contract FileSystem is Initializable {
         return unSettledFileList[walletAddr];
     }
 
+    function DelFileFromUnSettledList(address walletAddr, bytes memory fileHash)
+        public
+        payable
+    {
+        for (uint256 i = 0; i < unSettledFileList[walletAddr].length; i++) {
+            if (
+                keccak256(unSettledFileList[walletAddr][i]) ==
+                keccak256(fileHash)
+            ) {
+                delete unSettledFileList[walletAddr][i];
+                break;
+            }
+        }
+    }
+
+    function DelFileFromList(address walletAddr, bytes memory fileHash) public {
+        for (uint256 i = 0; i < fileList[walletAddr].length; i++) {
+            if (keccak256(fileList[walletAddr][i]) == keccak256(fileHash)) {
+                delete fileList[walletAddr][i];
+                break;
+            }
+        }
+    }
+
+    function DelFileFromPrimaryList(address walletAddr, bytes memory fileHash)
+        public
+        payable
+    {
+        for (uint256 i = 0; i < primaryFileList[walletAddr].length; i++) {
+            if (
+                keccak256(primaryFileList[walletAddr][i]) == keccak256(fileHash)
+            ) {
+                delete primaryFileList[walletAddr][i];
+                break;
+            }
+        }
+    }
+
+    function DelFileFromCandidateList(address walletAddr, bytes memory fileHash)
+        public
+        payable
+    {
+        for (uint256 i = 0; i < candidateFileList[walletAddr].length; i++) {
+            if (
+                keccak256(candidateFileList[walletAddr][i]) ==
+                keccak256(fileHash)
+            ) {
+                delete candidateFileList[walletAddr][i];
+                break;
+            }
+        }
+    }
+
     function cleanupForDeleteFile(
         FileInfo memory fileInfo,
         bool rmInfo,
         bool rmList
     ) public {
-        // TODO
+        bytes memory fileHash = fileInfo.FileHash;
+        if (rmInfo) {
+            DeleteFileInfo(fileHash);
+            DeleteProveDetails(fileHash);
+            DelFileFromUnSettledList(fileInfo.FileOwner, fileHash);
+        }
+        if (rmList) {
+            DelFileFromList(fileInfo.FileOwner, fileHash);
+            for (
+                uint256 i = 0;
+                i < fileInfo.PrimaryNodes.AddrList.length;
+                i++
+            ) {
+                DelFileFromPrimaryList(
+                    fileInfo.PrimaryNodes.AddrList[i],
+                    fileHash
+                );
+            }
+            for (
+                uint256 i = 0;
+                i < fileInfo.CandidateNodes.AddrList.length;
+                i++
+            ) {
+                DelFileFromCandidateList(
+                    fileInfo.CandidateNodes.AddrList[i],
+                    fileHash
+                );
+            }
+        }
     }
 
     function DeleteExpiredFilesFromList(

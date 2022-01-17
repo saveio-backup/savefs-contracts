@@ -672,7 +672,6 @@ contract Space is Initializable {
     function GetUpdateCost() public view returns (TransferState memory) {
         ChangeReturn memory ret;
         UserSpaceParams memory params;
-        // TODO must be reverted
         ret = getUserspaceChange(params);
         return ret.state;
     }
