@@ -194,7 +194,6 @@ struct ProveDetail {
 struct ProveDetails {
     uint64 CopyNum;
     uint64 ProveDetailNum;
-    // ProveDetail[] ProveDetails; // TODO
 }
 
 /** transfer ********************** */

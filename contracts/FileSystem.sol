@@ -22,6 +22,7 @@ contract FileSystem is Initializable {
     uint64 IN_SECTOR_SIZE = 1000 * 1000;
 
     mapping(bytes => FileInfo) fileInfos; // fileHash => FileInfo
+    mapping(bytes => ProveDetail[]) proveDetail; // fileHash => ProveDetail[]
     mapping(bytes => ProveDetails) proveDetails; // fileHash => ProveDetails
     mapping(address => bytes[]) fileList; // walletAddr => bytes[]
     mapping(address => bytes[]) primaryFileList; // walletAddr => bytes[]
@@ -87,8 +88,6 @@ contract FileSystem is Initializable {
         uint64 size,
         bool isPlots
     );
-
-
 
     error FileNotExist(bytes);
     error UserspaceInsufficientBalance(uint256 got, uint256 want);
@@ -647,6 +646,32 @@ contract FileSystem is Initializable {
             }
             unSettledFileList[walletAddr] = list;
         }
+    }
+
+    function GetUnProvePrimaryFiles(address walletAddr)
+        public
+        view
+        returns (bytes[] memory)
+    {
+        bytes[] memory list = primaryFileList[walletAddr];
+        bytes[] memory unProvePrimaryFiles = new bytes[](list.length);
+        uint64 n = 0;
+        for (uint256 i = 0; i < list.length; i++) {
+            ProveDetail[] memory details = proveDetail[list[i]];
+            bool prove = false;
+            for (uint256 j = 0; j < details.length; j++) {
+                if (details[j].WalletAddr == walletAddr) {
+                    prove = true;
+                    break;
+                }
+            }
+            if (!prove) {
+                continue;
+            }
+            unProvePrimaryFiles[n] = list[i];
+            n++;
+        }
+        return unProvePrimaryFiles;
     }
 
     enum WhiteListOpType {

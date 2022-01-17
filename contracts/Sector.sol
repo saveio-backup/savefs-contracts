@@ -10,7 +10,7 @@ contract Sector is Initializable {
     Node node;
 
     mapping(address => SectorInfo[]) sectorInfos; // nodeAddr => SectorInfo[]
-    mapping(address => mapping(uint64 => uint64)) sectorFileInfoGroup; // nodeAddr => sectorId => groupId
+    mapping(address => mapping(uint64 => uint64[])) sectorFileInfoGroup; // nodeAddr => sectorId => groupId
 
     event DeleteSectorEvent(
         FsEvent eventType,
@@ -108,9 +108,10 @@ contract Sector is Initializable {
         uint64 sectorId,
         uint64 groupId
     ) public {
-        mapping(uint64 => uint64)
+        mapping(uint64 => uint64[])
             storage _sectorFileInfoGroup = sectorFileInfoGroup[nodeAddr];
-        delete _sectorFileInfoGroup[groupId];
+        uint64[] storage groups = _sectorFileInfoGroup[sectorId];
+        delete groups[groupId];
     }
 
     function deleteAllSectorFileInfoGroup(address nodeAddr, uint64 sectorId)
