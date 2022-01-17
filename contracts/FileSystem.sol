@@ -700,6 +700,17 @@ contract FileSystem is Initializable {
         return unProveCandidateFiles;
     }
 
+    struct PriChange {
+        bytes fileHash;
+        uint64 privilege;
+    }
+
+    function ChangeFilePivilege(PriChange memory priChange) public payable {
+        FileInfo memory fileInfo = GetFileInfo(priChange.fileHash);
+        fileInfo.Privilege = priChange.privilege;
+        UpdateFileInfo(fileInfo);
+    }
+
     enum WhiteListOpType {
         ADD,
         DEL,
