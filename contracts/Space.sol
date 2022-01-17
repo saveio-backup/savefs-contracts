@@ -619,62 +619,6 @@ contract Space is Initializable {
         userSpace[params.Owner] = ret.newUserSpace;
     }
 
-    function cleanupForDeleteFile(
-        FileInfo memory fileInfo,
-        bool rmInfo,
-        bool rmList
-    ) public {
-        // TODO
-    }
-
-    function deleteExpiredFilesFromList(
-        bytes[] memory fileList,
-        address walletAddr,
-        StorageType[] memory storageType
-    )
-        public
-        payable
-        returns (
-            bytes[] memory,
-            uint64,
-            bool
-        )
-    {
-        // TODO check isn't exist problem
-        bytes[] memory deletedFiles = new bytes[](fileList.length);
-        uint64 n = 0;
-        uint64 amount;
-        bool success;
-        Setting memory setting = config.GetSetting();
-        for (uint256 i = 0; i < fileList.length; i++) {
-            FileInfo memory fileInfo = fs.GetFileInfo(fileList[i]);
-            bool exist = false;
-            for (uint256 j = 0; j < storageType.length; j++) {
-                if (fileInfo.StorageType_ == storageType[j]) {
-                    exist = true;
-                    break;
-                }
-            }
-            if (!exist) {
-                continue;
-            }
-            if (
-                fileInfo.ExpiredHeight + setting.DefaultProvePeriod >
-                block.number
-            ) {
-                continue;
-            }
-            amount += fileInfo.Deposit;
-            cleanupForDeleteFile(fileInfo, true, true);
-            deletedFiles[n] = fileList[i];
-            n++;
-        }
-        if (amount > 0) {
-            payable(walletAddr).transfer(amount);
-        }
-        return (deletedFiles, amount, success);
-    }
-
     function deleteExpiredUserSpace(
         UserSpace memory _userSpace,
         address walletAddr
@@ -691,13 +635,13 @@ contract Space is Initializable {
         bytes[] memory fileList = fs.GetFileList(walletAddr);
         StorageType[] memory sType = new StorageType[](1);
         sType[0] = StorageType.Normal;
-        (deletedFiles, amount, success) = deleteExpiredFilesFromList(
+        (deletedFiles, amount, success) = fs.DeleteExpiredFilesFromList(
             fileList,
             walletAddr,
             sType
         );
         bytes[] memory unsettledList = fs.GetUnSettledFileList(walletAddr);
-        (deletedFiles, amount, success) = deleteExpiredFilesFromList(
+        (deletedFiles, amount, success) = fs.DeleteExpiredFilesFromList(
             unsettledList,
             walletAddr,
             sType

@@ -483,6 +483,85 @@ contract FileSystem is Initializable {
         return unSettledFileList[walletAddr];
     }
 
+    function cleanupForDeleteFile(
+        FileInfo memory fileInfo,
+        bool rmInfo,
+        bool rmList
+    ) public {
+        // TODO
+    }
+
+    function DeleteExpiredFilesFromList(
+        bytes[] memory _fileList,
+        address walletAddr,
+        StorageType[] memory storageType
+    )
+        public
+        payable
+        returns (
+            bytes[] memory,
+            uint64,
+            bool
+        )
+    {
+        bytes[] memory deletedFiles = new bytes[](_fileList.length);
+        uint64 n = 0;
+        uint64 amount;
+        bool success;
+        Setting memory setting = config.GetSetting();
+        for (uint256 i = 0; i < _fileList.length; i++) {
+            FileInfo memory fileInfo = GetFileInfo(_fileList[i]);
+            bool exist = false;
+            for (uint256 j = 0; j < storageType.length; j++) {
+                if (fileInfo.StorageType_ == storageType[j]) {
+                    exist = true;
+                    break;
+                }
+            }
+            if (!exist) {
+                continue;
+            }
+            if (
+                fileInfo.ExpiredHeight + setting.DefaultProvePeriod >
+                block.number
+            ) {
+                continue;
+            }
+            amount += fileInfo.Deposit;
+            cleanupForDeleteFile(fileInfo, true, true);
+            deletedFiles[n] = _fileList[i];
+            n++;
+        }
+        if (amount > 0) {
+            payable(walletAddr).transfer(amount);
+        }
+        return (deletedFiles, amount, success);
+    }
+
+    function DeleteUnsettledFiles(address walletAddr) public payable {
+        bytes[] memory unsettledList = GetUnSettledFileList(walletAddr);
+        StorageType[] memory sType = new StorageType[](2);
+        sType[0] = StorageType.Normal;
+        sType[1] = StorageType.Professional;
+        bytes[] memory deletedFiles;
+        uint64 amount;
+        bool success;
+        (deletedFiles, amount, success) = DeleteExpiredFilesFromList(
+            unsettledList,
+            walletAddr,
+            sType
+        );
+        for (uint256 i = 0; i < deletedFiles.length; i++) {
+            bytes[] memory list = unSettledFileList[walletAddr];
+            for (uint256 j = 0; j < list.length; j++) {
+                if (keccak256(list[j]) == keccak256(deletedFiles[i])) {
+                    delete list[j];
+                }
+            }
+            unSettledFileList[walletAddr] = list;
+        }
+    }
+
     enum WhiteListOpType {
         ADD,
         DEL,
