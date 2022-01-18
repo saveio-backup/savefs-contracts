@@ -19,4 +19,14 @@ contract Config is Initializable {
         setting.DefaultCopyNum = 2;
         return setting;
     }
+
+    function GetSettingWithProveLevel(ProveLevel proveLevel)
+        external
+        pure
+        returns (Setting memory)
+    {
+        Setting memory setting;
+        // TODO
+        return setting;
+    }
 }
