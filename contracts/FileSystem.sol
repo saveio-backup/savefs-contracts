@@ -53,7 +53,7 @@ contract FileSystem is Initializable {
     event DeleteFilesEvent(
         FsEvent eventType,
         uint256 blockHeight,
-        string fileHash,
+        bytes[] fileHashs,
         address walletAddr
     );
 
@@ -787,6 +787,23 @@ contract FileSystem is Initializable {
             block.number,
             fileHash,
             fileInfo.FileOwner
+        );
+    }
+
+    function DeleteFiles(bytes[] memory fileHashs) public {
+        address fileOwner;
+        FileInfo[] memory files = new FileInfo[](fileHashs.length);
+        for (uint256 i = 0; i < fileHashs.length; i++) {
+            FileInfo memory fileInfo = GetFileInfo(fileHashs[i]);
+            fileOwner = fileInfo.FileOwner;
+            files[i] = fileInfo;
+        }
+        deleteFiles(files);
+        emit DeleteFilesEvent(
+            FsEvent.DELETE_FILE,
+            block.number,
+            fileHashs,
+            fileOwner
         );
     }
 
