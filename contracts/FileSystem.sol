@@ -67,7 +67,7 @@ contract FileSystem is Initializable {
     event FilePDPSuccessEvent(
         FsEvent eventType,
         uint256 blockHeight,
-        string fileHash,
+        bytes fileHash,
         address walletAddr
     );
 
@@ -955,5 +955,18 @@ contract FileSystem is Initializable {
             // details.push(fileProve.FileHash, detail);
         }
         // TODO
+        // UpdateProveDetailInfo();
+        if (!found) {
+            // TODO
+        }
+        if (settleFlag) {
+            // TODO
+        }
+        emit FilePDPSuccessEvent(
+            FsEvent.FILE_PDP_SUCCESS,
+            block.number,
+            fileInfo.FileHash,
+            nodeInfo.WalletAddr
+        );
     }
 }
