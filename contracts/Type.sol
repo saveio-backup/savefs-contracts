@@ -154,8 +154,8 @@ struct SectorInfo {
     uint64 Size;
     uint64 Used;
     ProveLevel ProveLevel_;
-    uint64 FirstProveHeight;
-    uint64 NextProveHeight;
+    uint256 FirstProveHeight;
+    uint256 NextProveHeight;
     uint64 TotalBlockNum;
     uint64 FileNum;
     uint64 GroupNum;

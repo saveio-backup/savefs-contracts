@@ -79,6 +79,7 @@ contract FileSystem is Initializable {
     error DifferenceFileOwner();
     error FileProveNotFileOwner();
     error FileProveFailed();
+    error SectorProveFailed();
 
     modifier NotEmptyFileHash(bytes memory fileHash) {
         require(fileHash.length > 0, "fileHash must be empty");
@@ -985,5 +986,70 @@ contract FileSystem is Initializable {
             fileInfo.FileHash,
             nodeInfo.WalletAddr
         );
+    }
+
+    struct SectorProveParams {
+        address NodeAddr;
+        uint64 SectorID;
+        uint64 ChallengeHeight;
+        bytes ProveData;
+    }
+
+    function checkSectorProve(
+        SectorProveParams memory sectorProve,
+        SectorInfo memory sectorInfo
+    ) public view returns (bool) {
+       // TODO
+    }
+
+    function punishForSector(
+        SectorInfo memory sectorInfo,
+        NodeInfo memory nodeInfo,
+        Setting memory setting,
+        uint64 times
+    ) public {
+        // TODO
+    }
+
+    function profitSplitForSector(
+        SectorInfo memory sectorInfo,
+        NodeInfo memory nodeInfo,
+        Setting memory setting
+    ) public {
+        // TODO
+    }
+
+    function SectorProve(SectorProveParams memory sectorProve) public payable {
+        NodeInfo memory nodeInfo = node.GetNodeInfoByNodeAddr(
+            sectorProve.NodeAddr
+        );
+        SectorInfo memory sectorInfo = sector.GetSectorInfo(
+            SectorRef({
+                SectorId: sectorProve.SectorID,
+                NodeAddr: sectorProve.NodeAddr
+            })
+        );
+        Setting memory setting = config.GetSetting();
+        if (block.number < sectorInfo.NextProveHeight) {
+            revert SectorProveFailed();
+        }
+        if (sectorProve.ChallengeHeight != sectorInfo.NextProveHeight) {
+            revert SectorProveFailed();
+        }
+        bool r = checkSectorProve(sectorProve, sectorInfo);
+        if (!r) {
+            punishForSector(sectorInfo, nodeInfo, setting, 1);
+            revert SectorProveFailed();
+        }
+        profitSplitForSector(sectorInfo, nodeInfo, setting);
+        if (sectorInfo.FirstProveHeight == 0) {
+		    sectorInfo.FirstProveHeight =  block.number;
+        }
+        sectorInfo.NextProveHeight = block.number + setting.DefaultProvePeriod;
+        sector.UpdateSectorInfo(sectorInfo);
+        if (!sectorInfo.IsPlots) {
+            revert SectorProveFailed();
+        }
+        // TODO poc prove
     }
 }
