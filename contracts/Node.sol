@@ -180,4 +180,8 @@ contract Node is Initializable {
     function IsNodeRegisted(address walletAddr) public view returns (bool) {
         return nodesInfo[walletAddr].Volume != 0;
     }
+
+    function UpdateNodeInfo(NodeInfo memory nodeInfo) public payable {
+        nodesInfo[nodeInfo.WalletAddr] = nodeInfo;
+    }
 }

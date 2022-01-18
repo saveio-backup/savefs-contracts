@@ -185,7 +185,7 @@ struct ProveDetail {
     address NodeAddr;
     address WalletAddr;
     uint64 ProveTimes;
-    uint64 BlockHeight;
+    uint256 BlockHeight;
     bool Finished;
 }
 
