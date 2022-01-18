@@ -76,7 +76,7 @@ describe(scriptName, function () {
   });
 
   it("initialize FileSystem", async () => {
-    let tx = fs.initialize(config.address, node.address, space.address);
+    let tx = fs.initialize(config.address, node.address, space.address, sector.address);
     expect(tx).not.to.be.reverted;
   });
 

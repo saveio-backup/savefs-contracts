@@ -144,7 +144,6 @@ struct FileInfo {
     NodeList PrimaryNodes;
     NodeList CandidateNodes;
     ProveLevel ProveLevel_;
-    // SectorRef[] SectorRefs; // TODO
     bool IsPlotFile;
     PlotInfo PlotInfo_;
 }

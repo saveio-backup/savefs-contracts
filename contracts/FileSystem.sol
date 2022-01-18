@@ -7,6 +7,7 @@ import "./Type.sol";
 import "./Config.sol";
 import "./Node.sol";
 import "./Space.sol";
+import "./Sector.sol";
 
 /**
  * @title FileSystem
@@ -16,6 +17,7 @@ contract FileSystem is Initializable {
     Config config;
     Node node;
     Space space;
+    Sector sector;
 
     uint64 DEFAULT_BLOCK_INTERVAL = 5;
     uint64 DEFAULT_PROVE_PERIOD = (3600 * 24) / DEFAULT_BLOCK_INTERVAL;
@@ -24,6 +26,7 @@ contract FileSystem is Initializable {
     mapping(bytes => FileInfo) fileInfos; // fileHash => FileInfo
     mapping(bytes => ProveDetail[]) proveDetail; // fileHash => ProveDetail[]
     mapping(bytes => ProveDetails) proveDetails; // fileHash => ProveDetails
+    mapping(bytes => SectorRef[]) fileSectorRefs; // fileHash => SectorRef[]
     mapping(address => bytes[]) fileList; // walletAddr => bytes[]
     mapping(address => bytes[]) primaryFileList; // walletAddr => bytes[]
     mapping(address => bytes[]) candidateFileList; // walletAddr => bytes[]
@@ -43,7 +46,7 @@ contract FileSystem is Initializable {
     event DeleteFileEvent(
         FsEvent eventType,
         uint256 blockHeight,
-        string fileHash,
+        bytes fileHash,
         address walletAddr
     );
 
@@ -73,6 +76,7 @@ contract FileSystem is Initializable {
     error UserspaceInsufficientSpace(uint256 got, uint256 want);
     error UserspaceWrongExpiredHeight(uint256 got, uint256 want);
     error NotEnoughTransfer(uint256 got, uint256 want);
+    error DifferenceFileOwner();
 
     modifier NotEmptyFileHash(bytes memory fileHash) {
         require(fileHash.length > 0, "fileHash must be empty");
@@ -82,11 +86,13 @@ contract FileSystem is Initializable {
     function initialize(
         Config _config,
         Node _node,
-        Space _space
+        Space _space,
+        Sector _sector
     ) public initializer {
         config = _config;
         node = _node;
         space = _space;
+        sector = _sector;
     }
 
     function CalcProveTimesByUploadInfo(
@@ -737,5 +743,48 @@ contract FileSystem is Initializable {
         );
         fileInfo.FileOwner = ownerChange.NewOwner;
         UpdateFileInfo(fileInfo);
+    }
+
+    function deleteFiles(FileInfo[] memory files) public {
+        if (files.length == 0) {
+            return;
+        }
+        uint64 refundAmount = 0;
+        address fileOwner = files[0].FileOwner;
+        Setting memory setting = config.GetSetting();
+        for (uint256 i = 0; i < files.length; i++) {
+            FileInfo memory fileInfo = files[i];
+            if (fileInfo.FileOwner != fileOwner) {
+                revert DifferenceFileOwner();
+            }
+        }
+        for (uint256 i = 0; i < files.length; i++) {
+            FileInfo memory fileInfo = files[i];
+            SectorRef[] memory sectorRefs = fileSectorRefs[fileInfo.FileHash];
+            for (uint256 j = 0; j < sectorRefs.length; j++) {
+                SectorInfo memory sectorInfo = sector.GetSectorInfo(
+                    sectorRefs[j]
+                );
+                sector.DeleteFileFromSector(sectorInfo, fileInfo);
+            }
+            if (fileInfo.Deposit == 0) {
+                cleanupForDeleteFile(fileInfo, true, true);
+                continue;
+            }
+            // TODO
+        }
+    }
+
+    function DeleteFile(bytes memory fileHash) public {
+        FileInfo memory fileInfo = GetFileInfo(fileHash);
+        FileInfo[] memory files = new FileInfo[](1);
+        files[0] = fileInfo;
+        deleteFiles(files);
+        emit DeleteFileEvent(
+            FsEvent.DELETE_FILE,
+            block.number,
+            fileHash,
+            fileInfo.FileOwner
+        );
     }
 }

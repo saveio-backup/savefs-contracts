@@ -169,4 +169,48 @@ contract Sector is Initializable {
             sectorRef.SectorId
         );
     }
+
+    function deleteSectorFileInfo(
+        address nodeAddr,
+        uint64 sectorId,
+        bytes memory fileHash
+    ) public returns (bool) {
+        uint64 groupNum = getSectorFileInfoGroupNum(nodeAddr, sectorId);
+        for (uint64 i = 0; i < groupNum; i++) {
+        
+        }
+        // TODO
+    }
+
+    function UpdateSectorInfo(SectorInfo memory sector) public payable {
+        SectorInfo[] storage _sectorInfos = sectorInfos[sector.NodeAddr];
+        for (uint64 i = 0; i < _sectorInfos.length; i++) {
+            if (_sectorInfos[i].SectorID == sector.SectorID) {
+                _sectorInfos[i] = sector;
+                break;
+            }
+        }
+        sectorInfos[sector.NodeAddr] = _sectorInfos;
+    }
+
+    function DeleteFileFromSector(
+        SectorInfo memory sectorInfo,
+        FileInfo memory fileInfo
+    ) public payable {
+        bool groupDeleted = deleteSectorFileInfo(
+            sectorInfo.NodeAddr,
+            sectorInfo.SectorID,
+            fileInfo.FileHash
+        );
+        sectorInfo.FileNum--;
+        sectorInfo.TotalBlockNum -= fileInfo.FileBlockNum;
+        sectorInfo.Used -= fileInfo.FileBlockNum * fileInfo.FileBlockSize;
+        if (groupDeleted) {
+            sectorInfo.GroupNum--;
+        }
+        if (sectorInfo.FileNum == 0) {
+            sectorInfo.NextProveHeight = 0;
+        }
+        UpdateSectorInfo(sectorInfo);
+    }
 }
