@@ -1,6 +1,6 @@
 import { assert, expect } from "chai";
 import { ethers, network } from "hardhat";
-import { FileSystem, Node, Config, Sector, Space, List } from "../typechain";
+import { FileSystem, Node, Config, Sector, Space, List, Prove } from "../typechain";
 
 var path = require('path');
 var scriptName = path.basename(__filename);
@@ -12,6 +12,7 @@ let fs: FileSystem;
 let sector: Sector;
 let space: Space;
 let list: List;
+let prove: Prove;
 
 describe(scriptName, function () {
   it("Get addrs", async () => {
@@ -63,6 +64,13 @@ describe(scriptName, function () {
     expect(res).not.to.be.reverted;
   });
 
+  it("Deploy Prove", async () => {
+    const Prove = await ethers.getContractFactory("Prove");
+    prove = await Prove.deploy();
+    let res = prove.deployed();
+    expect(res).not.to.be.reverted;
+  });
+
   // ----------
 
   it("initialize Node", async () => {
@@ -94,5 +102,6 @@ export {
   fs,
   sector,
   space,
-  list
+  list,
+  prove
 };
