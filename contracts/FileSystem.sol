@@ -305,12 +305,12 @@ contract FileSystem is Initializable {
         bytes[] storage f = fileList[fileInfo.FileOwner];
         // TODO should unique file hash
         f.push(fileInfo.FileHash);
-        for (uint256 i = 0; i < fileInfo.PrimaryNodes.AddrList.length; i++) {
-            bytes[] storage p = fileList[fileInfo.PrimaryNodes.AddrList[i]];
+        for (uint256 i = 0; i < fileInfo.PrimaryNodes.length; i++) {
+            bytes[] storage p = fileList[fileInfo.PrimaryNodes[i]];
             p.push(fileInfo.FileHash);
         }
-        for (uint256 i = 0; i < fileInfo.CandidateNodes.AddrList.length; i++) {
-            bytes[] storage p = fileList[fileInfo.CandidateNodes.AddrList[i]];
+        for (uint256 i = 0; i < fileInfo.CandidateNodes.length; i++) {
+            bytes[] storage p = fileList[fileInfo.CandidateNodes[i]];
             p.push(fileInfo.FileHash);
         }
         ProveDetails memory _proveDetails;
@@ -552,25 +552,11 @@ contract FileSystem is Initializable {
         }
         if (rmList) {
             DelFileFromList(fileInfo.FileOwner, fileHash);
-            for (
-                uint256 i = 0;
-                i < fileInfo.PrimaryNodes.AddrList.length;
-                i++
-            ) {
-                DelFileFromPrimaryList(
-                    fileInfo.PrimaryNodes.AddrList[i],
-                    fileHash
-                );
+            for (uint256 i = 0; i < fileInfo.PrimaryNodes.length; i++) {
+                DelFileFromPrimaryList(fileInfo.PrimaryNodes[i], fileHash);
             }
-            for (
-                uint256 i = 0;
-                i < fileInfo.CandidateNodes.AddrList.length;
-                i++
-            ) {
-                DelFileFromCandidateList(
-                    fileInfo.CandidateNodes.AddrList[i],
-                    fileHash
-                );
+            for (uint256 i = 0; i < fileInfo.CandidateNodes.length; i++) {
+                DelFileFromCandidateList(fileInfo.CandidateNodes[i], fileHash);
             }
         }
     }
@@ -887,8 +873,7 @@ contract FileSystem is Initializable {
             }
         } else {
             bool canProve = false;
-            NodeList memory list = fileInfo.PrimaryNodes;
-            address[] memory primaryNodes = list.AddrList;
+            address[] memory primaryNodes = fileInfo.PrimaryNodes;
             for (uint256 i = 0; i < primaryNodes.length; i++) {
                 if (primaryNodes[i] == fileProve.NodeWallet) {
                     canProve = true;
@@ -896,8 +881,7 @@ contract FileSystem is Initializable {
                 }
             }
             if (!canProve) {
-                NodeList memory list2 = fileInfo.CandidateNodes;
-                address[] memory candidateNodes = list2.AddrList;
+                address[] memory candidateNodes = fileInfo.CandidateNodes;
                 for (uint256 i = 0; i < candidateNodes.length; i++) {
                     if (candidateNodes[i] == fileProve.NodeWallet) {
                         canProve = true;

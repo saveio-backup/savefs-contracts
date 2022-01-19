@@ -49,11 +49,6 @@ struct NodeInfo {
     address NodeAddr;
 }
 
-struct NodeList {
-    uint64 AddrNum;
-    address[] AddrList;
-}
-
 /** userspace ******************** */
 struct UserSpace {
     uint64 Used;
@@ -141,8 +136,8 @@ struct FileInfo {
     bool ValidFlag;
     StorageType StorageType_;
     uint64 RealFileSize;
-    NodeList PrimaryNodes;
-    NodeList CandidateNodes;
+    address[] PrimaryNodes;
+    address[] CandidateNodes;
     ProveLevel ProveLevel_;
     bool IsPlotFile;
     PlotInfo PlotInfo_;

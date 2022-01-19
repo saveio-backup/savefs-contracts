@@ -27,8 +27,8 @@ describe(scriptName, function () {
       ValidFlag: false,
       StorageType_: 1,
       RealFileSize: 1,
-      PrimaryNodes: { AddrNum: 1, AddrList: [] },
-      CandidateNodes: { AddrNum: 1, AddrList: [] },
+      PrimaryNodes: [],
+      CandidateNodes: [],
       ProveLevel_: 1,
       IsPlotFile: false,
       PlotInfo_: {

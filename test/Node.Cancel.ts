@@ -8,7 +8,7 @@ var scriptName = path.basename(__filename);
 
 describe(scriptName, () => {
 
-  it(scriptName, async () => {
+  it("register", async () => {
     let tx = node.Register({
       Pledge: 0,
       Profit: 0,
@@ -21,8 +21,13 @@ describe(scriptName, () => {
       value: 1000000
     });
     expect(tx).to.not.be.reverted;
-
-    let tx2 = node.NodeCancel(addrs[7]);
-    expect(tx2).to.be.reverted;
   });
+
+  it("cancel", async () => {
+    let tx = node.NodeCancel(addrs[7]);
+    // let res = await (await tx).wait();
+    // console.log(res)
+    expect(tx).to.not.be.reverted;
+  });
+
 });

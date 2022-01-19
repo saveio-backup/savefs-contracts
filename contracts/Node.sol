@@ -13,7 +13,7 @@ contract Node is Initializable {
     Sector sector;
 
     mapping(address => NodeInfo) nodesInfo; // walletAddr => NodeInfo
-    NodeList nodeList; // nodeAddr list
+    address[] nodeList; // nodeAddr list
 
     event RegisterNodeEvent(
         FsEvent eventType,
@@ -76,7 +76,7 @@ contract Node is Initializable {
         nodeInfo.Profit = 0;
         nodeInfo.RestVol = nodeInfo.Volume;
         nodesInfo[nodeInfo.WalletAddr] = nodeInfo;
-        nodeList.AddrList.push(nodeInfo.WalletAddr);
+        nodeList.push(nodeInfo.WalletAddr);
         emit RegisterNodeEvent(
             FsEvent.REG_NODE,
             block.number,
@@ -138,9 +138,9 @@ contract Node is Initializable {
     }
 
     function NodeListRemove(address addr) public {
-        for (uint256 i = 0; i < nodeList.AddrList.length - 1; i++) {
-            if (nodeList.AddrList[i] == addr) {
-                delete nodeList.AddrList[i];
+        for (uint256 i = 0; i < nodeList.length - 1; i++) {
+            if (nodeList[i] == addr) {
+                delete nodeList[i];
                 return;
             }
         }
@@ -153,9 +153,9 @@ contract Node is Initializable {
      * @return nodeAddr => NodeInfo
      */
     function GetNodeList() public view returns (NodeInfo[] memory) {
-        NodeInfo[] memory _nodesInfo = new NodeInfo[](nodeList.AddrList.length);
-        for (uint256 i = 0; i < nodeList.AddrList.length; i++) {
-            _nodesInfo[i] = nodesInfo[nodeList.AddrList[i]];
+        NodeInfo[] memory _nodesInfo = new NodeInfo[](nodeList.length);
+        for (uint256 i = 0; i < nodeList.length; i++) {
+            _nodesInfo[i] = nodesInfo[nodeList[i]];
         }
         return _nodesInfo;
     }
