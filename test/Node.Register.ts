@@ -8,8 +8,8 @@ var scriptName = path.basename(__filename);
 
 describe(scriptName, () => {
 
-  it(`${scriptName} require 1`, async () => {
-    const tx2 = node.NodeRegister({
+  it("register", async () => {
+    const tx2 = node.Register({
       Pledge: 0,
       Profit: 0,
       Volume: 1000 * 1000,
@@ -23,8 +23,8 @@ describe(scriptName, () => {
     expect(tx2).to.not.be.reverted;
   });
 
-  it(`${scriptName} event`, async () => {
-    const tx = node.NodeRegister({
+  it("event", async () => {
+    const tx = node.Register({
       Pledge: 0,
       Profit: 0,
       Volume: 1000 * 1000,

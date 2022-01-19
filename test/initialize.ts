@@ -1,9 +1,11 @@
 import { assert, expect } from "chai";
 import { ethers, network } from "hardhat";
-import { FileSystem, Node, Config, Sector, Space, List, Prove } from "../typechain";
+import {
+  FileSystem, Node, Config, Sector, Space, List, Prove, PDP
+} from "../typechain";
 
 var path = require('path');
-var scriptName = path.basename(__filename);
+var name = path.basename(__filename);
 
 let addrs: Array<string> = [];
 let config: Config;
@@ -13,8 +15,9 @@ let sector: Sector;
 let space: Space;
 let list: List;
 let prove: Prove;
+let pdp: PDP;
 
-describe(scriptName, function () {
+describe(name, function () {
   it("Get addrs", async () => {
     const accounts = await ethers.getSigners();
     for (const account of accounts) {
@@ -71,10 +74,17 @@ describe(scriptName, function () {
     expect(res).not.to.be.reverted;
   });
 
+  it("Deploy Prove", async () => {
+    const PDP = await ethers.getContractFactory("PDP");
+    pdp = await PDP.deploy();
+    let res = pdp.deployed();
+    expect(res).not.to.be.reverted;
+  });
+
   // ----------
 
   it("initialize Node", async () => {
-    let tx = node.initialize(config.address);
+    let tx = node.initialize(config.address, sector.address);
     expect(tx).not.to.be.reverted;
   });
 
@@ -96,6 +106,7 @@ describe(scriptName, function () {
 });
 
 export {
+  name,
   addrs,
   config,
   node,
@@ -103,5 +114,6 @@ export {
   sector,
   space,
   list,
-  prove
+  prove,
+  pdp
 };

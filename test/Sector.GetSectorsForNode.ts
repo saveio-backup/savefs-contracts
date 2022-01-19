@@ -5,17 +5,21 @@ import { addrs, config, fs, node, space, sector } from "./initialize";
 
 var path = require('path');
 var scriptName = path.basename(__filename);
+var title = (s: string) => {
+  return scriptName + " " + s;
+}
 
 describe(scriptName, () => {
 
-  it(scriptName, async () => {
-
-    const tx = sector.GetSectorInfos(addrs[13]);
+  it(title("get 1"), async () => {
+    const tx = sector.GetSectorsForNode(addrs[13]);
     let res = await tx;
-    console.log(res)
+    // console.log(res)
     assert(res.length == 0);
+  });
 
-    const tx2 = node.NodeRegister({
+  it(title("register node"), async () => {
+    const tx = node.Register({
       Pledge: 0,
       Profit: 0,
       Volume: 1000 * 1000,
@@ -28,10 +32,13 @@ describe(scriptName, () => {
         value: 1000000
       }
     );
-    let s = await (await tx2).wait();
+    // let s = await (await tx).wait();
     // console.log(s)
+    expect(tx).to.not.be.reverted;
+  });
 
-    const tx3 = sector.CreateSector({
+  it(title("create sector"), async () => {
+    const tx = sector.CreateSector({
       NodeAddr: addrs[13],
       SectorID: 1,
       Size: 1,
@@ -45,12 +52,15 @@ describe(scriptName, () => {
       IsPlots: false,
       FileList: []
     });
-    let r3 = await (await tx3).wait()
+    // let r3 = await (await tx).wait()
     // console.log(r3)
+    expect(tx).to.not.be.reverted;
+  });
 
-    const tx4 = sector.GetSectorInfos(addrs[13]);
-    let res4 = await tx4;
-    assert(res4.length == 1);
-    // console.log(res4)
+  it(title("get 2"), async () => {
+    const tx = sector.GetSectorsForNode(addrs[13]);
+    let res = await tx;
+    // console.log(res)
+    assert(res.length == 1);
   });
 });

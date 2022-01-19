@@ -9,7 +9,7 @@ var scriptName = path.basename(__filename);
 describe(scriptName, () => {
 
   it(scriptName, async () => {
-    let tx = node.NodeRegister({
+    let tx = node.Register({
       Pledge: 0,
       Profit: 0,
       Volume: 1000 * 1000,

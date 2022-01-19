@@ -8,17 +8,17 @@ var scriptName = path.basename(__filename);
 
 describe(scriptName, () => {
   it(`${scriptName} 1`, async () => {
-    const tx0 = sector.GetSectorInfo({
+    const tx = sector.GetSectorInfo({
       NodeAddr: addrs[12],
-      SectorId: "1024",
+      SectorId: 1024,
     });
-    let res0 = await tx0;
-    // console.log(res0)
-    assert(res0.Size.eq(0));
+    let res = await tx;
+    // console.log(res)
+    assert(res.Size.eq(0));
   })
 
   it(`${scriptName} 2`, async () => {
-    const tx1 = node.NodeRegister({
+    const tx1 = node.Register({
       Pledge: 0,
       Profit: 0,
       Volume: 1000 * 1000,
@@ -31,8 +31,7 @@ describe(scriptName, () => {
         value: 1000000
       }
     );
-    let s = await (await tx1).wait();
-    // console.log(s)
+    expect(tx1).to.not.be.reverted;
   })
 
   it(`${scriptName} 3`, async () => {
@@ -50,16 +49,16 @@ describe(scriptName, () => {
       IsPlots: false,
       FileList: []
     });
-    let res2 = await (await tx2).wait()
-    // console.log(res2)
+    expect(tx2).to.not.be.reverted;
   })
 
   it(`${scriptName} 4`, async () => {
-    const tx3 = sector.GetSectorInfo({
+    const tx = sector.GetSectorInfo({
       NodeAddr: addrs[12],
-      SectorId: "1024",
+      SectorId: 1024,
     });
-    let res3 = await tx3;
-    assert(res3.Size.eq(1));
+    let res = await tx;
+    // console.log(res)
+    assert(res.Size.eq(1));
   });
 });

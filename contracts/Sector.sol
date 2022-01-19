@@ -36,7 +36,7 @@ contract Sector is Initializable {
         node = _node;
     }
 
-    function getSectorTotalSizeForNode(address nodeAddr)
+    function GetSectorTotalSizeForNode(address nodeAddr)
         public
         view
         returns (uint64)
@@ -68,7 +68,7 @@ contract Sector is Initializable {
         NodeInfo memory nodeInfo = node.GetNodeInfoByNodeAddr(
             sectorInfo.NodeAddr
         );
-        uint64 totalSize = getSectorTotalSizeForNode(sectorInfo.NodeAddr);
+        uint64 totalSize = GetSectorTotalSizeForNode(sectorInfo.NodeAddr);
         if (sectorInfo.Size + totalSize > nodeInfo.Volume) {
             revert NotEnoughVolume(
                 nodeInfo.Volume,
@@ -103,7 +103,7 @@ contract Sector is Initializable {
         return emptySectorInfo;
     }
 
-    function GetSectorInfos(address nodeAddr)
+    function GetSectorsForNode(address nodeAddr)
         public
         view
         returns (SectorInfo[] memory)
@@ -151,7 +151,7 @@ contract Sector is Initializable {
         }
     }
 
-    function deleteSector(address nodeAddr, uint64 sectorId) public payable {
+    function DeleteSector(address nodeAddr, uint64 sectorId) public payable {
         deleteAllSectorFileInfoGroup(nodeAddr, sectorId);
         deleteSectorInfo(nodeAddr, sectorId);
     }
@@ -161,7 +161,7 @@ contract Sector is Initializable {
         if (sectorInfo.FileNum > 0) {
             revert NotEmptySector(0, sectorInfo.FileNum);
         }
-        deleteSector(sectorRef.NodeAddr, sectorRef.SectorId);
+        DeleteSector(sectorRef.NodeAddr, sectorRef.SectorId);
         emit DeleteSectorEvent(
             FsEvent.DELETE_SECTOR,
             block.number,

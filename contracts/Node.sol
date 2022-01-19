@@ -6,9 +6,11 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "./Type.sol";
 import "./FileSystem.sol";
 import "./Config.sol";
+import "./Sector.sol";
 
 contract Node is Initializable {
     Config config;
+    Sector sector;
 
     mapping(address => NodeInfo) nodesInfo; // walletAddr => NodeInfo
     NodeList nodeList; // nodeAddr list
@@ -46,8 +48,9 @@ contract Node is Initializable {
     error NotEnoughPledge(uint256 got, uint256 want);
     error ZeroProfit();
 
-    function initialize(Config _config) public initializer {
+    function initialize(Config _config, Sector _sector) public initializer {
         config = _config;
+        sector = _sector;
     }
 
     function CalculateNodePledge(NodeInfo memory nodeInfo)
@@ -59,7 +62,7 @@ contract Node is Initializable {
         return setting.GasPrice * setting.GasPerGBPerBlock * nodeInfo.Volume;
     }
 
-    function NodeRegister(NodeInfo memory nodeInfo)
+    function Register(NodeInfo memory nodeInfo)
         public
         payable
         VolumeRequire(nodeInfo, config.GetSetting())
@@ -118,9 +121,19 @@ contract Node is Initializable {
                 nodeInfo.Pledge + nodeInfo.Profit
             );
         }
-        // TODO delete sector
         delete nodesInfo[walletAddr];
         NodeListRemove(walletAddr);
+        SectorInfo[] memory sectorInfos = sector.GetSectorsForNode(
+            nodeInfo.NodeAddr
+        );
+        for (uint256 i = 0; i < sectorInfos.length; i++) {
+            sector.DeleteSecotr(
+                SectorRef({
+                    NodeAddr: nodeInfo.NodeAddr,
+                    SectorId: sectorInfos[i].SectorID
+                })
+            );
+        }
         emit UnRegisterNodeEvent(FsEvent.UN_REG_NODE, block.number, walletAddr);
     }
 
@@ -163,7 +176,7 @@ contract Node is Initializable {
         return nodesInfo[nodeAddr];
     }
 
-    function NodeWithDrawProfit(address walletAddr)
+    function WithDrawProfit(address walletAddr)
         public
         NodeRegisted(walletAddr)
     {
@@ -182,6 +195,7 @@ contract Node is Initializable {
     }
 
     function UpdateNodeInfo(NodeInfo memory nodeInfo) public payable {
+        // TODO Is exist secure problem?
         nodesInfo[nodeInfo.WalletAddr] = nodeInfo;
     }
 }
