@@ -58,7 +58,6 @@ contract Space is Initializable {
         view
         returns (UserSpace memory)
     {
-        require(userSpace[walletAddr].UpdateHeight > 0, "userSpace is empty");
         return userSpace[walletAddr];
     }
 
@@ -103,11 +102,11 @@ contract Space is Initializable {
         returns (uint64)
     {
         bool r1 = isValidUserSpaceOperation(params.Size);
-        if (r1) {
+        if (!r1) {
             revert ParamsError();
         }
         bool r2 = isValidUserSpaceOperation(params.BlockCount);
-        if (r2) {
+        if (!r2) {
             revert ParamsError();
         }
         uint64 n = combineUserSpaceTypes(
@@ -147,14 +146,12 @@ contract Space is Initializable {
         view
         returns (bool)
     {
-        require(
-            params.Size.Value > 0,
-            "params.Size.value must be greater than 0"
-        );
-        require(
-            params.BlockCount.Value > 0,
-            "params.BlockCount.value must be greater than 0"
-        );
+        if (params.Size.Value <= 0) {
+            return false;
+        }
+        if (params.BlockCount.Value <= 0) {
+            return false;
+        }
         uint64 n = getUserSpaceOperationsFromParams(params);
         if (n == uint64(UserSpaceType.None)) {
             return false;
@@ -577,7 +574,8 @@ contract Space is Initializable {
         Setting memory setting = config.GetSetting();
         bool checkRes = checkUserSpaceParams(params);
         if (!checkRes) {
-            revert ParamsError();
+            ret.success = false;
+            return ret;
         }
         UserSpace memory oldUserSpace = GetUserSpace(params.Owner);
         if (
@@ -592,7 +590,8 @@ contract Space is Initializable {
         ) {
             bool b = checkForFirstUserSpaceOperation(setting, params);
             if (!b) {
-                revert FirstUserSpaceOperationError();
+                ret.success = false;
+                return ret;
             }
         }
         ProcessParams memory processParams;
@@ -607,6 +606,18 @@ contract Space is Initializable {
         ret.updatedFiles = processRet.updatedFiles;
         ret.success = processRet.success;
         return ret;
+    }
+
+    struct UserSpaceOperation {
+        UserSpaceType Type;
+        uint64 Value;
+    }
+
+    struct UserSpaceParams {
+        address WalletAddr;
+        address Owner;
+        UserSpaceOperation Size;
+        UserSpaceOperation BlockCount;
     }
 
     function ManageUserSpace(UserSpaceParams memory params) public payable {

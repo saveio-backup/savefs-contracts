@@ -64,18 +64,6 @@ enum UserSpaceType {
     Revoke
 }
 
-struct UserSpaceOperation {
-    UserSpaceType Type;
-    uint64 Value;
-}
-
-struct UserSpaceParams {
-    address WalletAddr;
-    address Owner;
-    UserSpaceOperation Size;
-    UserSpaceOperation BlockCount;
-}
-
 /** file ********************** */
 struct StorageFee {
     uint64 TxnFee;

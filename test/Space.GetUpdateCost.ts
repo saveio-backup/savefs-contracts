@@ -1,16 +1,14 @@
 import { expect, assert } from "chai";
 import { ethers, network } from "hardhat";
-import { config, fs, node, space, sector } from "./initialize";
+import { print, config, fs, node, space, sector } from "./initialize";
 
 var path = require('path');
-var scriptName = path.basename(__filename);
+var name = path.basename(__filename);
 
-describe(scriptName, () => {
+describe(name, () => {
 
-  it(scriptName, async () => {
-    const res = space.GetUpdateCost();
-    expect(res).to.be.reverted;
-    // let tx = await res;
-    // console.log(tx)
+  it("get update cost", async () => {
+    const tx = space.GetUpdateCost();
+    expect(tx).to.not.be.reverted;
   });
 });

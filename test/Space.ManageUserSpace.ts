@@ -1,16 +1,18 @@
 import { expect, assert } from "chai";
 import { ethers, network } from "hardhat";
-import { config, fs, node, space, sector } from "./initialize";
+import {
+  addrs, print, config, fs, node, space, sector
+} from "./initialize";
 
 var path = require('path');
-var scriptName = path.basename(__filename);
+var name = path.basename(__filename);
 
-describe(scriptName, () => {
+describe(name, () => {
 
-  it(scriptName, async () => {
-    const res = space.ManageUserSpace({
-      WalletAddr: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
-      Owner: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+  it("manage failed", async () => {
+    const tx = space.ManageUserSpace({
+      WalletAddr: addrs[32],
+      Owner: addrs[32],
       Size: {
         Type: 0,
         Value: 0
@@ -20,8 +22,26 @@ describe(scriptName, () => {
         Value: 0
       }
     });
-    expect(res).to.be.reverted; // params error
-    // let tx = await (await res).wait();
-    // console.log(tx)
+    // await print(tx);
+    await expect(tx).to.be.reverted;
   });
+
+  it("manage add", async () => {
+    const tx = space.ManageUserSpace({
+      WalletAddr: addrs[32],
+      Owner: addrs[32],
+      Size: {
+        Type: 1,
+        Value: 1
+      },
+      BlockCount: {
+        Type: 1,
+        Value: 1
+      }
+    });
+    // await print(tx);
+    await expect(tx).to.not.be.reverted;
+    await expect(tx).to.emit(space, "SetUserSpaceEvent");
+  });
+
 });
