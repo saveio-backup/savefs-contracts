@@ -1,14 +1,14 @@
 import { expect, assert } from "chai";
 import { ethers, network } from "hardhat";
 import { FileSystem, Config, Node } from "../typechain";
-import { addrs, config, fs, node, space } from "./initialize";
+import { addrs, config, fs, node, space, print } from "./initialize";
 
 var path = require('path');
-var scriptName = path.basename(__filename);
+var name = path.basename(__filename);
 
-describe(scriptName, () => {
+describe(name, () => {
 
-  it(scriptName, async () => {
+  it("register", async () => {
     let tx = node.Register({
       Pledge: 0,
       Profit: 0,
@@ -20,9 +20,11 @@ describe(scriptName, () => {
     }, {
       value: 1000000
     });
-    await (await tx).wait();
+    expect(tx).to.not.be.reverted;
+  });
 
-    let tx2 = node.NodeUpdate({
+  it("node update success", async () => {
+    let tx = node.NodeUpdate({
       Pledge: 0,
       Profit: 0,
       Volume: 1000 * 1000,
@@ -30,9 +32,8 @@ describe(scriptName, () => {
       ServiceTime: 0,
       WalletAddr: addrs[2],
       NodeAddr: addrs[2],
-    }, {
-      value: 1000000
     });
-    expect(tx2).to.not.be.reverted;
+    // print(tx)
+    expect(tx).to.not.be.reverted;
   });
 });

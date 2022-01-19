@@ -100,12 +100,21 @@ contract Node is Initializable {
         NodeInfo memory oldNode = nodesInfo[nodeInfo.WalletAddr];
         uint64 newPledge = CalculateNodePledge(nodeInfo);
         uint64 oldPledge = oldNode.Pledge;
+        TransferState memory state;
         if (newPledge < oldPledge) {
-            payable(nodeInfo.WalletAddr).transfer(oldPledge - newPledge);
-        } else {
-            uint64 pledge = newPledge - oldPledge;
-            if (msg.value < pledge) {
-                revert NotEnoughPledge(msg.value, pledge);
+            state.From = address(this);
+            state.To = nodeInfo.WalletAddr;
+            state.Value = oldNode.Pledge - newPledge;
+        } else if (newPledge > oldPledge) {
+            state.From = nodeInfo.WalletAddr;
+            state.To = address(this);
+            state.Value = newPledge - oldNode.Pledge;
+        }
+        if (newPledge != oldPledge) {
+            if (state.To == address(this)) {
+                require(msg.value >= state.Value, "Not enough pledge");
+            } else {
+                payable(state.From).transfer(state.Value);
             }
         }
         nodeInfo.Pledge = newPledge;
