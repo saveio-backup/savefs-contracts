@@ -10,7 +10,7 @@ contract Sector is Initializable {
     Node node;
 
     mapping(address => SectorInfo[]) sectorInfos; // nodeAddr => SectorInfo[]
-    mapping(address => mapping(uint64 => uint64[])) sectorFileInfoGroup; // nodeAddr => sectorId => groupId
+    mapping(address => mapping(uint64 => mapping(uint64 => uint64))) sectorFileInfoGroup; // nodeAddr => sectorId => groupId
 
     event CreateSectorEvent(
         FsEvent eventType,
@@ -127,9 +127,11 @@ contract Sector is Initializable {
         uint64 sectorId,
         uint64 groupId
     ) public {
-        mapping(uint64 => uint64[])
+        mapping(uint64 => mapping(uint64 => uint64))
             storage _sectorFileInfoGroup = sectorFileInfoGroup[nodeAddr];
-        uint64[] storage groups = _sectorFileInfoGroup[sectorId];
+        mapping(uint64 => uint64) storage groups = _sectorFileInfoGroup[
+            sectorId
+        ];
         delete groups[groupId];
     }
 
@@ -176,9 +178,7 @@ contract Sector is Initializable {
         bytes memory fileHash
     ) public returns (bool) {
         uint64 groupNum = getSectorFileInfoGroupNum(nodeAddr, sectorId);
-        for (uint64 i = 0; i < groupNum; i++) {
-        
-        }
+        for (uint64 i = 0; i < groupNum; i++) {}
         // TODO
     }
 

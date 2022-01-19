@@ -8,7 +8,7 @@ var scriptName = path.basename(__filename);
 
 describe(scriptName, () => {
 
-  it(scriptName, async () => {
+  it("register", async () => {
     let tx = node.Register({
       Pledge: 0,
       Profit: 0,
@@ -21,7 +21,9 @@ describe(scriptName, () => {
       value: 1000000
     });
     expect(tx).to.not.be.reverted;
+  });
 
+  it("register", async () => {
     const res = await node.GetNodeInfoByWalletAddr(addrs[5]);
     assert(res.WalletAddr == addrs[5]);
   });

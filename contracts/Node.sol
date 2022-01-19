@@ -137,8 +137,8 @@ contract Node is Initializable {
         emit UnRegisterNodeEvent(FsEvent.UN_REG_NODE, block.number, walletAddr);
     }
 
-    function NodeListRemove(address addr) public {
-        for (uint256 i = 0; i < nodeList.length - 1; i++) {
+    function NodeListRemove(address addr) private {
+        for (uint256 i = 0; i < nodeList.length; i++) {
             if (nodeList[i] == addr) {
                 delete nodeList[i];
                 return;

@@ -1,4 +1,5 @@
 import { assert, expect } from "chai";
+import { ContractTransaction } from "ethers";
 import { ethers, network } from "hardhat";
 import {
   FileSystem, Node, Config, Sector, Space, List, Prove, PDP
@@ -105,8 +106,12 @@ describe(name, function () {
 
 });
 
+var print = async (tx: Promise<ContractTransaction>) => {
+  let res = await (await tx).wait();
+  console.log(res)
+}
+
 export {
-  name,
   addrs,
   config,
   node,
@@ -115,5 +120,6 @@ export {
   space,
   list,
   prove,
-  pdp
+  pdp,
+  print
 };
