@@ -108,7 +108,11 @@ describe(name, function () {
 
   it("initialize Prove", async () => {
     let tx = prove.initialize(
-      config.address, fs.address, node.address, pdp.address
+      config.address,
+      fs.address,
+      node.address,
+      pdp.address,
+      sector.address
     );
     await expect(tx).not.to.be.reverted;
   });

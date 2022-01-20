@@ -8,6 +8,7 @@ import "./Config.sol";
 import "./FileSystem.sol";
 import "./Node.sol";
 import "./PDP.sol";
+import "./Sector.sol";
 
 contract Prove is Initializable {
     struct FileProveParams {
@@ -23,6 +24,7 @@ contract Prove is Initializable {
     FileSystem fs;
     Node node;
     PDP pdp;
+    Sector sector;
 
     mapping(bytes => ProveDetail[]) proveDetail; // fileHash => ProveDetail[]
     mapping(bytes => ProveDetails) proveDetails; // fileHash => ProveDetails
@@ -36,17 +38,21 @@ contract Prove is Initializable {
 
     error FileProveNotFileOwner();
     error FileProveFailed();
+    error SectorProveFailed();
+    error NodeSectorProvedInTimeError();
 
     function initialize(
         Config _config,
         FileSystem _fs,
         Node _node,
-        PDP _pdp
+        PDP _pdp,
+        Sector _sector
     ) public initializer {
         config = _config;
         fs = _fs;
         node = _node;
         pdp = _pdp;
+        sector = _sector;
     }
 
     function SetProveDetails(bytes memory fileHash, ProveDetails memory details)
@@ -231,5 +237,124 @@ contract Prove is Initializable {
             fileInfo.FileHash,
             nodeInfo.WalletAddr
         );
+    }
+
+    struct SectorProveParams {
+        address NodeAddr;
+        uint64 SectorID;
+        uint64 ChallengeHeight;
+        bytes ProveData;
+    }
+
+    function checkSectorProve(
+        SectorProveParams memory sectorProve,
+        SectorInfo memory sectorInfo
+    ) public view returns (bool) {
+        // TODO
+    }
+
+    function punishForSector(
+        SectorInfo memory sectorInfo,
+        NodeInfo memory nodeInfo,
+        Setting memory setting,
+        uint64 times
+    ) public {
+        // TODO
+    }
+
+    function profitSplitForSector(
+        SectorInfo memory sectorInfo,
+        NodeInfo memory nodeInfo,
+        Setting memory setting
+    ) public {
+        // TODO
+    }
+
+    function SectorProve(SectorProveParams memory sectorProve) public payable {
+        NodeInfo memory nodeInfo = node.GetNodeInfoByNodeAddr(
+            sectorProve.NodeAddr
+        );
+        SectorInfo memory sectorInfo = sector.GetSectorInfo(
+            SectorRef({
+                SectorId: sectorProve.SectorID,
+                NodeAddr: sectorProve.NodeAddr
+            })
+        );
+        Setting memory setting = config.GetSetting();
+        if (block.number < sectorInfo.NextProveHeight) {
+            revert SectorProveFailed();
+        }
+        if (sectorProve.ChallengeHeight != sectorInfo.NextProveHeight) {
+            revert SectorProveFailed();
+        }
+        bool r = checkSectorProve(sectorProve, sectorInfo);
+        if (!r) {
+            punishForSector(sectorInfo, nodeInfo, setting, 1);
+            revert SectorProveFailed();
+        }
+        profitSplitForSector(sectorInfo, nodeInfo, setting);
+        if (sectorInfo.FirstProveHeight == 0) {
+            sectorInfo.FirstProveHeight = block.number;
+        }
+        sectorInfo.NextProveHeight = block.number + setting.DefaultProvePeriod;
+        sector.UpdateSectorInfo(sectorInfo);
+        if (!sectorInfo.IsPlots) {
+            revert SectorProveFailed();
+        }
+        // TODO poc prove
+    }
+
+    function getLastPunishmentHeightForNode(address nodeAddr, uint64 sectorID)
+        public
+        view
+        returns (uint64)
+    {
+        // TODO
+    }
+
+    function calMissingSectorProveTimes(
+        SectorInfo memory sectorInfo,
+        Setting memory setting,
+        uint256 lastHeight,
+        uint256 nowHeight
+    ) public view returns (uint64) {
+        // TODO
+    }
+
+    function CheckNodeSectorProvedInTime(SectorRef memory sectorRef)
+        public
+        payable
+    {
+        address nodeAddr = sectorRef.NodeAddr;
+        uint64 sectorID = sectorRef.SectorId;
+        NodeInfo memory nodeInfo = node.GetNodeInfoByNodeAddr(nodeAddr);
+        if (nodeInfo.ServiceTime < block.timestamp) {
+            revert NodeSectorProvedInTimeError();
+        }
+        if (sectorID == 0) {
+            revert NodeSectorProvedInTimeError();
+        }
+        SectorInfo memory sectorInfo = sector.GetSectorInfo(sectorRef);
+        if (sectorInfo.FileNum == 0) {
+            revert NodeSectorProvedInTimeError();
+        }
+        Setting memory setting = config.GetSettingWithProveLevel(
+            sectorInfo.ProveLevel_
+        );
+        uint256 height = block.number;
+        if (sectorInfo.NextProveHeight + setting.DefaultProvePeriod < height) {
+            revert NodeSectorProvedInTimeError();
+        }
+        uint256 lastHeight = getLastPunishmentHeightForNode(nodeAddr, sectorID);
+        uint64 times = calMissingSectorProveTimes(
+            sectorInfo,
+            setting,
+            lastHeight,
+            height
+        );
+        if (times == 0) {
+            revert NodeSectorProvedInTimeError();
+        }
+        punishForSector(sectorInfo, nodeInfo, setting, times);
     }
 }
