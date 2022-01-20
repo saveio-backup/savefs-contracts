@@ -8,6 +8,7 @@ import "./Config.sol";
 import "./Node.sol";
 import "./Space.sol";
 import "./Sector.sol";
+import "./Prove.sol";
 
 /**
  * @title FileSystem
@@ -18,14 +19,14 @@ contract FileSystem is Initializable {
     Node node;
     Space space;
     Sector sector;
+    Prove prove;
 
     uint64 DEFAULT_BLOCK_INTERVAL = 5;
     uint64 DEFAULT_PROVE_PERIOD = (3600 * 24) / DEFAULT_BLOCK_INTERVAL;
     uint64 IN_SECTOR_SIZE = 1000 * 1000;
 
     mapping(bytes => FileInfo) fileInfos; // fileHash => FileInfo
-    mapping(bytes => ProveDetail[]) proveDetail; // fileHash => ProveDetail[]
-    mapping(bytes => ProveDetails) proveDetails; // fileHash => ProveDetails
+
     mapping(bytes => SectorRef[]) fileSectorRefs; // fileHash => SectorRef[]
     mapping(address => bytes[]) fileList; // walletAddr => bytes[]
     mapping(address => bytes[]) primaryFileList; // walletAddr => bytes[]
@@ -64,21 +65,13 @@ contract FileSystem is Initializable {
         uint64 profit
     );
 
-    event FilePDPSuccessEvent(
-        FsEvent eventType,
-        uint256 blockHeight,
-        bytes fileHash,
-        address walletAddr
-    );
-
     error FileNotExist(bytes);
     error UserspaceInsufficientBalance(uint256 got, uint256 want);
     error UserspaceInsufficientSpace(uint256 got, uint256 want);
     error UserspaceWrongExpiredHeight(uint256 got, uint256 want);
     error NotEnoughTransfer(uint256 got, uint256 want);
     error DifferenceFileOwner();
-    error FileProveNotFileOwner();
-    error FileProveFailed();
+
     error SectorProveFailed();
     error NodeSectorProvedInTimeError();
 
@@ -91,12 +84,14 @@ contract FileSystem is Initializable {
         Config _config,
         Node _node,
         Space _space,
-        Sector _sector
+        Sector _sector,
+        Prove _prove
     ) public initializer {
         config = _config;
         node = _node;
         space = _space;
         sector = _sector;
+        prove = _prove;
     }
 
     function CalcProveTimesByUploadInfo(
@@ -316,7 +311,7 @@ contract FileSystem is Initializable {
         ProveDetails memory _proveDetails;
         _proveDetails.CopyNum = fileInfo.CopyNum;
         _proveDetails.ProveDetailNum = 0;
-        proveDetails[fileInfo.FileHash] = _proveDetails;
+        prove.SetProveDetails(fileInfo.FileHash, _proveDetails);
         emit StoreFileEvent(
             FsEvent.STORE_FILE,
             block.number,
@@ -641,15 +636,15 @@ contract FileSystem is Initializable {
         bytes[] memory unProvePrimaryFiles = new bytes[](list.length);
         uint64 n = 0;
         for (uint256 i = 0; i < list.length; i++) {
-            ProveDetail[] memory details = proveDetail[list[i]];
-            bool prove = false;
+            ProveDetail[] memory details = prove.GetProveDetailList(list[i]);
+            bool isProve = false;
             for (uint256 j = 0; j < details.length; j++) {
                 if (details[j].WalletAddr == walletAddr) {
-                    prove = true;
+                    isProve = true;
                     break;
                 }
             }
-            if (!prove) {
+            if (!isProve) {
                 continue;
             }
             unProvePrimaryFiles[n] = list[i];
@@ -667,15 +662,15 @@ contract FileSystem is Initializable {
         bytes[] memory unProveCandidateFiles = new bytes[](list.length);
         uint64 n = 0;
         for (uint256 i = 0; i < list.length; i++) {
-            ProveDetail[] memory details = proveDetail[list[i]];
-            bool prove = false;
+            ProveDetail[] memory details = prove.GetProveDetailList(list[i]);
+            bool isProve = false;
             for (uint256 j = 0; j < details.length; j++) {
                 if (details[j].WalletAddr == walletAddr) {
-                    prove = true;
+                    isProve = true;
                     break;
                 }
             }
-            if (!prove) {
+            if (!isProve) {
                 continue;
             }
             unProveCandidateFiles[n] = list[i];
@@ -702,21 +697,6 @@ contract FileSystem is Initializable {
     {
         require(height > 0, "Block number must lager than 0");
         return pocProveList[height];
-    }
-
-    function GetFileProveDetails(bytes memory fileHash)
-        public
-        view
-        returns (ProveDetail[] memory)
-    {
-        ProveDetail[] memory details = proveDetail[fileHash];
-        for (uint256 i = 0; i < details.length; i++) {
-            NodeInfo memory nodeInfo = node.GetNodeInfoByWalletAddr(
-                details[i].WalletAddr
-            );
-            details[i].NodeAddr = nodeInfo.NodeAddr;
-        }
-        return details;
     }
 
     struct OwnerChange {
@@ -792,184 +772,6 @@ contract FileSystem is Initializable {
             block.number,
             fileHashs,
             fileOwner
-        );
-    }
-
-    function getProveDetailsWithNodeAddr(bytes memory fileHash)
-        public
-        view
-        returns (ProveDetail[] memory)
-    {
-        ProveDetail[] memory details = proveDetail[fileHash];
-        for (uint256 i = 0; i < details.length; i++) {
-            NodeInfo memory nodeInfo = node.GetNodeInfoByWalletAddr(
-                details[i].WalletAddr
-            );
-            details[i].NodeAddr = nodeInfo.NodeAddr;
-        }
-        return details;
-    }
-
-    struct FileProveParams {
-        bytes FileHash;
-        bytes ProveData;
-        uint256 BlockHeight;
-        address NodeWallet;
-        uint64 Profit;
-        uint64 SectorID;
-    }
-
-    function GenChallenge() public pure returns (uint64) {
-        // TODO
-        return 0;
-    }
-
-    function VerifyProofWithMerklePathForFile(uint64)
-        public
-        pure
-        returns (bool)
-    {
-        // TODO
-        return true;
-    }
-
-    function checkProve(
-        FileProveParams memory fileProve,
-        FileInfo memory fileInfo
-    ) public view returns (bool) {
-        uint256 currBlockHeight = block.number;
-        if (
-            fileProve.BlockHeight > currBlockHeight + fileInfo.ProveInterval ||
-            fileProve.BlockHeight + fileInfo.ProveInterval < currBlockHeight
-        ) {
-            return false;
-        }
-        // TODO complete pdp prove
-        uint64 challenge = GenChallenge();
-        bool result = VerifyProofWithMerklePathForFile(challenge);
-        if (!result) {
-            return false;
-        }
-        return true;
-    }
-
-    function checkProveExpire(uint256 fileExpiredHeight)
-        public
-        view
-        returns (bool)
-    {
-        if (block.number > fileExpiredHeight) {
-            return true;
-        }
-        return false;
-    }
-
-    function FileProve(FileProveParams memory fileProve) public {
-        Setting memory setting = config.GetSetting();
-        FileInfo memory fileInfo = GetFileInfo(fileProve.FileHash);
-        if (fileInfo.IsPlotFile) {
-            if (fileProve.NodeWallet != fileInfo.FileOwner) {
-                revert FileProveNotFileOwner();
-            }
-        } else {
-            bool canProve = false;
-            address[] memory primaryNodes = fileInfo.PrimaryNodes;
-            for (uint256 i = 0; i < primaryNodes.length; i++) {
-                if (primaryNodes[i] == fileProve.NodeWallet) {
-                    canProve = true;
-                    break;
-                }
-            }
-            if (!canProve) {
-                address[] memory candidateNodes = fileInfo.CandidateNodes;
-                for (uint256 i = 0; i < candidateNodes.length; i++) {
-                    if (candidateNodes[i] == fileProve.NodeWallet) {
-                        canProve = true;
-                        break;
-                    }
-                }
-            }
-            if (!canProve) {
-                revert FileProveFailed();
-            }
-        }
-        NodeInfo memory nodeInfo = node.GetNodeInfoByWalletAddr(
-            fileProve.NodeWallet
-        );
-        ProveDetail[] memory details = getProveDetailsWithNodeAddr(
-            fileInfo.FileHash
-        );
-        if (fileProve.SectorID != 0 && block.number < fileInfo.ExpiredHeight) {
-            for (uint256 i = 0; i < details.length; i++) {
-                if (details[i].WalletAddr == fileProve.NodeWallet) {
-                    revert FileProveFailed();
-                }
-            }
-        }
-        bool success = checkProve(fileProve, fileInfo);
-        if (!success) {
-            revert FileProveFailed();
-        }
-        bool found = false;
-        bool settleFlag = false;
-        uint64 haveProveTimes = 0;
-        ProveDetail memory detail;
-        uint256 fileExpiredHeight = fileInfo.ExpiredHeight;
-        for (uint256 i = 0; i < details.length; i++) {
-            if (details[i].WalletAddr == fileProve.NodeWallet) {
-                haveProveTimes = detail.ProveTimes;
-                if (
-                    haveProveTimes == fileInfo.ProveTimes ||
-                    block.number > fileExpiredHeight
-                ) {
-                    detail.Finished = true;
-                    settleFlag = true;
-                }
-                if (haveProveTimes > fileInfo.ProveTimes) {
-                    revert FileProveFailed();
-                }
-                bool r = checkProveExpire(fileInfo.ExpiredHeight);
-                if (r) {
-                    revert FileProveFailed();
-                }
-                detail.ProveTimes++;
-                found = true;
-                break;
-            }
-        }
-        if (!found) {
-            if (details.length == fileInfo.CopyNum + 1) {
-                revert FileProveFailed();
-            }
-            if (
-                nodeInfo.RestVol <
-                fileInfo.FileBlockNum * fileInfo.FileBlockSize
-            ) {
-                revert FileProveFailed();
-            }
-            nodeInfo.RestVol -= fileInfo.FileBlockNum * fileInfo.FileBlockSize;
-            node.UpdateNodeInfo(nodeInfo);
-            detail.NodeAddr = nodeInfo.NodeAddr;
-            detail.WalletAddr = fileProve.NodeWallet;
-            detail.ProveTimes = 1;
-            detail.BlockHeight = block.number;
-            detail.Finished = false;
-            // TODO
-            // details.push(fileProve.FileHash, detail);
-        }
-        // TODO
-        // UpdateProveDetailInfo();
-        if (!found) {
-            // TODO
-        }
-        if (settleFlag) {
-            // TODO
-        }
-        emit FilePDPSuccessEvent(
-            FsEvent.FILE_PDP_SUCCESS,
-            block.number,
-            fileInfo.FileHash,
-            nodeInfo.WalletAddr
         );
     }
 

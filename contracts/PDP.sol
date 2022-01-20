@@ -7,4 +7,18 @@ import "./Type.sol";
 
 contract PDP is Initializable {
     function initialize() public initializer {}
+
+    function GenChallenge() public pure returns (uint64) {
+        // TODO
+        return 0;
+    }
+
+    function VerifyProofWithMerklePathForFile(uint64)
+        public
+        pure
+        returns (bool)
+    {
+        // TODO
+        return true;
+    }
 }

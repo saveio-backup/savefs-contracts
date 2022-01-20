@@ -30,78 +30,87 @@ describe(name, function () {
     const Config = await ethers.getContractFactory("Config");
     config = await Config.deploy();
     let res = config.deployed();
-    expect(res).not.to.be.reverted;
+    await expect(res).not.to.be.reverted;
   });
 
   it("Deploy Node", async () => {
     const Node = await ethers.getContractFactory("Node");
     node = await Node.deploy();
     let res = node.deployed();
-    expect(res).not.to.be.reverted;
+    await expect(res).not.to.be.reverted;
   });
 
   it("Deploy Sector", async () => {
     const Sector = await ethers.getContractFactory("Sector");
     sector = await Sector.deploy();
     let res = sector.deployed();
-    expect(res).not.to.be.reverted;
+    await expect(res).not.to.be.reverted;
   });
 
   it("Deploy Space", async () => {
     const Space = await ethers.getContractFactory("Space");
     space = await Space.deploy();
     let res = space.deployed();
-    expect(res).not.to.be.reverted;
+    await expect(res).not.to.be.reverted;
   });
 
   it("Deploy FileSystem", async () => {
     const FS = await ethers.getContractFactory("FileSystem");
     fs = await FS.deploy();
     let res = fs.deployed();
-    expect(res).not.to.be.reverted;
+    await expect(res).not.to.be.reverted;
   });
 
   it("Deploy List", async () => {
     const List = await ethers.getContractFactory("List");
     list = await List.deploy();
     let res = list.deployed();
-    expect(res).not.to.be.reverted;
+    await expect(res).not.to.be.reverted;
   });
 
   it("Deploy Prove", async () => {
     const Prove = await ethers.getContractFactory("Prove");
     prove = await Prove.deploy();
     let res = prove.deployed();
-    expect(res).not.to.be.reverted;
+    await expect(res).not.to.be.reverted;
   });
 
   it("Deploy Prove", async () => {
     const PDP = await ethers.getContractFactory("PDP");
     pdp = await PDP.deploy();
     let res = pdp.deployed();
-    expect(res).not.to.be.reverted;
+    await expect(res).not.to.be.reverted;
   });
 
   // ----------
 
   it("initialize Node", async () => {
     let tx = node.initialize(config.address, sector.address);
-    expect(tx).not.to.be.reverted;
+    await expect(tx).not.to.be.reverted;
   });
 
   it("initialize Sector", async () => {
     let tx = sector.initialize(node.address);
-    expect(tx).not.to.be.reverted;
+    await expect(tx).not.to.be.reverted;
   });
 
   it("initialize FileSystem", async () => {
-    let tx = fs.initialize(config.address, node.address, space.address, sector.address);
-    expect(tx).not.to.be.reverted;
+    let tx = fs.initialize(
+      config.address, node.address, space.address, sector.address, prove.address
+    );
+    await expect(tx).not.to.be.reverted;
   });
 
   it("initialize Space", async () => {
     let tx = space.initialize(config.address, fs.address);
-    expect(tx).not.to.be.reverted;
+    await expect(tx).not.to.be.reverted;
+  });
+
+  it("initialize Prove", async () => {
+    let tx = prove.initialize(
+      config.address, fs.address, node.address, pdp.address
+    );
+    await expect(tx).not.to.be.reverted;
   });
 
 });
