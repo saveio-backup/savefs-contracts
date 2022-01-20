@@ -37,7 +37,7 @@ contract Prove is Initializable {
     );
 
     error FileProveNotFileOwner();
-    error FileProveFailed();
+    error FileProveFailed(uint64);
     error SectorProveFailed();
     error NodeSectorProvedInTimeError();
 
@@ -156,7 +156,7 @@ contract Prove is Initializable {
                 }
             }
             if (!canProve) {
-                revert FileProveFailed();
+                revert FileProveFailed(1);
             }
         }
         NodeInfo memory nodeInfo = node.GetNodeInfoByWalletAddr(
@@ -168,13 +168,13 @@ contract Prove is Initializable {
         if (fileProve.SectorID != 0 && block.number < fileInfo.ExpiredHeight) {
             for (uint256 i = 0; i < details.length; i++) {
                 if (details[i].WalletAddr == fileProve.NodeWallet) {
-                    revert FileProveFailed();
+                    revert FileProveFailed(2);
                 }
             }
         }
         bool success = checkProve(fileProve, fileInfo);
         if (!success) {
-            revert FileProveFailed();
+            revert FileProveFailed(3);
         }
         bool found = false;
         bool settleFlag = false;
@@ -192,11 +192,11 @@ contract Prove is Initializable {
                     settleFlag = true;
                 }
                 if (haveProveTimes > fileInfo.ProveTimes) {
-                    revert FileProveFailed();
+                    revert FileProveFailed(4);
                 }
                 bool r = checkProveExpire(fileInfo.ExpiredHeight);
                 if (r) {
-                    revert FileProveFailed();
+                    revert FileProveFailed(5);
                 }
                 detail.ProveTimes++;
                 found = true;
@@ -205,13 +205,13 @@ contract Prove is Initializable {
         }
         if (!found) {
             if (details.length == fileInfo.CopyNum + 1) {
-                revert FileProveFailed();
+                revert FileProveFailed(6);
             }
             if (
                 nodeInfo.RestVol <
                 fileInfo.FileBlockNum * fileInfo.FileBlockSize
             ) {
-                revert FileProveFailed();
+                revert FileProveFailed(7);
             }
             nodeInfo.RestVol -= fileInfo.FileBlockNum * fileInfo.FileBlockSize;
             node.UpdateNodeInfo(nodeInfo);

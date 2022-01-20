@@ -73,7 +73,7 @@ contract FileSystem is Initializable {
     error DifferenceFileOwner();
 
     modifier NotEmptyFileHash(bytes memory fileHash) {
-        require(fileHash.length > 0, "fileHash must be empty");
+        require(fileHash.length > 0, "fileHash must be not empty");
         _;
     }
 

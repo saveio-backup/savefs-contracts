@@ -124,6 +124,12 @@ var print = async (tx: Promise<ContractTransaction>) => {
   console.log(res)
 }
 
+var mine = async (n: number) => {
+  for (let index = 0; index < n; index++) {
+    await ethers.provider.send('evm_mine', []);
+  }
+}
+
 export {
   addrs,
   config,
@@ -134,5 +140,6 @@ export {
   list,
   prove,
   pdp,
-  print
+  print,
+  mine
 };

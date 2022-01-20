@@ -44,7 +44,7 @@ contract Space is Initializable {
 
     error ParamsError();
     error FirstUserSpaceOperationError();
-    error UserspaceChangeError();
+    error UserspaceChangeError(uint64);
     error UserspaceDeleteError();
     error InsufficientFunds();
 
@@ -92,7 +92,7 @@ contract Space is Initializable {
         pure
         returns (uint64)
     {
-        uint64 n = (uint8(t1) << 4) | uint8(t2);
+        uint64 n = (uint64(t1) << 4) | uint64(t2);
         return n;
     }
 
@@ -562,7 +562,6 @@ contract Space is Initializable {
         UserSpace newUserSpace;
         TransferState state;
         FileInfo[] updatedFiles;
-        bool success;
     }
 
     function getUserspaceChange(UserSpaceParams memory params)
@@ -574,8 +573,7 @@ contract Space is Initializable {
         Setting memory setting = config.GetSetting();
         bool checkRes = checkUserSpaceParams(params);
         if (!checkRes) {
-            ret.success = false;
-            return ret;
+            revert UserspaceChangeError(1);
         }
         UserSpace memory oldUserSpace = GetUserSpace(params.Owner);
         if (
@@ -585,13 +583,12 @@ contract Space is Initializable {
             oldUserSpace = processExpiredUserSpace(oldUserSpace, block.number);
         }
         if (
-            oldUserSpace.ExpireHeight > 0 &&
+            oldUserSpace.ExpireHeight == 0 ||
             oldUserSpace.ExpireHeight == block.number
         ) {
             bool b = checkForFirstUserSpaceOperation(setting, params);
             if (!b) {
-                ret.success = false;
-                return ret;
+                revert UserspaceChangeError(2);
             }
         }
         ProcessParams memory processParams;
@@ -604,7 +601,6 @@ contract Space is Initializable {
         ret.newUserSpace = processRet.newUserSpace;
         ret.state = processRet.state;
         ret.updatedFiles = processRet.updatedFiles;
-        ret.success = processRet.success;
         return ret;
     }
 
@@ -622,9 +618,6 @@ contract Space is Initializable {
 
     function ManageUserSpace(UserSpaceParams memory params) public payable {
         ChangeReturn memory ret = getUserspaceChange(params);
-        if (!ret.success) {
-            revert UserspaceChangeError();
-        }
         if (ret.state.Value > 0) {
             if (ret.state.From == address(this)) {
                 payable(ret.state.To).transfer(ret.state.Value);

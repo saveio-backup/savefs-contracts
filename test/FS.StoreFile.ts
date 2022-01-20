@@ -1,31 +1,49 @@
 import { assert, expect } from "chai";
 import { ethers, network } from "hardhat";
 import { FileSystem, Node, Config, Space } from "../typechain";
-import { config, fs, node, space } from "./initialize";
+import { addrs, config, fs, node, space, print } from "./initialize";
 
 var path = require('path');
-var scriptName = path.basename(__filename);
+var name = path.basename(__filename);
 
-describe(scriptName, function () {
+describe(name, function () {
 
-  it(scriptName, async () => {
-    const res = fs.StoreFile({
+  it("space 1-1", async () => {
+    const tx = space.ManageUserSpace({
+      WalletAddr: addrs[43],
+      Owner: addrs[43],
+      Size: {
+        Type: 1,
+        Value: 1
+      },
+      BlockCount: {
+        Type: 1,
+        Value: (3600 * 24) / 5
+      }
+    });
+    // await print(tx);
+    await expect(tx).to.not.be.reverted;
+    await expect(tx).to.emit(space, "SetUserSpaceEvent");
+  });
+
+  it("store file to space", async () => {
+    const tx = fs.StoreFile({
       FileHash: [1, 2, 3],
-      FileOwner: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+      FileOwner: addrs[43],
       FileDesc: [],
       Privilege: 1,
-      FileBlockNum: 1,
-      FileBlockSize: 1,
+      FileBlockNum: 0,
+      FileBlockSize: 0,
       ProveInterval: 1,
       ProveTimes: 1,
-      ExpiredHeight: 10000000,
-      CopyNum: 1,
-      Deposit: 1,
+      ExpiredHeight: 100,
+      CopyNum: 0,
+      Deposit: 0,
       FileProveParam: [],
       ProveBlockNum: 1,
       BlockHeight: 1,
       ValidFlag: false,
-      StorageType_: 1,
+      StorageType_: 0,
       RealFileSize: 1,
       PrimaryNodes: [],
       CandidateNodes: [],
@@ -39,6 +57,8 @@ describe(scriptName, function () {
     }, {
       value: 1000000
     })
-    expect(res).to.not.be.reverted;
+    // await print(tx)
+    await expect(tx).to.not.be.reverted;
   });
+
 });
