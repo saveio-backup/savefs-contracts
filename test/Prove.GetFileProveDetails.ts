@@ -4,12 +4,15 @@ import { FileSystem, Node, Config, Space } from "../typechain";
 import { addrs, config, fs, node, space, prove } from "./initialize";
 
 var path = require('path');
-var scriptName = path.basename(__filename);
+var name = path.basename(__filename);
 
-describe(scriptName, function () {
+describe(name, function () {
 
-  it(scriptName, async () => {
-    const res = prove.GetFileProveDetails(addrs[17]);
-    expect(res).to.not.be.reverted;
+  it("get", async () => {
+    const tx = prove.GetFileProveDetails(addrs[17]);
+    let res = await tx;
+    // console.log(res)
+    assert(res.length == 0)
   });
+
 });
