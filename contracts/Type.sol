@@ -36,6 +36,8 @@ struct Setting {
     uint64 DefaultProvePeriod;
     uint64 DefaultProveLevel;
     uint64 DefaultCopyNum;
+    uint64 DefaultBlockInterval;
+    uint64 MinSectorSize;
 }
 
 /** node info ******************** */

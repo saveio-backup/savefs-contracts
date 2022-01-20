@@ -4,9 +4,9 @@ import { FileSystem, Node, Config } from "../typechain";
 import { addrs, config, fs, node, space, print } from "./initialize";
 
 var path = require('path');
-var scriptName = path.basename(__filename);
+var name = path.basename(__filename);
 
-describe(scriptName, () => {
+describe(name, () => {
 
   it("register failed because not pay enough", async () => {
     const tx = node.Register({
