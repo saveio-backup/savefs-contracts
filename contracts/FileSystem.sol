@@ -233,7 +233,7 @@ contract FileSystem is Initializable {
         if (fileInfo.ProveLevel_ == ProveLevel.HIGH) {
             fileInfo.ProveInterval = DEFAULT_PROVE_PERIOD;
         }
-        if (fileInfo.ProveLevel_ == ProveLevel.MEDIEUM) {
+        if (fileInfo.ProveLevel_ == ProveLevel.MEDIUM) {
             fileInfo.ProveInterval = DEFAULT_PROVE_PERIOD;
         }
         if (fileInfo.ProveLevel_ == ProveLevel.LOW) {

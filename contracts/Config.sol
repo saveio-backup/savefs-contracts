@@ -27,7 +27,7 @@ contract Config is Initializable {
         if (proveLevel == ProveLevel.HIGH) {
             return setting.DefaultProvePeriod;
         }
-        if (proveLevel == ProveLevel.MEDIEUM) {
+        if (proveLevel == ProveLevel.MEDIUM) {
             return setting.DefaultProvePeriod * 2;
         }
         if (proveLevel == ProveLevel.LOW) {

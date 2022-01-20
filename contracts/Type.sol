@@ -16,7 +16,7 @@ enum FsEvent {
 
 enum ProveLevel {
     HIGH,
-    MEDIEUM,
+    MEDIUM,
     LOW
 }
 

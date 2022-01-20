@@ -15,7 +15,7 @@ describe(name, () => {
     assert(res.DefaultProvePeriod.eq(17280))
   });
 
-  it("medieum", async () => {
+  it("medium", async () => {
     const tx = config.GetSettingWithProveLevel(1);
     let res = await tx;
     // console.log(res)
