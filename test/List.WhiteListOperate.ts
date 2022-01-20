@@ -4,16 +4,67 @@ import { FileSystem } from "../typechain";
 import { addrs, config, fs, node, space, list } from "./initialize";
 
 var path = require('path');
-var scriptName = path.basename(__filename);
+var name = path.basename(__filename);
 
-describe(scriptName, () => {
+describe(name, () => {
 
-  it(scriptName, async () => {
-    const res = list.WhiteListOperate({
+  it("add", async () => {
+    const tx = list.WhiteListOperate({
       FileHash: [1, 2, 3],
       Op: 0,
-      List: []
+      List: [
+        {
+          Addr: addrs[38],
+          BaseHeight: 1,
+          ExpireHeight: 100,
+        }
+      ]
     });
-    expect(res).not.to.be.reverted;
+    await expect(tx).not.to.be.reverted;
+  });
+
+  it("del", async () => {
+    const tx = list.WhiteListOperate({
+      FileHash: [1, 2, 3],
+      Op: 1,
+      List: [
+        {
+          Addr: addrs[38],
+          BaseHeight: 1,
+          ExpireHeight: 100,
+        }
+      ]
+    });
+    await expect(tx).not.to.be.reverted;
+  });
+
+  it("add_cov", async () => {
+    const tx = list.WhiteListOperate({
+      FileHash: [1, 2, 3],
+      Op: 2,
+      List: [
+        {
+          Addr: addrs[38],
+          BaseHeight: 1,
+          ExpireHeight: 100,
+        }
+      ]
+    });
+    await expect(tx).not.to.be.reverted;
+  });
+
+  it("del_all", async () => {
+    const tx = list.WhiteListOperate({
+      FileHash: [1, 2, 3],
+      Op: 3,
+      List: [
+        {
+          Addr: addrs[38],
+          BaseHeight: 1,
+          ExpireHeight: 100,
+        }
+      ]
+    });
+    await expect(tx).not.to.be.reverted;
   });
 });

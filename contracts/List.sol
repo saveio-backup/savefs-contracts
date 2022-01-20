@@ -6,15 +6,6 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "./Type.sol";
 
 contract List is Initializable {
-    mapping(bytes => WhiteList[]) whiteList; // fileHash => whileList
-
-    modifier NotEmptyFileHash(bytes memory fileHash) {
-        require(fileHash.length > 0, "fileHash must be empty");
-        _;
-    }
-
-    function initialize() public initializer {}
-
     enum WhiteListOpType {
         ADD,
         DEL,
@@ -22,6 +13,10 @@ contract List is Initializable {
         DEL_ALL,
         UPDATE
     }
+
+    mapping(bytes => WhiteList[]) whiteList; // fileHash => whileList
+
+    function initialize() public initializer {}
 
     struct WhiteListParams {
         bytes FileHash;
@@ -64,9 +59,9 @@ contract List is Initializable {
     function GetWhiteList(bytes memory fileHash)
         public
         view
-        NotEmptyFileHash(fileHash)
         returns (WhiteList[] memory)
     {
+        require(fileHash.length > 0, "fileHash must be empty");
         require(whiteList[fileHash].length > 0, "whiteList is empty");
         return whiteList[fileHash];
     }
