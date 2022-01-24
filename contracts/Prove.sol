@@ -273,10 +273,35 @@ contract Prove is Initializable {
         bytes ProveData;
     }
 
+    struct MerkleNode {
+        uint64 Layer;
+        uint64 Index;
+        bytes Hash;
+    }
+
+    struct MerklePath {
+        uint64 PathLen;
+        MerkleNode[] Path;
+    }
+
+    struct SectorProveData {
+        uint64 ProveFileNum;
+        uint64 BlockNum;
+        bytes Proofs;
+        bytes Tags;
+        MerklePath[] MerklePath_;
+        bytes PlotData;
+    }
+
     function checkSectorProve(
         SectorProveParams memory sectorProve,
         SectorInfo memory sectorInfo
     ) public view returns (bool) {
+        // SectorProveData memory proveData = ProveDataDeserialize(sectorProve.ProveData);
+        // TODO
+    }
+
+    function calPunishmentForOneSectorProve(Setting memory setting, SectorInfo memory sectorInfo) public pure returns(uint64) {
         // TODO
     }
 
@@ -285,8 +310,20 @@ contract Prove is Initializable {
         NodeInfo memory nodeInfo,
         Setting memory setting,
         uint64 times
-    ) public {
+    ) public payable {
+        uint64 amount = times * calPunishmentForOneSectorProve(setting, sectorInfo);
+        if (nodeInfo.Pledge >= amount) {
+            nodeInfo.Pledge -= amount;
+        } else {
+            nodeInfo.Pledge = 0;
+            amount = nodeInfo.Pledge;
+        }
+        if (amount > 0) {
+            require(msg.value >= amount, "PunishForSector failed");
+            node.UpdateNodeInfo(nodeInfo);
+        }
         // TODO
+        // setLastPunishmentHeightForNode(native, sectorInfo.NodeAddr, sectorInfo.SectorID, block.number);
     }
 
     function profitSplitForSector(
