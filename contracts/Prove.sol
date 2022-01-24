@@ -28,6 +28,7 @@ contract Prove is Initializable {
 
     mapping(bytes => ProveDetail[]) proveDetail; // fileHash => ProveDetail[]
     mapping(bytes => ProveDetails) proveDetails; // fileHash => ProveDetails
+    mapping(address => mapping(uint64 => uint256)) punishmentHeightForNode;
 
     event FilePDPSuccessEvent(
         FsEvent eventType,
@@ -340,7 +341,7 @@ contract Prove is Initializable {
             require(msg.value >= amount, "PunishForSector failed");
             node.UpdateNodeInfo(nodeInfo);
         }
-        node.SetLastPunishmentHeightForNode(
+        SetLastPunishmentHeightForNode(
             sectorInfo.NodeAddr,
             sectorInfo.SectorID,
             block.number
@@ -389,21 +390,32 @@ contract Prove is Initializable {
         // TODO poc prove
     }
 
-    function getLastPunishmentHeightForNode(address nodeAddr, uint64 sectorID)
-        public
-        view
-        returns (uint64)
-    {
-        // TODO
-    }
-
     function calMissingSectorProveTimes(
         SectorInfo memory sectorInfo,
         Setting memory setting,
-        uint256 lastHeight,
-        uint256 nowHeight
-    ) public view returns (uint64) {
-        // TODO
+        uint256 lastPunishHeight,
+        uint256 currHeight
+    ) public pure returns (uint64) {
+        uint64 interval = setting.DefaultProvePeriod;
+        uint256 nextProveHeight = sectorInfo.NextProveHeight;
+        if (nextProveHeight + interval >= currHeight) {
+            return 0;
+        }
+        uint64 totalTimes = uint64(currHeight - nextProveHeight) / interval;
+        uint64 punishedTimes;
+        if (lastPunishHeight != 0) {
+            if (lastPunishHeight > nextProveHeight + interval) {
+                punishedTimes =
+                    uint64(lastPunishHeight - nextProveHeight) /
+                    interval;
+            } else {
+                punishedTimes = 0;
+            }
+        }
+        if (totalTimes < punishedTimes) {
+            return 0;
+        }
+        return totalTimes - punishedTimes;
     }
 
     function CheckNodeSectorProvedInTime(SectorRef memory sectorRef)
@@ -430,7 +442,7 @@ contract Prove is Initializable {
         if (sectorInfo.NextProveHeight + setting.DefaultProvePeriod < height) {
             revert NodeSectorProvedInTimeError();
         }
-        uint256 lastHeight = getLastPunishmentHeightForNode(nodeAddr, sectorID);
+        uint256 lastHeight = GetLastPunishmentHeightForNode(nodeAddr, sectorID);
         uint64 times = calMissingSectorProveTimes(
             sectorInfo,
             setting,
@@ -441,5 +453,21 @@ contract Prove is Initializable {
             revert NodeSectorProvedInTimeError();
         }
         punishForSector(sectorInfo, nodeInfo, setting, times);
+    }
+
+    function SetLastPunishmentHeightForNode(
+        address nodeAddr,
+        uint64 sectorId,
+        uint256 height
+    ) public {
+        punishmentHeightForNode[nodeAddr][sectorId] = height;
+    }
+
+    function GetLastPunishmentHeightForNode(address nodeAddr, uint64 sectorID)
+        public
+        view
+        returns (uint256)
+    {
+        return punishmentHeightForNode[nodeAddr][sectorID];
     }
 }
