@@ -4,12 +4,12 @@ import { FileSystem, Node, Config, Sector } from "../typechain";
 import { addrs, config, fs, node, space, sector } from "./initialize";
 
 var path = require('path');
-var scriptName = path.basename(__filename);
+var name = path.basename(__filename);
 
-describe(scriptName, () => {
+describe(name, () => {
 
-  it(scriptName, async () => {
-    const tx2 = node.Register({
+  it("register node", async () => {
+    const tx = node.Register({
       Pledge: 0,
       Profit: 0,
       Volume: 1000 * 1000,
@@ -22,10 +22,10 @@ describe(scriptName, () => {
         value: 1000000
       }
     );
-    expect(tx2).to.not.be.reverted;
-    // let s = await (await tx2).wait();
-    // console.log(s)
+    await expect(tx).to.not.be.reverted;
+  });
 
+  it("create sector", async () => {
     const tx = sector.CreateSector({
       NodeAddr: addrs[9],
       SectorID: 1,
@@ -40,10 +40,11 @@ describe(scriptName, () => {
       IsPlots: false,
       FileList: []
     });
-    expect(tx).to.not.be.reverted;
-    // console.log(await (await tx).wait())
+    await expect(tx).to.not.be.reverted;
+  });
 
-    const tx3 = sector.CreateSector({
+  it("create sector", async () => {
+    const tx = sector.CreateSector({
       NodeAddr: addrs[9],
       SectorID: 2,
       Size: 1000 * 1001,
@@ -57,6 +58,7 @@ describe(scriptName, () => {
       IsPlots: false,
       FileList: []
     });
-    expect(tx3).to.be.reverted; // sector.Size > node.Volume
+    expect(tx).to.be.reverted; // sector.Size > node.Volume
   });
+
 });

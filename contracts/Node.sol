@@ -14,6 +14,7 @@ contract Node is Initializable {
 
     mapping(address => NodeInfo) nodesInfo; // walletAddr => NodeInfo
     address[] nodeList; // nodeAddr list
+    mapping(address => mapping(uint64 => uint256)) punishmentHeightForNode;
 
     event RegisterNodeEvent(
         FsEvent eventType,
@@ -206,5 +207,13 @@ contract Node is Initializable {
     function UpdateNodeInfo(NodeInfo memory nodeInfo) public payable {
         // TODO Is exist secure problem?
         nodesInfo[nodeInfo.WalletAddr] = nodeInfo;
+    }
+
+    function SetLastPunishmentHeightForNode(
+        address nodeAddr,
+        uint64 sectorId,
+        uint256 height
+    ) public {
+        punishmentHeightForNode[nodeAddr][sectorId] = height;
     }
 }

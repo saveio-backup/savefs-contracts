@@ -240,7 +240,9 @@ contract Prove is Initializable {
             // TODO
             // sector.AddSectorRefForFileInfo(fileINfo, sectorInfo);
             if (sectorInfo.NextProveHeight == 0) {
-                sectorInfo.NextProveHeight = fileProve.BlockHeight + fileInfo.ProveInterval;
+                sectorInfo.NextProveHeight =
+                    fileProve.BlockHeight +
+                    fileInfo.ProveInterval;
             }
             sector.UpdateSectorInfo(sectorInfo);
         }
@@ -301,8 +303,23 @@ contract Prove is Initializable {
         // TODO
     }
 
-    function calPunishmentForOneSectorProve(Setting memory setting, SectorInfo memory sectorInfo) public pure returns(uint64) {
-        // TODO
+    function calcSingleValidFeeForFile(Setting memory setting, uint64 fileSize)
+        public
+        pure
+        returns (uint64)
+    {
+        uint64 res = uint64(setting.GasForChallenge * fileSize) / 1024000;
+        return res;
+    }
+
+    function calPunishmentForOneSectorProve(
+        Setting memory setting,
+        SectorInfo memory sectorInfo
+    ) public pure returns (uint64) {
+        uint64 punishFactor = 2;
+        uint64 res = punishFactor *
+            calcSingleValidFeeForFile(setting, sectorInfo.Used);
+        return res;
     }
 
     function punishForSector(
@@ -311,7 +328,8 @@ contract Prove is Initializable {
         Setting memory setting,
         uint64 times
     ) public payable {
-        uint64 amount = times * calPunishmentForOneSectorProve(setting, sectorInfo);
+        uint64 amount = times *
+            calPunishmentForOneSectorProve(setting, sectorInfo);
         if (nodeInfo.Pledge >= amount) {
             nodeInfo.Pledge -= amount;
         } else {
@@ -322,8 +340,11 @@ contract Prove is Initializable {
             require(msg.value >= amount, "PunishForSector failed");
             node.UpdateNodeInfo(nodeInfo);
         }
-        // TODO
-        // setLastPunishmentHeightForNode(native, sectorInfo.NodeAddr, sectorInfo.SectorID, block.number);
+        node.SetLastPunishmentHeightForNode(
+            sectorInfo.NodeAddr,
+            sectorInfo.SectorID,
+            block.number
+        );
     }
 
     function profitSplitForSector(
