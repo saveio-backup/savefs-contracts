@@ -26,7 +26,10 @@ contract Prove is Initializable {
     PDP pdp;
     Sector sector;
 
-    mapping(bytes => ProveDetail[]) proveDetail; // fileHash => ProveDetail[]
+    using IterableMapping for itmap;
+
+    // mapping(bytes => ProveDetail[]) proveDetail; // fileHash => ProveDetail[]
+    mapping(bytes => itmap) proveDetail; // fileHash => nodeAddr => ProveDetail
     mapping(bytes => ProveDetails) proveDetails; // fileHash => ProveDetails
     mapping(address => mapping(uint64 => uint256)) punishmentHeightForNode;
 
@@ -67,7 +70,20 @@ contract Prove is Initializable {
         view
         returns (ProveDetail[] memory)
     {
-        return proveDetail[fileHash];
+        itmap storage data = proveDetail[fileHash];
+        ProveDetail[] memory result = new ProveDetail[](data.size);
+        if (data.size == 0) {
+            return result;
+        }
+        for (
+            uint256 i = data.iterate_start();
+            data.iterate_valid(i);
+            i = data.iterate_next(i)
+        ) {
+            (, ProveDetail memory value) = data.iterate_get(i);
+            result[i] = value;
+        }
+        return result;
     }
 
     function getProveDetailsWithNodeAddr(bytes memory fileHash)
@@ -75,7 +91,7 @@ contract Prove is Initializable {
         view
         returns (ProveDetail[] memory)
     {
-        ProveDetail[] memory details = proveDetail[fileHash];
+        ProveDetail[] memory details = GetProveDetailList(fileHash);
         for (uint256 i = 0; i < details.length; i++) {
             NodeInfo memory nodeInfo = node.GetNodeInfoByWalletAddr(
                 details[i].WalletAddr
@@ -90,7 +106,7 @@ contract Prove is Initializable {
         view
         returns (ProveDetail[] memory)
     {
-        ProveDetail[] memory details = proveDetail[fileHash];
+        ProveDetail[] memory details = GetProveDetailList(fileHash);
         for (uint256 i = 0; i < details.length; i++) {
             NodeInfo memory nodeInfo = node.GetNodeInfoByWalletAddr(
                 details[i].WalletAddr
@@ -221,11 +237,20 @@ contract Prove is Initializable {
             detail.ProveTimes = 1;
             detail.BlockHeight = block.number;
             detail.Finished = false;
-            // TODO
-            // details.push(fileProve.FileHash, detail);
+            ProveDetail[] memory detailsTmp = new ProveDetail[](
+                details.length + 1
+            );
+            for (uint256 i = 0; i < details.length; i++) {
+                detailsTmp[i] = details[i];
+            }
+            detailsTmp[detailsTmp.length-1] = detail;
+            details = detailsTmp;
         }
-        // TODO
-        // UpdateProveDetailInfo();
+        // TODO Copying of type struct ProveDetail memory[] memory to storage not yet supported.
+        // proveDetail[fileInfo.FileHash] = details;
+        // itmap storage data = proveDetail[fileInfo.FileHash];
+        // data.insert(details.NodeAddr, details);
+        // proveDetail[fileInfo.FileHash] = data;
         if (!found) {
             SectorInfo memory sectorInfo = sector.GetSectorInfo(
                 SectorRef({
@@ -239,7 +264,7 @@ contract Prove is Initializable {
             // TODO
             // sector.AddFileToSector(sectorInfo, fileInfo);
             // TODO
-            // sector.AddSectorRefForFileInfo(fileINfo, sectorInfo);
+            // sector.AddSectorRefForFileInfo(fileInfo, sectorInfo);
             if (sectorInfo.NextProveHeight == 0) {
                 sectorInfo.NextProveHeight =
                     fileProve.BlockHeight +
@@ -469,5 +494,95 @@ contract Prove is Initializable {
         returns (uint256)
     {
         return punishmentHeightForNode[nodeAddr][sectorID];
+    }
+}
+
+struct IndexValue {
+    uint256 keyIndex;
+    ProveDetail value;
+}
+struct KeyFlag {
+    address key;
+    bool deleted;
+}
+
+struct itmap {
+    mapping(address => IndexValue) data;
+    KeyFlag[] keys;
+    uint256 size;
+}
+
+library IterableMapping {
+    function insert(
+        itmap storage self,
+        address key,
+        ProveDetail memory value
+    ) internal returns (bool replaced) {
+        uint256 keyIndex = self.data[key].keyIndex;
+        self.data[key].value = value;
+        if (keyIndex > 0) return true;
+        else {
+            keyIndex = self.keys.length;
+            self.keys.push();
+            self.data[key].keyIndex = keyIndex + 1;
+            self.keys[keyIndex].key = key;
+            self.size++;
+            return false;
+        }
+    }
+
+    function remove(itmap storage self, address key)
+        internal
+        returns (bool success)
+    {
+        uint256 keyIndex = self.data[key].keyIndex;
+        if (keyIndex == 0) return false;
+        delete self.data[key];
+        self.keys[keyIndex - 1].deleted = true;
+        self.size--;
+    }
+
+    function contains(itmap storage self, address key)
+        internal
+        view
+        returns (bool)
+    {
+        return self.data[key].keyIndex > 0;
+    }
+
+    function iterate_start(itmap storage self)
+        internal
+        view
+        returns (uint256 keyIndex)
+    {
+        return iterate_next(self, type(uint256).max);
+    }
+
+    function iterate_valid(itmap storage self, uint256 keyIndex)
+        internal
+        view
+        returns (bool)
+    {
+        return keyIndex < self.keys.length;
+    }
+
+    function iterate_next(itmap storage self, uint256 keyIndex)
+        internal
+        view
+        returns (uint256 r_keyIndex)
+    {
+        keyIndex++;
+        while (keyIndex < self.keys.length && self.keys[keyIndex].deleted)
+            keyIndex++;
+        return keyIndex;
+    }
+
+    function iterate_get(itmap storage self, uint256 keyIndex)
+        internal
+        view
+        returns (address key, ProveDetail memory value)
+    {
+        key = self.keys[keyIndex].key;
+        value = self.data[key].value;
     }
 }

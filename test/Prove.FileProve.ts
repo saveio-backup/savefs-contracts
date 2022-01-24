@@ -43,7 +43,6 @@ describe(name, function () {
     expect(tx).to.not.be.reverted;
   });
 
-
   it("store file to sector", async () => {
     const tx = fs.StoreFile({
       FileHash: [3, 2, 1],
