@@ -226,10 +226,37 @@ contract Prove is Initializable {
         // TODO
         // UpdateProveDetailInfo();
         if (!found) {
+            SectorInfo memory sectorInfo = sector.GetSectorInfo(
+                SectorRef({
+                    NodeAddr: nodeInfo.NodeAddr,
+                    SectorId: fileProve.SectorID
+                })
+            );
+            if (sectorInfo.IsPlots != fileInfo.IsPlotFile) {
+                revert FileProveFailed(8);
+            }
             // TODO
+            // sector.AddFileToSector(sectorInfo, fileInfo);
+            // TODO
+            // sector.AddSectorRefForFileInfo(fileINfo, sectorInfo);
+            if (sectorInfo.NextProveHeight == 0) {
+                sectorInfo.NextProveHeight = fileProve.BlockHeight + fileInfo.ProveInterval;
+            }
+            sector.UpdateSectorInfo(sectorInfo);
         }
         if (settleFlag) {
+            if (fileProve.SectorID != 0) {
+                SectorInfo memory sectorInfo = sector.GetSectorInfo(
+                    SectorRef({
+                        NodeAddr: nodeInfo.NodeAddr,
+                        SectorId: fileProve.SectorID
+                    })
+                );
+                // TODO
+                // sector.deleteFileFromSector(sectorInfo, fileInfo);
+            }
             // TODO
+            // settleForFile(fileInfo, nodeInfo, proveDetail, proveDetails, setting);
         }
         emit FilePDPSuccessEvent(
             FsEvent.FILE_PDP_SUCCESS,
