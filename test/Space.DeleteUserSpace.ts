@@ -25,8 +25,9 @@ describe(name, () => {
     await expect(tx).to.emit(space, "SetUserSpaceEvent");
   });
 
-  it("delete success", async () => {
-    const tx = space.DeleteUserSpace(addrs[40]);
+  it("delete", async () => {
+    await mine(17294 * 2);
+    const tx = space.DeleteUserSpace(addrs[32]);
     // print(tx)
     await expect(tx).to.not.be.reverted;
   });

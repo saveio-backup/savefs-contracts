@@ -22,7 +22,11 @@ contract Config is Initializable {
         return setting;
     }
 
-    function GetProveIntervalByProveLevel(ProveLevel proveLevel) public pure returns(uint64) {
+    function GetProveIntervalByProveLevel(ProveLevel proveLevel)
+        public
+        pure
+        returns (uint64)
+    {
         Setting memory setting = GetSetting();
         if (proveLevel == ProveLevel.HIGH) {
             return setting.DefaultProvePeriod;
