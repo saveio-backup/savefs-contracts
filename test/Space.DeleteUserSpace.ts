@@ -13,12 +13,14 @@ describe(name, () => {
       Owner: addrs[32],
       Size: {
         Type: 1,
-        Value: 1
+        Value: 1024
       },
       BlockCount: {
         Type: 1,
         Value: (3600 * 24) / 5
       }
+    }, {
+      value: 1251
     });
     // await print(tx);
     await expect(tx).to.not.be.reverted;

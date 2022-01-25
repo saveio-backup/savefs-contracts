@@ -11,7 +11,7 @@ describe(name, () => {
   it("get", async () => {
     const tx = pdp.GenChallenge()
     let res = await tx;
-    console.log(res)
+    // console.log(res)
   });
 
 });
