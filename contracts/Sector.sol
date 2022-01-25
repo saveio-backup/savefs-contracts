@@ -7,6 +7,8 @@ import "./Type.sol";
 import "./Node.sol";
 
 contract Sector is Initializable {
+    uint64 SECTOR_FILE_INFO_GROUP_MAX_LEN = 5000;
+
     Node node;
 
     mapping(address => SectorInfo[]) sectorInfos; // nodeAddr => SectorInfo[]
@@ -31,6 +33,7 @@ contract Sector is Initializable {
 
     error NotEnoughVolume(uint64 got, uint64 want);
     error NotEmptySector(uint64 got, uint64 want);
+    error NotEnoughSpace();
 
     function initialize(Node _node) public initializer {
         node = _node;
@@ -210,6 +213,105 @@ contract Sector is Initializable {
         }
         if (sectorInfo.FileNum == 0) {
             sectorInfo.NextProveHeight = 0;
+        }
+        UpdateSectorInfo(sectorInfo);
+    }
+
+    function getSectorFileInfoGroup(
+        address nodeAddr,
+        uint64 sectorID,
+        uint64 groupID
+    ) public returns (SectorFileInfoGroup memory) {
+        // TODO
+    }
+
+    function addSectorFileInfoGroup(
+        address nodeAddr,
+        uint64 sectorID,
+        SectorFileInfoGroup memory _sectorFileInfoGroup,
+        SectorFileInfo memory sectorFileInfo
+    ) public {
+        // TODO
+    }
+
+    struct SectorFileInfo {
+        bytes FileHash;
+        uint64 BlockCount;
+    }
+
+    struct SectorFileInfoGroup {
+        uint64 FileNum;
+        uint64 GroupId;
+        bytes MinFileHash;
+        bytes MaxFileHash;
+        SectorFileInfo[] FileList;
+    }
+
+    function addSectorFileInfo(
+        address nodeAddr,
+        uint64 sectorID,
+        SectorFileInfo memory sectorFileInfo
+    ) public payable returns (bool) {
+        SectorFileInfoGroup memory groupInfo;
+        uint64 groupNum;
+        bool groupCreated;
+        SectorInfo memory sectorInfo = GetSectorInfo(
+            SectorRef({SectorId: sectorID, NodeAddr: nodeAddr})
+        );
+        bytes memory minFileHash;
+        SectorFileInfo[] memory fileList;
+        groupNum = sectorInfo.GroupNum;
+        if (groupNum == 0) {
+            groupNum = 1;
+            groupCreated = true;
+            groupInfo = SectorFileInfoGroup({
+                FileNum: 0,
+                GroupId: groupNum,
+                MinFileHash: minFileHash,
+                MaxFileHash: minFileHash,
+                FileList: fileList
+            });
+        } else {
+            groupInfo = getSectorFileInfoGroup(nodeAddr, sectorID, groupNum);
+            if (groupInfo.FileNum == SECTOR_FILE_INFO_GROUP_MAX_LEN) {
+                groupNum++;
+                groupCreated = true;
+                groupInfo = SectorFileInfoGroup({
+                    FileNum: 0,
+                    GroupId: groupNum,
+                    MinFileHash: minFileHash,
+                    MaxFileHash: minFileHash,
+                    FileList: fileList
+                });
+            }
+        }
+        addSectorFileInfoGroup(nodeAddr, sectorID, groupInfo, sectorFileInfo);
+        return groupCreated;
+    }
+
+    function AddFileToSector(
+        SectorInfo memory sectorInfo,
+        FileInfo memory fileInfo
+    ) public payable {
+        if (
+            sectorInfo.Used + fileInfo.FileBlockNum * fileInfo.FileBlockSize >
+            sectorInfo.Size
+        ) {
+            revert NotEnoughSpace();
+        }
+        bool groupCreated = addSectorFileInfo(
+            sectorInfo.NodeAddr,
+            sectorInfo.SectorID,
+            SectorFileInfo({
+                FileHash: fileInfo.FileHash,
+                BlockCount: fileInfo.FileBlockNum
+            })
+        );
+        sectorInfo.FileNum++;
+        sectorInfo.Used += fileInfo.FileBlockNum * fileInfo.FileBlockSize;
+        sectorInfo.TotalBlockNum += fileInfo.FileBlockNum;
+        if (groupCreated) {
+            sectorInfo.GroupNum++;
         }
         UpdateSectorInfo(sectorInfo);
     }

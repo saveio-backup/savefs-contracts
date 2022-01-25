@@ -269,7 +269,7 @@ contract Prove is Initializable {
                 revert FileProveFailed(8);
             }
             // TODO
-            // sector.AddFileToSector(sectorInfo, fileInfo);
+            sector.AddFileToSector(sectorInfo, fileInfo);
             // TODO
             // sector.AddSectorRefForFileInfo(fileInfo, sectorInfo);
             if (sectorInfo.NextProveHeight == 0) {
