@@ -305,10 +305,10 @@ contract FileSystem is Initializable {
             bytes[] storage p = fileList[fileInfo.CandidateNodes[i]];
             p.push(fileInfo.FileHash);
         }
-        ProveDetails memory _proveDetails;
-        _proveDetails.CopyNum = fileInfo.CopyNum;
-        _proveDetails.ProveDetailNum = 0;
-        prove.SetProveDetails(fileInfo.FileHash, _proveDetails);
+        ProveDetailMeta memory _proveDetailMeta;
+        _proveDetailMeta.CopyNum = fileInfo.CopyNum;
+        _proveDetailMeta.ProveDetailNum = 0;
+        prove.SetProveDetailMeta(fileInfo.FileHash, _proveDetailMeta);
         emit StoreFileEvent(
             FsEvent.STORE_FILE,
             block.number,

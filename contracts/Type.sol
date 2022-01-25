@@ -174,7 +174,7 @@ struct ProveDetail {
     bool Finished;
 }
 
-struct ProveDetails {
+struct ProveDetailMeta {
     uint64 CopyNum;
     uint64 ProveDetailNum;
 }

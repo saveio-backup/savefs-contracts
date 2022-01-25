@@ -9,7 +9,7 @@ var name = path.basename(__filename);
 describe(name, function () {
 
   it("get", async () => {
-    const tx = prove.GetFileProveDetails(addrs[17]);
+    const tx = prove.GetProveDetailList(addrs[17]);
     let res = await tx;
     // console.log(res)
     assert(res.length == 0)

@@ -28,9 +28,8 @@ contract Prove is Initializable {
 
     using IterableMapping for itmap;
 
-    // mapping(bytes => ProveDetail[]) proveDetail; // fileHash => ProveDetail[]
-    mapping(bytes => itmap) proveDetail; // fileHash => nodeAddr => ProveDetail
-    mapping(bytes => ProveDetails) proveDetails; // fileHash => ProveDetails
+    mapping(bytes => itmap) proveDetails; // fileHash => nodeAddr => ProveDetail
+    mapping(bytes => ProveDetailMeta) proveDetailMeta; // fileHash => ProveDetailMeta
     mapping(address => mapping(uint64 => uint256)) punishmentHeightForNode;
 
     event FilePDPSuccessEvent(
@@ -59,10 +58,11 @@ contract Prove is Initializable {
         sector = _sector;
     }
 
-    function SetProveDetails(bytes memory fileHash, ProveDetails memory details)
-        public
-    {
-        proveDetails[fileHash] = details;
+    function SetProveDetailMeta(
+        bytes memory fileHash,
+        ProveDetailMeta memory details
+    ) public {
+        proveDetailMeta[fileHash] = details;
     }
 
     function GetProveDetailList(bytes memory fileHash)
@@ -70,7 +70,7 @@ contract Prove is Initializable {
         view
         returns (ProveDetail[] memory)
     {
-        itmap storage data = proveDetail[fileHash];
+        itmap storage data = proveDetails[fileHash];
         ProveDetail[] memory result = new ProveDetail[](data.size);
         if (data.size == 0) {
             return result;
@@ -86,7 +86,18 @@ contract Prove is Initializable {
         return result;
     }
 
-    function getProveDetailsWithNodeAddr(bytes memory fileHash)
+    function UpdateProveDetailList(
+        bytes memory fileHash,
+        ProveDetail[] memory details
+    ) public payable {
+        itmap storage data = proveDetails[fileHash];
+        for (uint256 i = 0; i < details.length; i++) {
+            ProveDetail memory detail = details[i];
+            data.insert(detail.NodeAddr, detail);
+        }
+    }
+
+    function getProveDetailMetaWithNodeAddr(bytes memory fileHash)
         public
         view
         returns (ProveDetail[] memory)
@@ -101,7 +112,7 @@ contract Prove is Initializable {
         return details;
     }
 
-    function GetFileProveDetails(bytes memory fileHash)
+    function GetFileProveDetailMeta(bytes memory fileHash)
         public
         view
         returns (ProveDetail[] memory)
@@ -179,7 +190,7 @@ contract Prove is Initializable {
         NodeInfo memory nodeInfo = node.GetNodeInfoByWalletAddr(
             fileProve.NodeWallet
         );
-        ProveDetail[] memory details = getProveDetailsWithNodeAddr(
+        ProveDetail[] memory details = getProveDetailMetaWithNodeAddr(
             fileInfo.FileHash
         );
         if (fileProve.SectorID != 0 && block.number < fileInfo.ExpiredHeight) {
@@ -243,14 +254,10 @@ contract Prove is Initializable {
             for (uint256 i = 0; i < details.length; i++) {
                 detailsTmp[i] = details[i];
             }
-            detailsTmp[detailsTmp.length-1] = detail;
+            detailsTmp[detailsTmp.length - 1] = detail;
             details = detailsTmp;
         }
-        // TODO Copying of type struct ProveDetail memory[] memory to storage not yet supported.
-        // proveDetail[fileInfo.FileHash] = details;
-        // itmap storage data = proveDetail[fileInfo.FileHash];
-        // data.insert(details.NodeAddr, details);
-        // proveDetail[fileInfo.FileHash] = data;
+        UpdateProveDetailList(fileInfo.FileHash, details);
         if (!found) {
             SectorInfo memory sectorInfo = sector.GetSectorInfo(
                 SectorRef({
@@ -284,7 +291,7 @@ contract Prove is Initializable {
                 // sector.deleteFileFromSector(sectorInfo, fileInfo);
             }
             // TODO
-            // settleForFile(fileInfo, nodeInfo, proveDetail, proveDetails, setting);
+            // settleForFile(fileInfo, nodeInfo, proveDetail, proveDetailMeta, setting);
         }
         emit FilePDPSuccessEvent(
             FsEvent.FILE_PDP_SUCCESS,
