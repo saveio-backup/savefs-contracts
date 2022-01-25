@@ -1,4 +1,5 @@
 import { expect, assert } from "chai";
+import { BigNumber } from "ethers";
 import { ethers, network } from "hardhat";
 import { addrs, print, config, fs, node, space, sector } from "./initialize";
 
@@ -8,11 +9,21 @@ var name = path.basename(__filename);
 describe(name, () => {
 
   it("get update cost", async () => {
-    const tx = space.GetUpdateCost();
-    expect(tx).to.be.reverted;
-    // let res = await tx;
+    const tx = space.GetUpdateCost({
+      WalletAddr: addrs[50],
+      Owner: addrs[50],
+      Size: {
+        Type: 1,
+        Value: 1
+      },
+      BlockCount: {
+        Type: 1,
+        Value: (3600 * 24) / 5
+      }
+    });
+    let res = await tx;
     // console.log(res)
-    // assert(res.Value.eq(0))
+    expect(tx).not.to.be.reverted;
   });
   
 });
