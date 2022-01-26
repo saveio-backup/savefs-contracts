@@ -392,11 +392,9 @@ contract FileSystem is Initializable {
         delete fileInfos[fileHash];
     }
 
-    /**
-     * Why same as delete file info method?
-     */
-    function DeleteProveDetails(bytes memory fileHash) public {
+    function deleteProveDetails(bytes memory fileHash) public {
         delete fileInfos[fileHash];
+        prove.DeleteProveDetails(fileHash);
     }
 
     function UpdateFileList(address walletAddr, bytes[] memory list)
@@ -530,7 +528,7 @@ contract FileSystem is Initializable {
         }
     }
 
-    function cleanupForDeleteFile(
+    function CleanupForDeleteFile(
         FileInfo memory fileInfo,
         bool rmInfo,
         bool rmList
@@ -538,7 +536,7 @@ contract FileSystem is Initializable {
         bytes memory fileHash = fileInfo.FileHash;
         if (rmInfo) {
             DeleteFileInfo(fileHash);
-            DeleteProveDetails(fileHash);
+            deleteProveDetails(fileHash);
             DelFileFromUnSettledList(fileInfo.FileOwner, fileHash);
         }
         if (rmList) {
@@ -589,7 +587,7 @@ contract FileSystem is Initializable {
                 continue;
             }
             amount += fileInfo.Deposit;
-            cleanupForDeleteFile(fileInfo, true, true);
+            CleanupForDeleteFile(fileInfo, true, true);
             deletedFiles[n] = _fileList[i];
             n++;
         }
@@ -734,7 +732,7 @@ contract FileSystem is Initializable {
                 sector.DeleteFileFromSector(sectorInfo, fileInfo);
             }
             if (fileInfo.Deposit == 0) {
-                cleanupForDeleteFile(fileInfo, true, true);
+                CleanupForDeleteFile(fileInfo, true, true);
                 continue;
             }
             // TODO

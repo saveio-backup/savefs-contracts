@@ -104,6 +104,11 @@ contract Prove is Initializable {
         }
     }
 
+    function DeleteProveDetails(bytes memory fileHash) public payable {
+        delete proveDetails[fileHash];
+        delete proveDetailMeta[fileHash];
+    }
+
     function getProveDetailListWithNodeAddr(bytes memory fileHash)
         public
         view
@@ -314,23 +319,6 @@ contract Prove is Initializable {
         // TODO
     }
 
-    function cleanupForDeleteFile(
-        FileInfo memory fileInfo,
-        bool rmInfo,
-        bool rmList
-    ) public {
-        bytes memory fileHash = fileInfo.FileHash;
-        if (rmInfo) {
-            fs.DeleteFileInfo(fileHash);
-            // TODO
-            // deleteProveDetails(fileHash);
-            fs.DelFileFromUnSettledList(fileInfo.FileOwner, fileHash);
-        }
-        if (rmList) {
-            // TODO
-        }
-    }
-
     function settleForFile(
         FileInfo memory fileInfo,
         NodeInfo memory nodeInfo,
@@ -357,13 +345,13 @@ contract Prove is Initializable {
             }
         }
         if (finishedNodes == 1) {
-            cleanupForDeleteFile(fileInfo, false, true);
+            fs.CleanupForDeleteFile(fileInfo, false, true);
         }
         if (finishedNodes == fileInfo.CopyNum + 1) {
             if (fileInfo.Deposit > 0) {
                 payable(fileInfo.FileOwner).transfer(fileInfo.Deposit);
             }
-            cleanupForDeleteFile(fileInfo, true, false);
+            fs.CleanupForDeleteFile(fileInfo, true, false);
         } else {
             fs.AddFileToUnSettleList(fileInfo.FileOwner, fileInfo.FileHash);
         }
