@@ -58,13 +58,6 @@ contract FileSystem is Initializable {
         address walletAddr
     );
 
-    event ProveFileEvent(
-        FsEvent eventType,
-        uint256 blockHeight,
-        address walletAddr,
-        uint64 profit
-    );
-
     error FileNotExist(bytes);
     error UserspaceInsufficientBalance(uint256 got, uint256 want);
     error UserspaceInsufficientSpace(uint256 got, uint256 want);

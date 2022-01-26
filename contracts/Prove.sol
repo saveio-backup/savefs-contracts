@@ -39,6 +39,13 @@ contract Prove is Initializable {
         address walletAddr
     );
 
+    event ProveFileEvent(
+        FsEvent eventType,
+        uint256 blockHeight,
+        address walletAddr,
+        uint64 profit
+    );
+
     error FileProveNotFileOwner();
     error FileProveFailed(uint64);
     error SectorProveFailed();
@@ -97,7 +104,7 @@ contract Prove is Initializable {
         }
     }
 
-    function getProveDetailMetaWithNodeAddr(bytes memory fileHash)
+    function getProveDetailListWithNodeAddr(bytes memory fileHash)
         public
         view
         returns (ProveDetail[] memory)
@@ -112,7 +119,7 @@ contract Prove is Initializable {
         return details;
     }
 
-    function GetFileProveDetailMeta(bytes memory fileHash)
+    function GetFileProveDetailList(bytes memory fileHash)
         public
         view
         returns (ProveDetail[] memory)
@@ -190,7 +197,7 @@ contract Prove is Initializable {
         NodeInfo memory nodeInfo = node.GetNodeInfoByWalletAddr(
             fileProve.NodeWallet
         );
-        ProveDetail[] memory details = getProveDetailMetaWithNodeAddr(
+        ProveDetail[] memory details = getProveDetailListWithNodeAddr(
             fileInfo.FileHash
         );
         if (fileProve.SectorID != 0 && block.number < fileInfo.ExpiredHeight) {
@@ -268,7 +275,6 @@ contract Prove is Initializable {
             if (sectorInfo.IsPlots != fileInfo.IsPlotFile) {
                 revert FileProveFailed(8);
             }
-            // TODO
             sector.AddFileToSector(sectorInfo, fileInfo);
             // TODO
             // sector.AddSectorRefForFileInfo(fileInfo, sectorInfo);
@@ -287,17 +293,71 @@ contract Prove is Initializable {
                         SectorId: fileProve.SectorID
                     })
                 );
-                // TODO
-                // sector.deleteFileFromSector(sectorInfo, fileInfo);
+                sector.DeleteFileFromSector(sectorInfo, fileInfo);
             }
             // TODO
-            // settleForFile(fileInfo, nodeInfo, proveDetail, proveDetailMeta, setting);
+            settleForFile(fileInfo, nodeInfo, detail, details, setting);
         }
         emit FilePDPSuccessEvent(
             FsEvent.FILE_PDP_SUCCESS,
             block.number,
             fileInfo.FileHash,
             nodeInfo.WalletAddr
+        );
+    }
+
+    function calculateProfitForSettle(
+        FileInfo memory fileInfo,
+        ProveDetail memory detail,
+        Setting memory setting
+    ) public pure returns (uint64) {
+        // TODO
+    }
+
+    function settleForFile(
+        FileInfo memory fileInfo,
+        NodeInfo memory nodeInfo,
+        ProveDetail memory detail,
+        ProveDetail[] memory details,
+        Setting memory setting
+    ) public payable {
+        uint64 profit = calculateProfitForSettle(fileInfo, detail, setting);
+        if (fileInfo.Deposit < profit) {
+            revert FileProveFailed(9);
+        }
+
+        nodeInfo.RestVol += profit;
+        node.UpdateNodeInfo(nodeInfo);
+
+        fileInfo.Deposit -= profit;
+        fileInfo.ValidFlag = false;
+        fs.UpdateFileInfo(fileInfo);
+
+        uint64 finishedNodes = 0;
+        for (uint256 i = 0; i < details.length; i++) {
+            if (details[i].Finished) {
+                finishedNodes++;
+            }
+        }
+        if (finishedNodes == 1) {
+            // TODO
+            // cleanupForDeleteFile(fileInfo, false, true);
+        }
+        if (finishedNodes == fileInfo.CopyNum + 1) {
+            if (fileInfo.Deposit > 0) {
+                payable(fileInfo.FileOwner).transfer(fileInfo.Deposit);
+            }
+            // TODO
+            // cleanupForDeleteFile(fileInfo, true, false);
+        } else {
+            // TODO
+            // fs.AddFileToUnSettleList(fileInfo.FileOwner, fileInfo.FileHash);
+        }
+        emit ProveFileEvent(
+            FsEvent.PROVE_FILE,
+            block.number,
+            nodeInfo.WalletAddr,
+            profit
         );
     }
 
