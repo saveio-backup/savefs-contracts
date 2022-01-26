@@ -471,6 +471,12 @@ contract FileSystem is Initializable {
         return unSettledFileList[walletAddr];
     }
 
+    function AddFileToUnSettleList(address fileOwner, bytes memory fileHash)
+        public
+    {
+        unSettledFileList[fileOwner].push(fileHash);
+    }
+
     function DelFileFromUnSettledList(address walletAddr, bytes memory fileHash)
         public
         payable

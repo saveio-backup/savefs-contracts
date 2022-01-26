@@ -314,6 +314,23 @@ contract Prove is Initializable {
         // TODO
     }
 
+    function cleanupForDeleteFile(
+        FileInfo memory fileInfo,
+        bool rmInfo,
+        bool rmList
+    ) public {
+        bytes memory fileHash = fileInfo.FileHash;
+        if (rmInfo) {
+            fs.DeleteFileInfo(fileHash);
+            // TODO
+            // deleteProveDetails(fileHash);
+            fs.DelFileFromUnSettledList(fileInfo.FileOwner, fileHash);
+        }
+        if (rmList) {
+            // TODO
+        }
+    }
+
     function settleForFile(
         FileInfo memory fileInfo,
         NodeInfo memory nodeInfo,
@@ -340,18 +357,15 @@ contract Prove is Initializable {
             }
         }
         if (finishedNodes == 1) {
-            // TODO
-            // cleanupForDeleteFile(fileInfo, false, true);
+            cleanupForDeleteFile(fileInfo, false, true);
         }
         if (finishedNodes == fileInfo.CopyNum + 1) {
             if (fileInfo.Deposit > 0) {
                 payable(fileInfo.FileOwner).transfer(fileInfo.Deposit);
             }
-            // TODO
-            // cleanupForDeleteFile(fileInfo, true, false);
+            cleanupForDeleteFile(fileInfo, true, false);
         } else {
-            // TODO
-            // fs.AddFileToUnSettleList(fileInfo.FileOwner, fileInfo.FileHash);
+            fs.AddFileToUnSettleList(fileInfo.FileOwner, fileInfo.FileHash);
         }
         emit ProveFileEvent(
             FsEvent.PROVE_FILE,
