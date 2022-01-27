@@ -61,6 +61,13 @@ contract Space is Initializable {
         return userSpace[walletAddr];
     }
 
+    function UpdateUserSpace(address walletAddr, UserSpace memory _userSpace)
+        public
+        payable
+    {
+        userSpace[walletAddr] = _userSpace;
+    }
+
     function isValidUserSpaceOperation(UserSpaceOperation memory op)
         public
         pure

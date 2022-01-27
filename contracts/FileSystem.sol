@@ -64,6 +64,8 @@ contract FileSystem is Initializable {
     error UserspaceWrongExpiredHeight(uint256 got, uint256 want);
     error NotEnoughTransfer(uint256 got, uint256 want);
     error DifferenceFileOwner();
+    error InvalidProfit();
+    error OpError(uint64);
 
     modifier NotEmptyFileHash(bytes memory fileHash) {
         require(fileHash.length > 0, "fileHash must be not empty");
@@ -735,8 +737,62 @@ contract FileSystem is Initializable {
                 CleanupForDeleteFile(fileInfo, true, true);
                 continue;
             }
-            // TODO
+            ProveDetail[] memory details = prove.GetProveDetailList(
+                fileInfo.FileHash
+            );
+            uint64 restProfit = fileInfo.Deposit;
+            uint64 fileSize = fileInfo.FileBlockNum * fileInfo.FileBlockSize;
+            uint64 singleProveProfit = calcSingleValidFeeForFile(
+                setting,
+                fileSize
+            );
+            for (uint256 j = 0; j < details.length; j++) {
+                NodeInfo memory nodeInfo = node.GetNodeInfoByWalletAddr(
+                    details[j].WalletAddr
+                );
+                uint64 validProfit = (details[j].ProveTimes - 1) *
+                    singleProveProfit;
+                uint64 storageProfit = calcStorageFeeForOneNode(
+                    setting,
+                    fileSize,
+                    uint64(block.number - fileInfo.BlockHeight)
+                );
+                uint64 totalProfit = validProfit + storageProfit;
+                if (totalProfit > restProfit) {
+                    revert InvalidProfit();
+                }
+                nodeInfo.Profit += totalProfit;
+                node.UpdateNodeInfo(nodeInfo);
+                restProfit -= totalProfit;
+            }
+            if (fileInfo.StorageType_ == StorageType.Normal) {
+                refundAmount += restProfit;
+            } else if (fileInfo.StorageType_ == StorageType.Professional) {
+                UserSpace memory userSpace = space.GetUserSpace(
+                    fileInfo.FileOwner
+                );
+                if (
+                    userSpace.Used >=
+                    fileInfo.FileBlockNum * fileInfo.FileBlockSize
+                ) {
+                    userSpace.Balance += restProfit;
+                    userSpace.Remain +=
+                        fileInfo.FileBlockNum *
+                        fileInfo.FileBlockSize;
+                    userSpace.Used -=
+                        fileInfo.FileBlockNum *
+                        fileInfo.FileBlockSize;
+                } else {
+                    revert OpError(1);
+                }
+                space.UpdateUserSpace(fileInfo.FileOwner, userSpace);
+            }
+            CleanupForDeleteFile(fileInfo, true, true);
         }
+        if (refundAmount == 0) {
+            return;
+        }
+        payable(fileOwner).transfer(refundAmount);
     }
 
     function DeleteFile(bytes memory fileHash) public {
