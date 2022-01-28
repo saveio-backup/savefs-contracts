@@ -34,6 +34,7 @@ contract Sector is Initializable {
     error NotEnoughVolume(uint64 got, uint64 want);
     error NotEmptySector(uint64 got, uint64 want);
     error NotEnoughSpace();
+    error OpError(uint64);
 
     function initialize(Node _node) public initializer {
         node = _node;
@@ -196,6 +197,13 @@ contract Sector is Initializable {
         sectorInfos[sector.NodeAddr] = _sectorInfos;
     }
 
+    function AddSectorInfo(address nodeAddr, SectorInfo memory sectorInfo)
+        public
+        payable
+    {
+        sectorInfos[nodeAddr].push(sectorInfo);
+    }
+
     function DeleteFileFromSector(
         SectorInfo memory sectorInfo,
         FileInfo memory fileInfo
@@ -314,5 +322,36 @@ contract Sector is Initializable {
             sectorInfo.GroupNum++;
         }
         UpdateSectorInfo(sectorInfo);
+    }
+
+    function AddSectorRefForFileInfo(SectorInfo memory sectorInfo)
+        public
+        payable
+    {
+        bool r = isSectorRefByFileInfo(
+            sectorInfo.NodeAddr,
+            sectorInfo.SectorID
+        );
+        if (!r) {
+            revert OpError(3);
+        }
+        AddSectorInfo(sectorInfo.NodeAddr, sectorInfo);
+    }
+
+    function isSectorRefByFileInfo(address nodeAddr, uint64 sectorID)
+        public
+        view
+        returns (bool)
+    {
+        SectorInfo[] memory sectors = GetSectorsForNode(nodeAddr);
+        for (uint256 i = 0; i < sectors.length; i++) {
+            if (
+                sectors[i].NodeAddr == nodeAddr &&
+                sectors[i].SectorID == sectorID
+            ) {
+                return true;
+            }
+        }
+        return false;
     }
 }

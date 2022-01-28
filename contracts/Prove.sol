@@ -281,8 +281,7 @@ contract Prove is Initializable {
                 revert FileProveFailed(8);
             }
             sector.AddFileToSector(sectorInfo, fileInfo);
-            // TODO
-            // sector.AddSectorRefForFileInfo(fileInfo, sectorInfo);
+            sector.AddSectorRefForFileInfo(sectorInfo);
             if (sectorInfo.NextProveHeight == 0) {
                 sectorInfo.NextProveHeight =
                     fileProve.BlockHeight +
@@ -300,7 +299,6 @@ contract Prove is Initializable {
                 );
                 sector.DeleteFileFromSector(sectorInfo, fileInfo);
             }
-            // TODO
             settleForFile(fileInfo, nodeInfo, detail, details, setting);
         }
         emit FilePDPSuccessEvent(
