@@ -204,7 +204,6 @@ contract Node is Initializable {
     }
 
     function UpdateNodeInfo(NodeInfo memory nodeInfo) public payable {
-        // TODO Is exist secure problem?
         nodesInfo[nodeInfo.WalletAddr] = nodeInfo;
     }
 }

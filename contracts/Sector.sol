@@ -176,14 +176,52 @@ contract Sector is Initializable {
         );
     }
 
+    function findFileInGroup(
+        SectorFileInfoGroup memory group,
+        bytes memory fileHash
+    ) public returns (uint64, bool) {
+        // TODO
+    }
+
+    function setSectorFileInfoGroup(
+        address nodeAddr,
+        uint64 sectorId,
+        SectorFileInfoGroup memory group
+    ) public {
+        // TODO
+    }
+
     function deleteSectorFileInfo(
         address nodeAddr,
         uint64 sectorId,
         bytes memory fileHash
     ) public returns (bool) {
         uint64 groupNum = getSectorFileInfoGroupNum(nodeAddr, sectorId);
-        for (uint64 i = 0; i < groupNum; i++) {}
-        // TODO
+        for (uint64 i = 0; i < groupNum; i++) {
+            SectorFileInfoGroup memory group = getSectorFileInfoGroup(
+                nodeAddr,
+                sectorId,
+                i
+            );
+            (uint64 index, bool found) = findFileInGroup(group, fileHash);
+            if (found) {
+                uint64 fileNum = group.FileNum;
+                SectorFileInfo[] memory fileList = group.FileList;
+                // TODO
+                // fileList = append(fileList[0:index], fileList[index+1:]...)
+                group.FileList = fileList;
+                if (index == 0) {
+                    group.MinFileHash = fileHash;
+                }
+                if (index == fileNum - 1) {
+                    group.MaxFileHash = fileHash;
+                }
+                group.FileNum--;
+                setSectorFileInfoGroup(nodeAddr, sectorId, group);
+                return true;
+            }
+        }
+        return false;
     }
 
     function UpdateSectorInfo(SectorInfo memory sector) public payable {

@@ -289,9 +289,8 @@ contract FileSystem is Initializable {
         fileInfo.BlockHeight = block.number;
         // store file
         fileInfos[fileInfo.FileHash] = fileInfo;
-        bytes[] storage f = fileList[fileInfo.FileOwner];
-        // TODO should unique file hash
-        f.push(fileInfo.FileHash);
+        bytes[] storage list = fileList[fileInfo.FileOwner];
+        list.push(fileInfo.FileHash);
         for (uint256 i = 0; i < fileInfo.PrimaryNodes.length; i++) {
             bytes[] storage p = fileList[fileInfo.PrimaryNodes[i]];
             p.push(fileInfo.FileHash);
