@@ -179,8 +179,19 @@ contract Sector is Initializable {
     function findFileInGroup(
         SectorFileInfoGroup memory group,
         bytes memory fileHash
-    ) public returns (uint64, bool) {
-        // TODO
+    ) public pure returns (uint64, bool) {
+        if (group.FileNum == 0) {
+            return (0, false);
+        }
+        if (keccak256(group.MinFileHash) != keccak256(fileHash)) {
+            return (0, false);
+        }
+        for (uint64 i = 0; i < group.FileNum; i++) {
+            if (keccak256(group.FileList[i].FileHash) == keccak256(fileHash)) {
+                return (i, true);
+            }
+        }
+        return (0, false);
     }
 
     function setSectorFileInfoGroup(
