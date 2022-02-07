@@ -142,7 +142,7 @@ contract FileSystem is Initializable {
             calcStorageFeeForOneNode(setting, fileSize, duration);
     }
 
-    function calcFee(
+    function CalcFee(
         Setting memory setting,
         uint64 proveTime,
         uint64 copyNum,
@@ -171,7 +171,7 @@ contract FileSystem is Initializable {
             uploadOption,
             currentHeight
         );
-        StorageFee memory fee = calcFee(
+        StorageFee memory fee = CalcFee(
             setting,
             proveTime,
             uploadOption.CopyNum,
@@ -330,7 +330,7 @@ contract FileSystem is Initializable {
         );
         Setting memory setting = config.GetSetting();
         FileInfo memory fileInfo = fileInfos[fileReNewInfo.FileHash];
-        StorageFee memory totalRenew = calcFee(
+        StorageFee memory totalRenew = CalcFee(
             setting,
             fileReNewInfo.ReNewTimes,
             fileInfo.CopyNum,

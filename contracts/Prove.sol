@@ -46,6 +46,13 @@ contract Prove is Initializable {
         uint64 profit
     );
 
+    event DeleteFileEvent(
+        FsEvent eventType,
+        uint256 blockHeight,
+        bytes fileHash,
+        address walletAddr
+    );
+
     error FileProveNotFileOwner();
     error FileProveFailed(uint64);
     error SectorProveFailed();
@@ -313,8 +320,15 @@ contract Prove is Initializable {
         FileInfo memory fileInfo,
         ProveDetail memory detail,
         Setting memory setting
-    ) public pure returns (uint64) {
-        // TODO
+    ) public view returns (uint64) {
+        StorageFee memory total = fs.CalcFee(
+            setting,
+            detail.ProveTimes - 1,
+            0,
+            fileInfo.FileBlockNum * fileInfo.FileBlockSize,
+            uint64(fileInfo.ExpiredHeight - fileInfo.BlockHeight)
+        );
+        return total.TxnFee + total.SpaceFee + total.ValidationFee;
     }
 
     function settleForFile(
@@ -444,8 +458,49 @@ contract Prove is Initializable {
         SectorInfo memory sectorInfo,
         NodeInfo memory nodeInfo,
         Setting memory setting
-    ) public {
-        // TODO
+    ) public returns (bool) {
+        for (uint256 i = 0; i < sectorInfo.FileNum; i++) {
+            bytes memory fileHash = sectorInfo.FileList[i];
+            FileInfo memory fileInfo = fs.GetFileInfo(fileHash);
+            ProveDetail[] memory details = GetProveDetailList(
+                fileInfo.FileHash
+            );
+            bool settleFlag = false;
+            uint256 fileExpiredHeight = fileInfo.ExpiredHeight;
+            bool found = false;
+            ProveDetail memory detail;
+            for (uint256 j = 0; j < details.length; j++) {
+                if (details[i].WalletAddr == sectorInfo.NodeAddr) {
+                    found = true;
+                    detail = details[i];
+                    uint64 haveProveTimes = detail.ProveTimes;
+                    if (
+                        haveProveTimes == fileInfo.ProveTimes ||
+                        block.number > fileExpiredHeight
+                    ) {
+                        detail.Finished = true;
+                        settleFlag = true;
+                    }
+                    detail.ProveTimes++;
+                    break;
+                }
+            }
+            if (!found) {
+                return false;
+            }
+            UpdateProveDetailList(fileInfo.FileHash, details);
+            if (settleFlag) {
+                settleForFile(fileInfo, nodeInfo, detail, details, setting);
+                sector.DeleteFileFromSector(sectorInfo, fileInfo);
+                emit DeleteFileEvent(
+                    FsEvent.DELETE_FILE,
+                    block.number,
+                    fileInfo.FileHash,
+                    nodeInfo.WalletAddr
+                );
+            }
+        }
+        return true;
     }
 
     function SectorProve(SectorProveParams memory sectorProve) public payable {
