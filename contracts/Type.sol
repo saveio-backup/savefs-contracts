@@ -162,7 +162,7 @@ struct FileReNewInfo {
 /** prove ********************** */
 struct PocProve {
     address Miner;
-    uint32 Height;
+    uint256 Height;
     uint64 PlotSize;
 }
 

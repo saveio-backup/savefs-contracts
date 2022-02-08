@@ -31,6 +31,7 @@ contract Prove is Initializable {
     mapping(bytes => itmap) proveDetails; // fileHash => nodeAddr => ProveDetail
     mapping(bytes => ProveDetailMeta) proveDetailMeta; // fileHash => ProveDetailMeta
     mapping(address => mapping(uint64 => uint256)) punishmentHeightForNode;
+    mapping(string => PocProve) pocProve; // miner + height => PocProve
 
     event FilePDPSuccessEvent(
         FsEvent eventType,
@@ -534,7 +535,29 @@ contract Prove is Initializable {
         if (!sectorInfo.IsPlots) {
             revert SectorProveFailed();
         }
-        // TODO poc prove
+        // poc prove
+        PocProve memory _pocProve = getPocProve(
+            sectorInfo.NodeAddr,
+            block.number
+        );
+        _pocProve.Height = block.number;
+        _pocProve.Miner = sectorInfo.NodeAddr;
+        _pocProve.PlotSize = sectorInfo.Used;
+        putPocProve(_pocProve);
+    }
+
+    function getPocProve(address nodeAddr, uint256 height)
+        public
+        payable
+        returns (PocProve memory)
+    {
+        string memory key = string(abi.encodePacked(nodeAddr, height));
+        return pocProve[key];
+    }
+
+    function putPocProve(PocProve memory prove) public {
+        string memory key = string(abi.encodePacked(prove.Miner, prove.Height));
+        pocProve[key] = prove;
     }
 
     function calMissingSectorProveTimes(
