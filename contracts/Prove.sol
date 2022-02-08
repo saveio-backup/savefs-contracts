@@ -56,7 +56,7 @@ contract Prove is Initializable {
 
     error FileProveNotFileOwner();
     error FileProveFailed(uint64);
-    error SectorProveFailed();
+    error SectorProveFailed(uint64);
     error NodeSectorProvedInTimeError();
 
     function initialize(
@@ -407,8 +407,13 @@ contract Prove is Initializable {
         SectorProveParams memory sectorProve,
         SectorInfo memory sectorInfo
     ) public view returns (bool) {
-        // SectorProveData memory proveData = ProveDataDeserialize(sectorProve.ProveData);
-        // TODO
+        // TODO complete pdp prove
+        uint64 challenge = pdp.GenChallenge();
+        bool result = pdp.VerifyProofWithMerklePathForFile(challenge);
+        if (!result) {
+            return false;
+        }
+        return true;
     }
 
     function calcSingleValidFeeForFile(Setting memory setting, uint64 fileSize)
@@ -516,24 +521,32 @@ contract Prove is Initializable {
         );
         Setting memory setting = config.GetSetting();
         if (block.number < sectorInfo.NextProveHeight) {
-            revert SectorProveFailed();
+            revert SectorProveFailed(1);
         }
         if (sectorProve.ChallengeHeight != sectorInfo.NextProveHeight) {
-            revert SectorProveFailed();
+            console.log(
+                "ChallengeHeight error:",
+                sectorProve.ChallengeHeight,
+                sectorInfo.NextProveHeight
+            );
+            revert SectorProveFailed(2);
         }
         bool r = checkSectorProve(sectorProve, sectorInfo);
         if (!r) {
             punishForSector(sectorInfo, nodeInfo, setting, 1);
-            revert SectorProveFailed();
+            revert SectorProveFailed(3);
         }
-        profitSplitForSector(sectorInfo, nodeInfo, setting);
+        bool p = profitSplitForSector(sectorInfo, nodeInfo, setting);
+        if (!p) {
+            revert SectorProveFailed(5);
+        }
         if (sectorInfo.FirstProveHeight == 0) {
             sectorInfo.FirstProveHeight = block.number;
         }
         sectorInfo.NextProveHeight = block.number + setting.DefaultProvePeriod;
         sector.UpdateSectorInfo(sectorInfo);
         if (!sectorInfo.IsPlots) {
-            revert SectorProveFailed();
+            revert SectorProveFailed(4);
         }
         // poc prove
         PocProve memory _pocProve = getPocProve(
@@ -700,7 +713,8 @@ library IterableMapping {
         view
         returns (uint256 keyIndex)
     {
-        return iterate_next(self, type(uint256).max);
+        uint256 index = iterate_next(self, type(uint256).min);
+        return index - 1;
     }
 
     function iterate_valid(itmap storage self, uint256 keyIndex)

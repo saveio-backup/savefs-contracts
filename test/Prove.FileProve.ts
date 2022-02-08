@@ -80,7 +80,7 @@ describe(name, function () {
     await expect(tx).to.not.be.reverted;
   });
 
-  it("prove", async () => {
+  it("file prove", async () => {
     const tx = prove.FileProve({
       FileHash: [3, 2, 1],
       ProveData: [],

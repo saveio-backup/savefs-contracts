@@ -1,21 +1,110 @@
 import { assert, expect } from "chai";
 import { ethers } from "hardhat";
 import { FileSystem, Node, Config, Space } from "../typechain";
-import { addrs, config, fs, node, space, prove } from "./initialize";
+import { addrs, config, fs, node, space, prove, print, sector } from "./initialize";
 
 var path = require('path');
-var scriptName = path.basename(__filename);
+var name = path.basename(__filename);
 
-describe(scriptName, function () {
+describe(name, function () {
 
-  it(scriptName, async () => {
-    const res = prove.SectorProve({
-      NodeAddr: addrs[23],
+  it("register node", async () => {
+    const tx = node.Register({
+      Pledge: 0,
+      Profit: 0,
+      Volume: 1000 * 1000,
+      RestVol: 0,
+      ServiceTime: 0,
+      WalletAddr: addrs[60],
+      NodeAddr: addrs[60],
+    },
+      {
+        value: 1000000
+      }
+    );
+    await expect(tx).to.not.be.reverted;
+  });
+
+  it("create sector", async () => {
+    const tx = sector.CreateSector({
+      NodeAddr: addrs[60],
       SectorID: 1,
-      ChallengeHeight: 123,
+      Size: 1,
+      Used: 0,
+      ProveLevel_: 1,
+      FirstProveHeight: 1,
+      NextProveHeight: 10,
+      TotalBlockNum: 1,
+      FileNum: 1,
+      GroupNum: 1,
+      IsPlots: true,
+      FileList: [
+        [6, 6, 6, 60]
+      ]
+    });
+    await expect(tx).to.not.be.reverted;
+  });
+
+  it("store file to sector", async () => {
+    const tx = fs.StoreFile({
+      FileHash: [6, 6, 6, 60],
+      FileOwner: addrs[60],
+      FileDesc: [],
+      Privilege: 1,
+      FileBlockNum: 0,
+      FileBlockSize: 0,
+      ProveInterval: 1,
+      ProveTimes: 1,
+      ExpiredHeight: 100,
+      CopyNum: 0,
+      Deposit: 0,
+      FileProveParam: [],
+      ProveBlockNum: 1,
+      BlockHeight: 1,
+      ValidFlag: false,
+      StorageType_: 1,
+      RealFileSize: 1,
+      PrimaryNodes: [
+        addrs[49]
+      ],
+      CandidateNodes: [],
+      ProveLevel_: 1,
+      IsPlotFile: true,
+      PlotInfo_: {
+        NumberID: 1,
+        StartNonce: 1,
+        Nonces: 1,
+      }
+    }, {
+      value: 1000000
+    })
+    // await print(tx)
+    await expect(tx).to.not.be.reverted;
+  });
+
+  it("file prove", async () => {
+    const tx = prove.FileProve({
+      FileHash: [6, 6, 6, 60],
+      ProveData: [],
+      BlockHeight: 1,
+      NodeWallet: addrs[60],
+      Profit: 1,
+      SectorID: 1
+    });
+    // await print(tx)
+    await expect(tx).to.not.be.reverted;
+  });
+
+
+  it("sector prove", async () => {
+    const tx = prove.SectorProve({
+      NodeAddr: addrs[60],
+      SectorID: 1,
+      ChallengeHeight: 10,
       ProveData: []
     });
-    expect(res).to.be.reverted;
+    // await print(tx)
+    await expect(tx).to.not.be.reverted;
   });
-  
+
 });
