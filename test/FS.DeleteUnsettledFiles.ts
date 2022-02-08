@@ -4,13 +4,13 @@ import { FileSystem, Node, Config, Space } from "../typechain";
 import { addrs, config, fs, node, space } from "./initialize";
 
 var path = require('path');
-var scriptName = path.basename(__filename);
+var name = path.basename(__filename);
 
-describe(scriptName, function () {
+describe(name, function () {
 
-  it(scriptName, async () => {
-    const res = fs.DeleteUnsettledFiles(addrs[10])
-    expect(res).to.not.be.reverted;
-    // console.log(await (await res).wait())
+  it("delete unsettled files", async () => {
+    const tx = fs.DeleteUnsettledFiles(addrs[10])
+    await expect(tx).to.not.be.reverted;
   });
+
 });

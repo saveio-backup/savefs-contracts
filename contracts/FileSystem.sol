@@ -384,7 +384,7 @@ contract FileSystem is Initializable {
         return fileList[walletAddr];
     }
 
-    function UpdateFileInfo(FileInfo memory f) public payable {
+    function UpdateFileInfo(FileInfo memory f) public {
         fileInfos[f.FileHash] = f;
     }
 
@@ -397,10 +397,7 @@ contract FileSystem is Initializable {
         prove.DeleteProveDetails(fileHash);
     }
 
-    function UpdateFileList(address walletAddr, bytes[] memory list)
-        public
-        payable
-    {
+    function UpdateFileList(address walletAddr, bytes[] memory list) public {
         fileList[walletAddr] = list;
     }
 
@@ -477,7 +474,6 @@ contract FileSystem is Initializable {
 
     function DelFileFromUnSettledList(address walletAddr, bytes memory fileHash)
         public
-        payable
     {
         for (uint256 i = 0; i < unSettledFileList[walletAddr].length; i++) {
             if (
@@ -501,7 +497,6 @@ contract FileSystem is Initializable {
 
     function DelFileFromPrimaryList(address walletAddr, bytes memory fileHash)
         public
-        payable
     {
         for (uint256 i = 0; i < primaryFileList[walletAddr].length; i++) {
             if (
@@ -515,7 +510,6 @@ contract FileSystem is Initializable {
 
     function DelFileFromCandidateList(address walletAddr, bytes memory fileHash)
         public
-        payable
     {
         for (uint256 i = 0; i < candidateFileList[walletAddr].length; i++) {
             if (
@@ -556,7 +550,6 @@ contract FileSystem is Initializable {
         StorageType[] memory storageType
     )
         public
-        payable
         returns (
             bytes[] memory,
             uint64,
@@ -597,7 +590,7 @@ contract FileSystem is Initializable {
         return (deletedFiles, amount, success);
     }
 
-    function DeleteUnsettledFiles(address walletAddr) public payable {
+    function DeleteUnsettledFiles(address walletAddr) public {
         bytes[] memory unsettledList = GetUnSettledFileList(walletAddr);
         StorageType[] memory sType = new StorageType[](2);
         sType[0] = StorageType.Normal;
@@ -678,7 +671,7 @@ contract FileSystem is Initializable {
         uint64 privilege;
     }
 
-    function ChangeFilePivilege(PriChange memory priChange) public payable {
+    function ChangeFilePivilege(PriChange memory priChange) public {
         FileInfo memory fileInfo = GetFileInfo(priChange.fileHash);
         fileInfo.Privilege = priChange.privilege;
         UpdateFileInfo(fileInfo);

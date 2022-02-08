@@ -4,15 +4,16 @@ import { FileSystem, Node, Config, Space } from "../typechain";
 import { config, fs, node, space } from "./initialize";
 
 var path = require('path');
-var scriptName = path.basename(__filename);
+var name = path.basename(__filename);
 
-describe(scriptName, function () {
+describe(name, function () {
 
-  it(scriptName, async () => {
-    const res = fs.DeleteFiles([
+  it("delete files", async () => {
+    const tx = fs.DeleteFiles([
       [65, 66, 67, 68, 69, 70],
       [65, 66, 67, 68, 69, 71],
     ]);
-    expect(res).to.not.be.reverted;
+    await expect(tx).to.not.be.reverted;
   });
+
 });

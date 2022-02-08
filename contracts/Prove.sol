@@ -212,7 +212,7 @@ contract Prove is Initializable {
         );
     }
 
-    function SectorProve(SectorProveParams memory sectorProve) public payable {
+    function SectorProve(SectorProveParams memory sectorProve) public {
         NodeInfo memory nodeInfo = node.GetNodeInfoByNodeAddr(
             sectorProve.NodeAddr
         );
@@ -286,14 +286,14 @@ contract Prove is Initializable {
     function UpdateProveDetailMeta(
         bytes memory fileHash,
         ProveDetailMeta memory details
-    ) public payable {
+    ) public {
         proveDetailMeta[fileHash] = details;
     }
 
     function UpdateProveDetailList(
         bytes memory fileHash,
         ProveDetail[] memory details
-    ) public payable {
+    ) public {
         ItMap storage data = proveDetails[fileHash];
         for (uint256 i = 0; i < details.length; i++) {
             ProveDetail memory detail = details[i];
@@ -301,7 +301,7 @@ contract Prove is Initializable {
         }
     }
 
-    function DeleteProveDetails(bytes memory fileHash) public payable {
+    function DeleteProveDetails(bytes memory fileHash) public {
         delete proveDetails[fileHash];
         delete proveDetailMeta[fileHash];
     }
@@ -312,7 +312,7 @@ contract Prove is Initializable {
         ProveDetail memory detail,
         ProveDetail[] memory details,
         Setting memory setting
-    ) public payable {
+    ) public {
         uint64 profit = calculateProfitForSettle(fileInfo, detail, setting);
         if (fileInfo.Deposit < profit) {
             revert FileProveFailed(9);
@@ -377,14 +377,14 @@ contract Prove is Initializable {
 
     function getPocProve(address nodeAddr, uint256 height)
         public
-        payable
+        view
         returns (PocProve memory)
     {
         string memory key = string(abi.encodePacked(nodeAddr, height));
         return pocProve[key];
     }
 
-    function putPocProve(PocProve memory prove) public payable {
+    function putPocProve(PocProve memory prove) public {
         string memory key = string(abi.encodePacked(prove.Miner, prove.Height));
         pocProve[key] = prove;
     }
@@ -393,10 +393,7 @@ contract Prove is Initializable {
         // TODO
     }
 
-    function CheckNodeSectorProvedInTime(SectorRef memory sectorRef)
-        public
-        payable
-    {
+    function CheckNodeSectorProvedInTime(SectorRef memory sectorRef) public {
         address nodeAddr = sectorRef.NodeAddr;
         uint64 sectorID = sectorRef.SectorId;
         NodeInfo memory nodeInfo = node.GetNodeInfoByNodeAddr(nodeAddr);
@@ -434,7 +431,7 @@ contract Prove is Initializable {
         address nodeAddr,
         uint64 sectorId,
         uint256 height
-    ) public payable {
+    ) public {
         punishmentHeightForNode[nodeAddr][sectorId] = height;
     }
 

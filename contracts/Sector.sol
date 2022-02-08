@@ -52,20 +52,7 @@ contract Sector is Initializable {
         node = _node;
     }
 
-    function GetSectorTotalSizeForNode(address nodeAddr)
-        public
-        view
-        returns (uint64)
-    {
-        uint64 totalSize = 0;
-        SectorInfo[] memory nodeSectorInfos = sectorInfos[nodeAddr];
-        for (uint256 i = 0; i < nodeSectorInfos.length; i++) {
-            totalSize += nodeSectorInfos[i].Size;
-        }
-        return totalSize;
-    }
-
-    function CreateSector(SectorInfo memory sectorInfo) public payable {
+    function CreateSector(SectorInfo memory sectorInfo) public {
         require(sectorInfo.SectorID > 0, "sectorId is wrong");
         require(sectorInfo.Size > 0, "sector size is wrong");
         require(
@@ -127,40 +114,6 @@ contract Sector is Initializable {
         return sectorInfos[nodeAddr];
     }
 
-    function getSectorFileInfoGroupNum(address nodeAddr, uint64 sectorId)
-        public
-        view
-        returns (uint64)
-    {
-        SectorInfo memory sectorInfo = GetSectorInfo(
-            SectorRef({SectorId: sectorId, NodeAddr: nodeAddr})
-        );
-        return sectorInfo.GroupNum;
-    }
-
-    function deleteAllSectorFileInfoGroup(address nodeAddr, uint64 sectorId)
-        public
-    {
-        uint64 groupNum = getSectorFileInfoGroupNum(nodeAddr, sectorId);
-        for (uint64 i = 0; i < groupNum; i++) {
-            deleteSectorFileInfoGroup(nodeAddr, sectorId, i);
-        }
-    }
-
-    function deleteSectorInfo(address nodeAddr, uint64 sectorId) public {
-        for (uint64 i = 0; i < sectorInfos[nodeAddr].length; i++) {
-            if (sectorInfos[nodeAddr][i].SectorID == sectorId) {
-                delete sectorInfos[nodeAddr][i];
-                break;
-            }
-        }
-    }
-
-    function DeleteSector(address nodeAddr, uint64 sectorId) public payable {
-        deleteAllSectorFileInfoGroup(nodeAddr, sectorId);
-        deleteSectorInfo(nodeAddr, sectorId);
-    }
-
     function DeleteSecotr(SectorRef memory sectorRef) public {
         SectorInfo memory sectorInfo = GetSectorInfo(sectorRef);
         if (sectorInfo.FileNum > 0) {
@@ -175,10 +128,127 @@ contract Sector is Initializable {
         );
     }
 
+    function UpdateSectorInfo(SectorInfo memory sector) public {
+        SectorInfo[] storage _sectorInfos = sectorInfos[sector.NodeAddr];
+        for (uint64 i = 0; i < _sectorInfos.length; i++) {
+            if (_sectorInfos[i].SectorID == sector.SectorID) {
+                _sectorInfos[i] = sector;
+                break;
+            }
+        }
+        sectorInfos[sector.NodeAddr] = _sectorInfos;
+    }
+
+    function DeleteFileFromSector(
+        SectorInfo memory sectorInfo,
+        FileInfo memory fileInfo
+    ) public {
+        bool groupDeleted = deleteSectorFileInfo(
+            sectorInfo.NodeAddr,
+            sectorInfo.SectorID,
+            fileInfo.FileHash
+        );
+        sectorInfo.FileNum--;
+        sectorInfo.TotalBlockNum -= fileInfo.FileBlockNum;
+        sectorInfo.Used -= fileInfo.FileBlockNum * fileInfo.FileBlockSize;
+        if (groupDeleted) {
+            sectorInfo.GroupNum--;
+        }
+        if (sectorInfo.FileNum == 0) {
+            sectorInfo.NextProveHeight = 0;
+        }
+        UpdateSectorInfo(sectorInfo);
+    }
+
+    function AddFileToSector(
+        SectorInfo memory sectorInfo,
+        FileInfo memory fileInfo
+    ) public {
+        if (
+            sectorInfo.Used + fileInfo.FileBlockNum * fileInfo.FileBlockSize >
+            sectorInfo.Size
+        ) {
+            revert NotEnoughSpace();
+        }
+        bool groupCreated = addSectorFileInfo(
+            sectorInfo.NodeAddr,
+            sectorInfo.SectorID,
+            SectorFileInfo({
+                FileHash: fileInfo.FileHash,
+                BlockCount: fileInfo.FileBlockNum
+            })
+        );
+        sectorInfo.FileNum++;
+        sectorInfo.Used += fileInfo.FileBlockNum * fileInfo.FileBlockSize;
+        sectorInfo.TotalBlockNum += fileInfo.FileBlockNum;
+        if (groupCreated) {
+            sectorInfo.GroupNum++;
+        }
+        UpdateSectorInfo(sectorInfo);
+    }
+
+    function AddSectorRefForFileInfo(SectorInfo memory sectorInfo) public {
+        bool r = isSectorRefByFileInfo(
+            sectorInfo.NodeAddr,
+            sectorInfo.SectorID
+        );
+        if (!r) {
+            revert OpError(3);
+        }
+        AddSectorInfo(sectorInfo.NodeAddr, sectorInfo);
+    }
+
+    function GetSectorTotalSizeForNode(address nodeAddr)
+        private
+        view
+        returns (uint64)
+    {
+        uint64 totalSize = 0;
+        SectorInfo[] memory nodeSectorInfos = sectorInfos[nodeAddr];
+        for (uint256 i = 0; i < nodeSectorInfos.length; i++) {
+            totalSize += nodeSectorInfos[i].Size;
+        }
+        return totalSize;
+    }
+
+    function getSectorFileInfoGroupNum(address nodeAddr, uint64 sectorId)
+        private
+        view
+        returns (uint64)
+    {
+        SectorInfo memory sectorInfo = GetSectorInfo(
+            SectorRef({SectorId: sectorId, NodeAddr: nodeAddr})
+        );
+        return sectorInfo.GroupNum;
+    }
+
+    function deleteAllSectorFileInfoGroup(address nodeAddr, uint64 sectorId)
+        private
+    {
+        uint64 groupNum = getSectorFileInfoGroupNum(nodeAddr, sectorId);
+        for (uint64 i = 0; i < groupNum; i++) {
+            deleteSectorFileInfoGroup(nodeAddr, sectorId, i);
+        }
+    }
+
+    function deleteSectorInfo(address nodeAddr, uint64 sectorId) private {
+        for (uint64 i = 0; i < sectorInfos[nodeAddr].length; i++) {
+            if (sectorInfos[nodeAddr][i].SectorID == sectorId) {
+                delete sectorInfos[nodeAddr][i];
+                break;
+            }
+        }
+    }
+
+    function DeleteSector(address nodeAddr, uint64 sectorId) private {
+        deleteAllSectorFileInfoGroup(nodeAddr, sectorId);
+        deleteSectorInfo(nodeAddr, sectorId);
+    }
+
     function findFileInGroup(
         SectorFileInfoGroup memory group,
         bytes memory fileHash
-    ) public view returns (uint64, bool) {
+    ) private view returns (uint64, bool) {
         SectorFileInfo[] memory fileList = sectorFileInfoFileList[
             group.GroupId
         ];
@@ -200,7 +270,7 @@ contract Sector is Initializable {
         address nodeAddr,
         uint64 sectorId,
         bytes memory fileHash
-    ) public returns (bool) {
+    ) private returns (bool) {
         uint64 groupNum = getSectorFileInfoGroupNum(nodeAddr, sectorId);
         for (uint64 i = 0; i < groupNum; i++) {
             SectorFileInfoGroup memory group = getSectorFileInfoGroup(
@@ -225,50 +295,17 @@ contract Sector is Initializable {
         return false;
     }
 
-    function UpdateSectorInfo(SectorInfo memory sector) public payable {
-        SectorInfo[] storage _sectorInfos = sectorInfos[sector.NodeAddr];
-        for (uint64 i = 0; i < _sectorInfos.length; i++) {
-            if (_sectorInfos[i].SectorID == sector.SectorID) {
-                _sectorInfos[i] = sector;
-                break;
-            }
-        }
-        sectorInfos[sector.NodeAddr] = _sectorInfos;
-    }
-
     function AddSectorInfo(address nodeAddr, SectorInfo memory sectorInfo)
-        public
-        payable
+        private
     {
         sectorInfos[nodeAddr].push(sectorInfo);
-    }
-
-    function DeleteFileFromSector(
-        SectorInfo memory sectorInfo,
-        FileInfo memory fileInfo
-    ) public payable {
-        bool groupDeleted = deleteSectorFileInfo(
-            sectorInfo.NodeAddr,
-            sectorInfo.SectorID,
-            fileInfo.FileHash
-        );
-        sectorInfo.FileNum--;
-        sectorInfo.TotalBlockNum -= fileInfo.FileBlockNum;
-        sectorInfo.Used -= fileInfo.FileBlockNum * fileInfo.FileBlockSize;
-        if (groupDeleted) {
-            sectorInfo.GroupNum--;
-        }
-        if (sectorInfo.FileNum == 0) {
-            sectorInfo.NextProveHeight = 0;
-        }
-        UpdateSectorInfo(sectorInfo);
     }
 
     function getSectorFileInfoGroup(
         address nodeAddr,
         uint64 sectorID,
         uint64 groupID
-    ) public view returns (SectorFileInfoGroup memory) {
+    ) private view returns (SectorFileInfoGroup memory) {
         string memory groupKey = string(
             abi.encodePacked(nodeAddr, sectorID, groupID)
         );
@@ -280,7 +317,7 @@ contract Sector is Initializable {
         uint64 sectorID,
         SectorFileInfoGroup memory _sectorFileInfoGroup,
         SectorFileInfo memory sectorFileInfo
-    ) public {
+    ) private {
         string memory groupKey = string(
             abi.encodePacked(nodeAddr, sectorID, _sectorFileInfoGroup.GroupId)
         );
@@ -294,7 +331,7 @@ contract Sector is Initializable {
         address nodeAddr,
         uint64 sectorId,
         SectorFileInfoGroup memory group
-    ) public {
+    ) private {
         string memory groupKey = string(
             abi.encodePacked(nodeAddr, sectorId, group.GroupId)
         );
@@ -305,7 +342,7 @@ contract Sector is Initializable {
         address nodeAddr,
         uint64 sectorId,
         uint64 groupId
-    ) public {
+    ) private {
         string memory groupKey = string(
             abi.encodePacked(nodeAddr, sectorId, groupId)
         );
@@ -317,7 +354,7 @@ contract Sector is Initializable {
         address nodeAddr,
         uint64 sectorID,
         SectorFileInfo memory sectorFileInfo
-    ) public payable returns (bool) {
+    ) private returns (bool) {
         SectorFileInfoGroup memory groupInfo;
         uint64 groupNum;
         bool groupCreated;
@@ -353,49 +390,8 @@ contract Sector is Initializable {
         return groupCreated;
     }
 
-    function AddFileToSector(
-        SectorInfo memory sectorInfo,
-        FileInfo memory fileInfo
-    ) public payable {
-        if (
-            sectorInfo.Used + fileInfo.FileBlockNum * fileInfo.FileBlockSize >
-            sectorInfo.Size
-        ) {
-            revert NotEnoughSpace();
-        }
-        bool groupCreated = addSectorFileInfo(
-            sectorInfo.NodeAddr,
-            sectorInfo.SectorID,
-            SectorFileInfo({
-                FileHash: fileInfo.FileHash,
-                BlockCount: fileInfo.FileBlockNum
-            })
-        );
-        sectorInfo.FileNum++;
-        sectorInfo.Used += fileInfo.FileBlockNum * fileInfo.FileBlockSize;
-        sectorInfo.TotalBlockNum += fileInfo.FileBlockNum;
-        if (groupCreated) {
-            sectorInfo.GroupNum++;
-        }
-        UpdateSectorInfo(sectorInfo);
-    }
-
-    function AddSectorRefForFileInfo(SectorInfo memory sectorInfo)
-        public
-        payable
-    {
-        bool r = isSectorRefByFileInfo(
-            sectorInfo.NodeAddr,
-            sectorInfo.SectorID
-        );
-        if (!r) {
-            revert OpError(3);
-        }
-        AddSectorInfo(sectorInfo.NodeAddr, sectorInfo);
-    }
-
     function isSectorRefByFileInfo(address nodeAddr, uint64 sectorID)
-        public
+        private
         view
         returns (bool)
     {

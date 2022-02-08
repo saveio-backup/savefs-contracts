@@ -43,7 +43,7 @@ describe(scriptName, () => {
   })
 
   it("cancel", async () => {
-    let tx = node.NodeCancel(addrs[7]);
+    let tx = node.Cancel(addrs[7]);
     // print(tx)
     expect(tx).to.not.be.reverted;
   });

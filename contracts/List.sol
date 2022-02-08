@@ -24,7 +24,7 @@ contract List is Initializable {
         WhiteList[] List;
     }
 
-    function WhiteListOperate(WhiteListParams memory params) public payable {
+    function WhiteListOperate(WhiteListParams memory params) public {
         if (params.Op == WhiteListOpType.ADD) {
             WhiteList[] storage list = whiteList[params.FileHash];
             for (uint256 i = 0; i < params.List.length; i++) {

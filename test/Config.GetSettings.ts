@@ -4,13 +4,14 @@ import { Config } from "../typechain";
 import { config, fs, node, space } from "./initialize";
 
 var path = require('path');
-var scriptName = path.basename(__filename);
+var name = path.basename(__filename);
 
-describe(scriptName, () => {
+describe(name, () => {
 
-  it(scriptName, async () => {
+  it("get setting", async () => {
     const tx = config.GetSetting();
     let res = await tx;
     assert(res.MinVolume.eq(1000000))
   });
+
 });

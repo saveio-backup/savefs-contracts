@@ -25,7 +25,6 @@ enum StorageType {
     Professional
 }
 
-/** setting ********************** */
 struct Setting {
     uint64 GasPrice;
     uint64 GasPerGBPerBlock;
@@ -40,7 +39,6 @@ struct Setting {
     uint64 MinSectorSize;
 }
 
-/** node info ******************** */
 struct NodeInfo {
     uint64 Pledge;
     uint64 Profit;
@@ -51,7 +49,6 @@ struct NodeInfo {
     address NodeAddr;
 }
 
-/** userspace ******************** */
 struct UserSpace {
     uint64 Used;
     uint64 Remain;
@@ -66,7 +63,6 @@ enum UserSpaceType {
     Revoke
 }
 
-/** file ********************** */
 struct StorageFee {
     uint64 TxnFee;
     uint64 SpaceFee;
@@ -159,7 +155,6 @@ struct FileReNewInfo {
     uint64 ReNewTimes;
 }
 
-/** prove ********************** */
 struct PocProve {
     address Miner;
     uint256 Height;
@@ -179,7 +174,6 @@ struct ProveDetailMeta {
     uint64 ProveDetailNum;
 }
 
-/** transfer ********************** */
 struct TransferState {
     address From;
     address To;

@@ -123,7 +123,7 @@ contract Node is Initializable {
         nodesInfo[nodeInfo.WalletAddr] = nodeInfo;
     }
 
-    function NodeCancel(address walletAddr) public NodeRegisted(walletAddr) {
+    function Cancel(address walletAddr) public NodeRegisted(walletAddr) {
         NodeInfo memory nodeInfo = nodesInfo[walletAddr];
         if (nodeInfo.Pledge > 0) {
             payable(nodeInfo.WalletAddr).transfer(
@@ -146,21 +146,6 @@ contract Node is Initializable {
         emit UnRegisterNodeEvent(FsEvent.UN_REG_NODE, block.number, walletAddr);
     }
 
-    function NodeListRemove(address addr) private {
-        for (uint256 i = 0; i < nodeList.length; i++) {
-            if (nodeList[i] == addr) {
-                delete nodeList[i];
-                return;
-            }
-        }
-    }
-
-    /**
-     * description: Actually I can't understand why do this
-     *              mixed use nodeAddr and walletAddr
-     *
-     * @return nodeAddr => NodeInfo
-     */
     function GetNodeList() public view returns (NodeInfo[] memory) {
         NodeInfo[] memory _nodesInfo = new NodeInfo[](nodeList.length);
         for (uint256 i = 0; i < nodeList.length; i++) {
@@ -205,5 +190,14 @@ contract Node is Initializable {
 
     function UpdateNodeInfo(NodeInfo memory nodeInfo) public payable {
         nodesInfo[nodeInfo.WalletAddr] = nodeInfo;
+    }
+
+    function NodeListRemove(address addr) private {
+        for (uint256 i = 0; i < nodeList.length; i++) {
+            if (nodeList[i] == addr) {
+                delete nodeList[i];
+                return;
+            }
+        }
     }
 }

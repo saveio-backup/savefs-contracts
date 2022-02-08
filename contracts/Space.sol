@@ -61,15 +61,62 @@ contract Space is Initializable {
         return userSpace[walletAddr];
     }
 
+    function GetUpdateCost(UserSpaceParams memory params)
+        public
+        view
+        returns (TransferState memory)
+    {
+        ChangeReturn memory ret = getUserspaceChange(params);
+        return ret.state;
+    }
+
+    function ManageUserSpace(UserSpaceParams memory params) public payable {
+        ChangeReturn memory ret = getUserspaceChange(params);
+        if (ret.state.Value > 0) {
+            if (ret.state.From == address(this)) {
+                payable(ret.state.To).transfer(ret.state.Value);
+            } else {
+                if (msg.value < ret.state.Value) {
+                    revert InsufficientFunds();
+                }
+            }
+        }
+        for (uint256 i = 0; i < ret.updatedFiles.length; i++) {
+            fs.UpdateFileInfo(ret.updatedFiles[i]);
+        }
+        userSpace[params.Owner] = ret.newUserSpace;
+        emit SetUserSpaceEvent(
+            FsEvent.SET_USER_SPACE,
+            block.number,
+            params.WalletAddr,
+            params.Size.Type,
+            params.Size.Value,
+            params.BlockCount.Type,
+            params.BlockCount.Value
+        );
+    }
+
     function UpdateUserSpace(address walletAddr, UserSpace memory _userSpace)
         public
-        payable
     {
         userSpace[walletAddr] = _userSpace;
     }
 
+    function DeleteUserSpace(address walletAddr) public {
+        UserSpace memory _userSpace = GetUserSpace(walletAddr);
+        if (_userSpace.Used == 0 && _userSpace.Balance > 0) {
+            payable(walletAddr).transfer(_userSpace.Balance);
+        }
+        if (
+            _userSpace.ExpireHeight > 0 &&
+            _userSpace.ExpireHeight <= block.number
+        ) {
+            deleteExpiredUserSpace(_userSpace, walletAddr);
+        }
+    }
+
     function isValidUserSpaceOperation(UserSpaceOperation memory op)
-        public
+        private
         pure
         returns (bool)
     {
@@ -95,7 +142,7 @@ contract Space is Initializable {
     }
 
     function combineUserSpaceTypes(UserSpaceType t1, UserSpaceType t2)
-        public
+        private
         pure
         returns (uint64)
     {
@@ -104,7 +151,7 @@ contract Space is Initializable {
     }
 
     function getUserSpaceOperationsFromParams(UserSpaceParams memory params)
-        public
+        private
         pure
         returns (uint64)
     {
@@ -124,7 +171,7 @@ contract Space is Initializable {
     }
 
     function isRevokeUserSpace(UserSpaceParams memory params)
-        public
+        private
         pure
         returns (bool)
     {
@@ -134,7 +181,7 @@ contract Space is Initializable {
     }
 
     function checkForUserSpaceRevoke(UserSpaceParams memory params)
-        public
+        private
         view
         returns (bool)
     {
@@ -149,7 +196,7 @@ contract Space is Initializable {
     }
 
     function checkUserSpaceParams(UserSpaceParams memory params)
-        public
+        private
         view
         returns (bool)
     {
@@ -176,7 +223,7 @@ contract Space is Initializable {
     function processExpiredUserSpace(
         UserSpace memory _userSpace,
         uint256 currentHeight
-    ) public pure returns (UserSpace memory) {
+    ) private pure returns (UserSpace memory) {
         _userSpace.Used = 0;
         _userSpace.Remain = 0;
         //_userSpace.Balance = 0
@@ -188,7 +235,7 @@ contract Space is Initializable {
     function checkForFirstUserSpaceOperation(
         Setting memory setting,
         UserSpaceParams memory params
-    ) public view returns (bool) {
+    ) private view returns (bool) {
         uint64 ops = getUserSpaceOperationsFromParams(params);
         if (ops != UserspaceOps_Add_Add) {
             return false;
@@ -206,7 +253,7 @@ contract Space is Initializable {
         UserSpace memory _userSpace,
         Setting memory setting,
         uint256 currentHeight
-    ) public view returns (StorageFee memory) {
+    ) private view returns (StorageFee memory) {
         UploadOption memory uploadOpt;
         uploadOpt.FileSize = _userSpace.Used + _userSpace.Remain;
         uploadOpt.ProveInterval = setting.DefaultProvePeriod;
@@ -236,7 +283,7 @@ contract Space is Initializable {
     }
 
     function AddUserSpace(AddParams memory params)
-        public
+        private
         view
         returns (AddReturn memory)
     {
@@ -336,7 +383,7 @@ contract Space is Initializable {
     }
 
     function RevokeUserSpace(RevokeParams memory params)
-        public
+        private
         view
         returns (RevokeReturn memory)
     {
@@ -402,7 +449,7 @@ contract Space is Initializable {
 
     function processForUserSpaceOneAddOneRevoke(
         ProcessRevokeParams memory params
-    ) public view returns (ProcessRevokeReturn memory) {
+    ) private view returns (ProcessRevokeReturn memory) {
         ProcessRevokeReturn memory ret;
         uint64 addedSize;
         uint64 addedBlockCount;
@@ -461,7 +508,7 @@ contract Space is Initializable {
     }
 
     function processForUserSpaceOperations(ProcessParams memory params)
-        public
+        private
         view
         returns (ProcessReturn memory)
     {
@@ -572,7 +619,7 @@ contract Space is Initializable {
     }
 
     function getUserspaceChange(UserSpaceParams memory params)
-        public
+        private
         view
         returns (ChangeReturn memory)
     {
@@ -623,36 +670,10 @@ contract Space is Initializable {
         UserSpaceOperation BlockCount;
     }
 
-    function ManageUserSpace(UserSpaceParams memory params) public payable {
-        ChangeReturn memory ret = getUserspaceChange(params);
-        if (ret.state.Value > 0) {
-            if (ret.state.From == address(this)) {
-                payable(ret.state.To).transfer(ret.state.Value);
-            } else {
-                if (msg.value < ret.state.Value) {
-                    revert InsufficientFunds();
-                }
-            }
-        }
-        for (uint256 i = 0; i < ret.updatedFiles.length; i++) {
-            fs.UpdateFileInfo(ret.updatedFiles[i]);
-        }
-        userSpace[params.Owner] = ret.newUserSpace;
-        emit SetUserSpaceEvent(
-            FsEvent.SET_USER_SPACE,
-            block.number,
-            params.WalletAddr,
-            params.Size.Type,
-            params.Size.Value,
-            params.BlockCount.Type,
-            params.BlockCount.Value
-        );
-    }
-
     function deleteExpiredUserSpace(
         UserSpace memory _userSpace,
         address walletAddr
-    ) public payable {
+    ) private {
         Setting memory setting = config.GetSetting();
         if (
             setting.DefaultProvePeriod + _userSpace.ExpireHeight > block.number
@@ -684,27 +705,5 @@ contract Space is Initializable {
             }
         }
         fs.UpdateFileList(walletAddr, unsettledList);
-    }
-
-    function DeleteUserSpace(address walletAddr) public payable {
-        UserSpace memory _userSpace = GetUserSpace(walletAddr);
-        if (_userSpace.Used == 0 && _userSpace.Balance > 0) {
-            payable(walletAddr).transfer(_userSpace.Balance);
-        }
-        if (
-            _userSpace.ExpireHeight > 0 &&
-            _userSpace.ExpireHeight <= block.number
-        ) {
-            deleteExpiredUserSpace(_userSpace, walletAddr);
-        }
-    }
-
-    function GetUpdateCost(UserSpaceParams memory params)
-        public
-        view
-        returns (TransferState memory)
-    {
-        ChangeReturn memory ret = getUserspaceChange(params);
-        return ret.state;
     }
 }
