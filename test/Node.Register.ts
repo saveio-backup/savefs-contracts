@@ -22,7 +22,7 @@ describe(name, () => {
     expect(tx).to.be.reverted;
   });
 
-  it("register success", async () => {
+  it("node register success", async () => {
     const tx = node.Register({
       Pledge: 0,
       Profit: 0,

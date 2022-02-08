@@ -4,6 +4,7 @@ import { ethers, network } from "hardhat";
 import {
   FileSystem, Node, Config, Sector, Space, List, Prove, PDP
 } from "../typechain";
+import { randomBytes } from "crypto";
 
 var path = require('path');
 var name = path.basename(__filename);
@@ -25,6 +26,8 @@ describe(name, function () {
       addrs.push(account.address)
     }
   })
+
+  // ----------
 
   it("Deploy Config", async () => {
     const Config = await ethers.getContractFactory("Config");
@@ -130,7 +133,16 @@ var mine = async (n: number) => {
   }
 }
 
+let files: Buffer[] = [];
+
+; (() => {
+  for (let index = 0; index < 100; index++) {
+    files.push(randomBytes(32))
+  }
+})();
+
 export {
+  files,
   addrs,
   config,
   node,

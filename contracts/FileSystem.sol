@@ -355,6 +355,9 @@ contract FileSystem is Initializable {
         returns (FileInfo memory)
     {
         FileInfo memory fileInfo = fileInfos[fileHash];
+        if (fileInfo.FileHash.length == 0) {
+            revert FileNotExist(fileHash);
+        }
         return fileInfo;
     }
 
