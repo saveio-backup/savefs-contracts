@@ -26,9 +26,9 @@ contract Prove is Initializable {
     PDP pdp;
     Sector sector;
 
-    using IterableMapping for itmap;
+    using IterableMapping for ItMap;
 
-    mapping(bytes => itmap) proveDetails; // fileHash => nodeAddr => ProveDetail
+    mapping(bytes => ItMap) proveDetails; // fileHash => nodeAddr => ProveDetail
     mapping(bytes => ProveDetailMeta) proveDetailMeta; // fileHash => ProveDetailMeta
     mapping(address => mapping(uint64 => uint256)) punishmentHeightForNode;
     mapping(string => PocProve) pocProve; // miner + height => PocProve
@@ -71,111 +71,6 @@ contract Prove is Initializable {
         node = _node;
         pdp = _pdp;
         sector = _sector;
-    }
-
-    function SetProveDetailMeta(
-        bytes memory fileHash,
-        ProveDetailMeta memory details
-    ) public {
-        proveDetailMeta[fileHash] = details;
-    }
-
-    function GetProveDetailList(bytes memory fileHash)
-        public
-        view
-        returns (ProveDetail[] memory)
-    {
-        itmap storage data = proveDetails[fileHash];
-        ProveDetail[] memory result = new ProveDetail[](data.size);
-        if (data.size == 0) {
-            return result;
-        }
-        for (
-            uint256 i = data.iterate_start();
-            data.iterate_valid(i);
-            i = data.iterate_next(i)
-        ) {
-            (, ProveDetail memory value) = data.iterate_get(i);
-            result[i] = value;
-        }
-        return result;
-    }
-
-    function UpdateProveDetailList(
-        bytes memory fileHash,
-        ProveDetail[] memory details
-    ) public payable {
-        itmap storage data = proveDetails[fileHash];
-        for (uint256 i = 0; i < details.length; i++) {
-            ProveDetail memory detail = details[i];
-            data.insert(detail.NodeAddr, detail);
-        }
-    }
-
-    function DeleteProveDetails(bytes memory fileHash) public payable {
-        delete proveDetails[fileHash];
-        delete proveDetailMeta[fileHash];
-    }
-
-    function getProveDetailListWithNodeAddr(bytes memory fileHash)
-        public
-        view
-        returns (ProveDetail[] memory)
-    {
-        ProveDetail[] memory details = GetProveDetailList(fileHash);
-        for (uint256 i = 0; i < details.length; i++) {
-            NodeInfo memory nodeInfo = node.GetNodeInfoByWalletAddr(
-                details[i].WalletAddr
-            );
-            details[i].NodeAddr = nodeInfo.NodeAddr;
-        }
-        return details;
-    }
-
-    function GetFileProveDetailList(bytes memory fileHash)
-        public
-        view
-        returns (ProveDetail[] memory)
-    {
-        ProveDetail[] memory details = GetProveDetailList(fileHash);
-        for (uint256 i = 0; i < details.length; i++) {
-            NodeInfo memory nodeInfo = node.GetNodeInfoByWalletAddr(
-                details[i].WalletAddr
-            );
-            details[i].NodeAddr = nodeInfo.NodeAddr;
-        }
-        return details;
-    }
-
-    function checkProve(
-        FileProveParams memory fileProve,
-        FileInfo memory fileInfo
-    ) public view returns (bool) {
-        uint256 currBlockHeight = block.number;
-        if (
-            fileProve.BlockHeight > currBlockHeight + fileInfo.ProveInterval ||
-            fileProve.BlockHeight + fileInfo.ProveInterval < currBlockHeight
-        ) {
-            return false;
-        }
-        // TODO complete pdp prove
-        uint64 challenge = pdp.GenChallenge();
-        bool result = pdp.VerifyProofWithMerklePathForFile(challenge);
-        if (!result) {
-            return false;
-        }
-        return true;
-    }
-
-    function checkProveExpire(uint256 fileExpiredHeight)
-        public
-        view
-        returns (bool)
-    {
-        if (block.number > fileExpiredHeight) {
-            return true;
-        }
-        return false;
     }
 
     function FileProve(FileProveParams memory fileProve) public {
@@ -307,7 +202,7 @@ contract Prove is Initializable {
                 );
                 sector.DeleteFileFromSector(sectorInfo, fileInfo);
             }
-            settleForFile(fileInfo, nodeInfo, detail, details, setting);
+            SettleForFile(fileInfo, nodeInfo, detail, details, setting);
         }
         emit FilePDPSuccessEvent(
             FsEvent.FILE_PDP_SUCCESS,
@@ -315,198 +210,6 @@ contract Prove is Initializable {
             fileInfo.FileHash,
             nodeInfo.WalletAddr
         );
-    }
-
-    function calculateProfitForSettle(
-        FileInfo memory fileInfo,
-        ProveDetail memory detail,
-        Setting memory setting
-    ) public view returns (uint64) {
-        StorageFee memory total = fs.CalcFee(
-            setting,
-            detail.ProveTimes - 1,
-            0,
-            fileInfo.FileBlockNum * fileInfo.FileBlockSize,
-            uint64(fileInfo.ExpiredHeight - fileInfo.BlockHeight)
-        );
-        return total.TxnFee + total.SpaceFee + total.ValidationFee;
-    }
-
-    function settleForFile(
-        FileInfo memory fileInfo,
-        NodeInfo memory nodeInfo,
-        ProveDetail memory detail,
-        ProveDetail[] memory details,
-        Setting memory setting
-    ) public payable {
-        uint64 profit = calculateProfitForSettle(fileInfo, detail, setting);
-        if (fileInfo.Deposit < profit) {
-            revert FileProveFailed(9);
-        }
-
-        nodeInfo.RestVol += profit;
-        node.UpdateNodeInfo(nodeInfo);
-
-        fileInfo.Deposit -= profit;
-        fileInfo.ValidFlag = false;
-        fs.UpdateFileInfo(fileInfo);
-
-        uint64 finishedNodes = 0;
-        for (uint256 i = 0; i < details.length; i++) {
-            if (details[i].Finished) {
-                finishedNodes++;
-            }
-        }
-        if (finishedNodes == 1) {
-            fs.CleanupForDeleteFile(fileInfo, false, true);
-        }
-        if (finishedNodes == fileInfo.CopyNum + 1) {
-            if (fileInfo.Deposit > 0) {
-                payable(fileInfo.FileOwner).transfer(fileInfo.Deposit);
-            }
-            fs.CleanupForDeleteFile(fileInfo, true, false);
-        } else {
-            fs.AddFileToUnSettleList(fileInfo.FileOwner, fileInfo.FileHash);
-        }
-        emit ProveFileEvent(
-            FsEvent.PROVE_FILE,
-            block.number,
-            nodeInfo.WalletAddr,
-            profit
-        );
-    }
-
-    struct SectorProveParams {
-        address NodeAddr;
-        uint64 SectorID;
-        uint64 ChallengeHeight;
-        bytes ProveData;
-    }
-
-    struct MerkleNode {
-        uint64 Layer;
-        uint64 Index;
-        bytes Hash;
-    }
-
-    struct MerklePath {
-        uint64 PathLen;
-        MerkleNode[] Path;
-    }
-
-    struct SectorProveData {
-        uint64 ProveFileNum;
-        uint64 BlockNum;
-        bytes Proofs;
-        bytes Tags;
-        MerklePath[] MerklePath_;
-        bytes PlotData;
-    }
-
-    function checkSectorProve(
-        SectorProveParams memory sectorProve,
-        SectorInfo memory sectorInfo
-    ) public view returns (bool) {
-        // TODO complete pdp prove
-        uint64 challenge = pdp.GenChallenge();
-        bool result = pdp.VerifyProofWithMerklePathForFile(challenge);
-        if (!result) {
-            return false;
-        }
-        return true;
-    }
-
-    function calcSingleValidFeeForFile(Setting memory setting, uint64 fileSize)
-        public
-        pure
-        returns (uint64)
-    {
-        uint64 res = uint64(setting.GasForChallenge * fileSize) / 1024000;
-        return res;
-    }
-
-    function calPunishmentForOneSectorProve(
-        Setting memory setting,
-        SectorInfo memory sectorInfo
-    ) public pure returns (uint64) {
-        uint64 punishFactor = 2;
-        uint64 res = punishFactor *
-            calcSingleValidFeeForFile(setting, sectorInfo.Used);
-        return res;
-    }
-
-    function punishForSector(
-        SectorInfo memory sectorInfo,
-        NodeInfo memory nodeInfo,
-        Setting memory setting,
-        uint64 times
-    ) public payable {
-        uint64 amount = times *
-            calPunishmentForOneSectorProve(setting, sectorInfo);
-        if (nodeInfo.Pledge >= amount) {
-            nodeInfo.Pledge -= amount;
-        } else {
-            nodeInfo.Pledge = 0;
-            amount = nodeInfo.Pledge;
-        }
-        if (amount > 0) {
-            require(msg.value >= amount, "PunishForSector failed");
-            node.UpdateNodeInfo(nodeInfo);
-        }
-        SetLastPunishmentHeightForNode(
-            sectorInfo.NodeAddr,
-            sectorInfo.SectorID,
-            block.number
-        );
-    }
-
-    function profitSplitForSector(
-        SectorInfo memory sectorInfo,
-        NodeInfo memory nodeInfo,
-        Setting memory setting
-    ) public returns (bool) {
-        for (uint256 i = 0; i < sectorInfo.FileNum; i++) {
-            bytes memory fileHash = sectorInfo.FileList[i];
-            FileInfo memory fileInfo = fs.GetFileInfo(fileHash);
-            ProveDetail[] memory details = GetProveDetailList(
-                fileInfo.FileHash
-            );
-            bool settleFlag = false;
-            uint256 fileExpiredHeight = fileInfo.ExpiredHeight;
-            bool found = false;
-            ProveDetail memory detail;
-            for (uint256 j = 0; j < details.length; j++) {
-                if (details[i].WalletAddr == sectorInfo.NodeAddr) {
-                    found = true;
-                    detail = details[i];
-                    uint64 haveProveTimes = detail.ProveTimes;
-                    if (
-                        haveProveTimes == fileInfo.ProveTimes ||
-                        block.number > fileExpiredHeight
-                    ) {
-                        detail.Finished = true;
-                        settleFlag = true;
-                    }
-                    detail.ProveTimes++;
-                    break;
-                }
-            }
-            if (!found) {
-                return false;
-            }
-            UpdateProveDetailList(fileInfo.FileHash, details);
-            if (settleFlag) {
-                settleForFile(fileInfo, nodeInfo, detail, details, setting);
-                sector.DeleteFileFromSector(sectorInfo, fileInfo);
-                emit DeleteFileEvent(
-                    FsEvent.DELETE_FILE,
-                    block.number,
-                    fileInfo.FileHash,
-                    nodeInfo.WalletAddr
-                );
-            }
-        }
-        return true;
     }
 
     function SectorProve(SectorProveParams memory sectorProve) public payable {
@@ -559,6 +262,119 @@ contract Prove is Initializable {
         putPocProve(_pocProve);
     }
 
+    function GetProveDetailList(bytes memory fileHash)
+        public
+        view
+        returns (ProveDetail[] memory)
+    {
+        ItMap storage data = proveDetails[fileHash];
+        ProveDetail[] memory result = new ProveDetail[](data.size);
+        if (data.size == 0) {
+            return result;
+        }
+        for (
+            uint256 i = data.iterate_start();
+            data.iterate_valid(i);
+            i = data.iterate_next(i)
+        ) {
+            (, ProveDetail memory value) = data.iterate_get(i);
+            result[i] = value;
+        }
+        return result;
+    }
+
+    function UpdateProveDetailMeta(
+        bytes memory fileHash,
+        ProveDetailMeta memory details
+    ) public payable {
+        proveDetailMeta[fileHash] = details;
+    }
+
+    function UpdateProveDetailList(
+        bytes memory fileHash,
+        ProveDetail[] memory details
+    ) public payable {
+        ItMap storage data = proveDetails[fileHash];
+        for (uint256 i = 0; i < details.length; i++) {
+            ProveDetail memory detail = details[i];
+            data.insert(detail.NodeAddr, detail);
+        }
+    }
+
+    function DeleteProveDetails(bytes memory fileHash) public payable {
+        delete proveDetails[fileHash];
+        delete proveDetailMeta[fileHash];
+    }
+
+    function SettleForFile(
+        FileInfo memory fileInfo,
+        NodeInfo memory nodeInfo,
+        ProveDetail memory detail,
+        ProveDetail[] memory details,
+        Setting memory setting
+    ) public payable {
+        uint64 profit = calculateProfitForSettle(fileInfo, detail, setting);
+        if (fileInfo.Deposit < profit) {
+            revert FileProveFailed(9);
+        }
+
+        nodeInfo.RestVol += profit;
+        node.UpdateNodeInfo(nodeInfo);
+
+        fileInfo.Deposit -= profit;
+        fileInfo.ValidFlag = false;
+        fs.UpdateFileInfo(fileInfo);
+
+        uint64 finishedNodes = 0;
+        for (uint256 i = 0; i < details.length; i++) {
+            if (details[i].Finished) {
+                finishedNodes++;
+            }
+        }
+        if (finishedNodes == 1) {
+            fs.CleanupForDeleteFile(fileInfo, false, true);
+        }
+        if (finishedNodes == fileInfo.CopyNum + 1) {
+            if (fileInfo.Deposit > 0) {
+                payable(fileInfo.FileOwner).transfer(fileInfo.Deposit);
+            }
+            fs.CleanupForDeleteFile(fileInfo, true, false);
+        } else {
+            fs.AddFileToUnSettleList(fileInfo.FileOwner, fileInfo.FileHash);
+        }
+        emit ProveFileEvent(
+            FsEvent.PROVE_FILE,
+            block.number,
+            nodeInfo.WalletAddr,
+            profit
+        );
+    }
+
+    function punishForSector(
+        SectorInfo memory sectorInfo,
+        NodeInfo memory nodeInfo,
+        Setting memory setting,
+        uint64 times
+    ) public payable {
+        uint64 amount = times *
+            calPunishmentForOneSectorProve(setting, sectorInfo);
+        if (nodeInfo.Pledge >= amount) {
+            nodeInfo.Pledge -= amount;
+        } else {
+            nodeInfo.Pledge = 0;
+            amount = nodeInfo.Pledge;
+        }
+        if (amount > 0) {
+            require(msg.value >= amount, "PunishForSector failed");
+            node.UpdateNodeInfo(nodeInfo);
+        }
+        SetLastPunishmentHeightForNode(
+            sectorInfo.NodeAddr,
+            sectorInfo.SectorID,
+            block.number
+        );
+    }
+
     function getPocProve(address nodeAddr, uint256 height)
         public
         payable
@@ -568,37 +384,13 @@ contract Prove is Initializable {
         return pocProve[key];
     }
 
-    function putPocProve(PocProve memory prove) public {
+    function putPocProve(PocProve memory prove) public payable {
         string memory key = string(abi.encodePacked(prove.Miner, prove.Height));
         pocProve[key] = prove;
     }
 
-    function calMissingSectorProveTimes(
-        SectorInfo memory sectorInfo,
-        Setting memory setting,
-        uint256 lastPunishHeight,
-        uint256 currHeight
-    ) public pure returns (uint64) {
-        uint64 interval = setting.DefaultProvePeriod;
-        uint256 nextProveHeight = sectorInfo.NextProveHeight;
-        if (nextProveHeight + interval >= currHeight) {
-            return 0;
-        }
-        uint64 totalTimes = uint64(currHeight - nextProveHeight) / interval;
-        uint64 punishedTimes;
-        if (lastPunishHeight != 0) {
-            if (lastPunishHeight > nextProveHeight + interval) {
-                punishedTimes =
-                    uint64(lastPunishHeight - nextProveHeight) /
-                    interval;
-            } else {
-                punishedTimes = 0;
-            }
-        }
-        if (totalTimes < punishedTimes) {
-            return 0;
-        }
-        return totalTimes - punishedTimes;
+    function GetPocProveList() public view returns (PocProve[] memory) {
+        // TODO
     }
 
     function CheckNodeSectorProvedInTime(SectorRef memory sectorRef)
@@ -642,12 +434,208 @@ contract Prove is Initializable {
         address nodeAddr,
         uint64 sectorId,
         uint256 height
-    ) public {
+    ) public payable {
         punishmentHeightForNode[nodeAddr][sectorId] = height;
     }
 
+    function getProveDetailListWithNodeAddr(bytes memory fileHash)
+        private
+        view
+        returns (ProveDetail[] memory)
+    {
+        ProveDetail[] memory details = GetProveDetailList(fileHash);
+        for (uint256 i = 0; i < details.length; i++) {
+            NodeInfo memory nodeInfo = node.GetNodeInfoByWalletAddr(
+                details[i].WalletAddr
+            );
+            details[i].NodeAddr = nodeInfo.NodeAddr;
+        }
+        return details;
+    }
+
+    function checkProve(
+        FileProveParams memory fileProve,
+        FileInfo memory fileInfo
+    ) private view returns (bool) {
+        uint256 currBlockHeight = block.number;
+        if (
+            fileProve.BlockHeight > currBlockHeight + fileInfo.ProveInterval ||
+            fileProve.BlockHeight + fileInfo.ProveInterval < currBlockHeight
+        ) {
+            return false;
+        }
+        // TODO complete pdp prove
+        uint64 challenge = pdp.GenChallenge();
+        bool result = pdp.VerifyProofWithMerklePathForFile(challenge);
+        if (!result) {
+            return false;
+        }
+        return true;
+    }
+
+    function checkProveExpire(uint256 fileExpiredHeight)
+        private
+        view
+        returns (bool)
+    {
+        if (block.number > fileExpiredHeight) {
+            return true;
+        }
+        return false;
+    }
+
+    function calculateProfitForSettle(
+        FileInfo memory fileInfo,
+        ProveDetail memory detail,
+        Setting memory setting
+    ) private view returns (uint64) {
+        StorageFee memory total = fs.CalcFee(
+            setting,
+            detail.ProveTimes - 1,
+            0,
+            fileInfo.FileBlockNum * fileInfo.FileBlockSize,
+            uint64(fileInfo.ExpiredHeight - fileInfo.BlockHeight)
+        );
+        return total.TxnFee + total.SpaceFee + total.ValidationFee;
+    }
+
+    struct SectorProveParams {
+        address NodeAddr;
+        uint64 SectorID;
+        uint64 ChallengeHeight;
+        bytes ProveData;
+    }
+
+    struct MerkleNode {
+        uint64 Layer;
+        uint64 Index;
+        bytes Hash;
+    }
+
+    struct MerklePath {
+        uint64 PathLen;
+        MerkleNode[] Path;
+    }
+
+    struct SectorProveData {
+        uint64 ProveFileNum;
+        uint64 BlockNum;
+        bytes Proofs;
+        bytes Tags;
+        MerklePath[] MerklePath_;
+        bytes PlotData;
+    }
+
+    function checkSectorProve(
+        SectorProveParams memory sectorProve,
+        SectorInfo memory sectorInfo
+    ) public view returns (bool) {
+        // TODO complete pdp prove
+        uint64 challenge = pdp.GenChallenge();
+        bool result = pdp.VerifyProofWithMerklePathForFile(challenge);
+        if (!result) {
+            return false;
+        }
+        return true;
+    }
+
+    function calcSingleValidFeeForFile(Setting memory setting, uint64 fileSize)
+        private
+        pure
+        returns (uint64)
+    {
+        return uint64(setting.GasForChallenge * fileSize) / 1024000;
+    }
+
+    function calPunishmentForOneSectorProve(
+        Setting memory setting,
+        SectorInfo memory sectorInfo
+    ) private pure returns (uint64) {
+        uint64 punishFactor = 2;
+        uint64 res = punishFactor *
+            calcSingleValidFeeForFile(setting, sectorInfo.Used);
+        return res;
+    }
+
+    function profitSplitForSector(
+        SectorInfo memory sectorInfo,
+        NodeInfo memory nodeInfo,
+        Setting memory setting
+    ) private returns (bool) {
+        for (uint256 i = 0; i < sectorInfo.FileNum; i++) {
+            bytes memory fileHash = sectorInfo.FileList[i];
+            FileInfo memory fileInfo = fs.GetFileInfo(fileHash);
+            ProveDetail[] memory details = GetProveDetailList(
+                fileInfo.FileHash
+            );
+            bool settleFlag = false;
+            uint256 fileExpiredHeight = fileInfo.ExpiredHeight;
+            bool found = false;
+            ProveDetail memory detail;
+            for (uint256 j = 0; j < details.length; j++) {
+                if (details[i].WalletAddr == sectorInfo.NodeAddr) {
+                    found = true;
+                    detail = details[i];
+                    uint64 haveProveTimes = detail.ProveTimes;
+                    if (
+                        haveProveTimes == fileInfo.ProveTimes ||
+                        block.number > fileExpiredHeight
+                    ) {
+                        detail.Finished = true;
+                        settleFlag = true;
+                    }
+                    detail.ProveTimes++;
+                    break;
+                }
+            }
+            if (!found) {
+                return false;
+            }
+            UpdateProveDetailList(fileInfo.FileHash, details);
+            if (settleFlag) {
+                SettleForFile(fileInfo, nodeInfo, detail, details, setting);
+                sector.DeleteFileFromSector(sectorInfo, fileInfo);
+                emit DeleteFileEvent(
+                    FsEvent.DELETE_FILE,
+                    block.number,
+                    fileInfo.FileHash,
+                    nodeInfo.WalletAddr
+                );
+            }
+        }
+        return true;
+    }
+
+    function calMissingSectorProveTimes(
+        SectorInfo memory sectorInfo,
+        Setting memory setting,
+        uint256 lastPunishHeight,
+        uint256 currHeight
+    ) private pure returns (uint64) {
+        uint64 interval = setting.DefaultProvePeriod;
+        uint256 nextProveHeight = sectorInfo.NextProveHeight;
+        if (nextProveHeight + interval >= currHeight) {
+            return 0;
+        }
+        uint64 totalTimes = uint64(currHeight - nextProveHeight) / interval;
+        uint64 punishedTimes;
+        if (lastPunishHeight != 0) {
+            if (lastPunishHeight > nextProveHeight + interval) {
+                punishedTimes =
+                    uint64(lastPunishHeight - nextProveHeight) /
+                    interval;
+            } else {
+                punishedTimes = 0;
+            }
+        }
+        if (totalTimes < punishedTimes) {
+            return 0;
+        }
+        return totalTimes - punishedTimes;
+    }
+
     function GetLastPunishmentHeightForNode(address nodeAddr, uint64 sectorID)
-        public
+        private
         view
         returns (uint256)
     {
@@ -664,7 +652,7 @@ struct KeyFlag {
     bool deleted;
 }
 
-struct itmap {
+struct ItMap {
     mapping(address => IndexValue) data;
     KeyFlag[] keys;
     uint256 size;
@@ -672,7 +660,7 @@ struct itmap {
 
 library IterableMapping {
     function insert(
-        itmap storage self,
+        ItMap storage self,
         address key,
         ProveDetail memory value
     ) internal returns (bool replaced) {
@@ -689,7 +677,7 @@ library IterableMapping {
         }
     }
 
-    function remove(itmap storage self, address key)
+    function remove(ItMap storage self, address key)
         internal
         returns (bool success)
     {
@@ -700,7 +688,7 @@ library IterableMapping {
         self.size--;
     }
 
-    function contains(itmap storage self, address key)
+    function contains(ItMap storage self, address key)
         internal
         view
         returns (bool)
@@ -708,7 +696,7 @@ library IterableMapping {
         return self.data[key].keyIndex > 0;
     }
 
-    function iterate_start(itmap storage self)
+    function iterate_start(ItMap storage self)
         internal
         view
         returns (uint256 keyIndex)
@@ -717,7 +705,7 @@ library IterableMapping {
         return index - 1;
     }
 
-    function iterate_valid(itmap storage self, uint256 keyIndex)
+    function iterate_valid(ItMap storage self, uint256 keyIndex)
         internal
         view
         returns (bool)
@@ -725,7 +713,7 @@ library IterableMapping {
         return keyIndex < self.keys.length;
     }
 
-    function iterate_next(itmap storage self, uint256 keyIndex)
+    function iterate_next(ItMap storage self, uint256 keyIndex)
         internal
         view
         returns (uint256 r_keyIndex)
@@ -736,7 +724,7 @@ library IterableMapping {
         return keyIndex;
     }
 
-    function iterate_get(itmap storage self, uint256 keyIndex)
+    function iterate_get(ItMap storage self, uint256 keyIndex)
         internal
         view
         returns (address key, ProveDetail memory value)

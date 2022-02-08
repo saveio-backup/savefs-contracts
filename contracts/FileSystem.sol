@@ -32,7 +32,6 @@ contract FileSystem is Initializable {
     mapping(address => bytes[]) primaryFileList; // walletAddr => bytes[]
     mapping(address => bytes[]) candidateFileList; // walletAddr => bytes[]
     mapping(address => bytes[]) unSettledFileList; // walletAddr => bytes[]
-    mapping(uint32 => PocProve[]) pocProveList; // blockNumber => PocProve
 
     event StoreFileEvent(
         FsEvent eventType,
@@ -302,7 +301,7 @@ contract FileSystem is Initializable {
         ProveDetailMeta memory _proveDetailMeta;
         _proveDetailMeta.CopyNum = fileInfo.CopyNum;
         _proveDetailMeta.ProveDetailNum = 0;
-        prove.SetProveDetailMeta(fileInfo.FileHash, _proveDetailMeta);
+        prove.UpdateProveDetailMeta(fileInfo.FileHash, _proveDetailMeta);
         emit StoreFileEvent(
             FsEvent.STORE_FILE,
             block.number,
@@ -683,15 +682,6 @@ contract FileSystem is Initializable {
         FileInfo memory fileInfo = GetFileInfo(priChange.fileHash);
         fileInfo.Privilege = priChange.privilege;
         UpdateFileInfo(fileInfo);
-    }
-
-    function GetPocProveList(uint32 height)
-        public
-        view
-        returns (PocProve[] memory)
-    {
-        require(height > 0, "Block number must lager than 0");
-        return pocProveList[height];
     }
 
     struct OwnerChange {
