@@ -19,7 +19,7 @@ describe(name, () => {
       NodeAddr: addrs[0],
     });
     // print(tx)
-    expect(tx).to.be.reverted;
+    await expect(tx).to.be.reverted;
   });
 
   it("node register success", async () => {
@@ -34,7 +34,7 @@ describe(name, () => {
     }, {
       value: 1000000
     });
-    expect(tx).to.not.be.reverted;
+    await expect(tx).to.not.be.reverted;
   });
 
   it("event", async () => {

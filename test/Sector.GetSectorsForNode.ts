@@ -4,21 +4,18 @@ import { Node, Config, Sector } from "../typechain";
 import { addrs, config, fs, node, space, sector } from "./initialize";
 
 var path = require('path');
-var scriptName = path.basename(__filename);
-var title = (s: string) => {
-  return scriptName + " " + s;
-}
+var name = path.basename(__filename);
 
-describe(scriptName, () => {
+describe(name, () => {
 
-  it(title("get 1"), async () => {
+  it('get 1', async () => {
     const tx = sector.GetSectorsForNode(addrs[13]);
     let res = await tx;
     // console.log(res)
     assert(res.length == 0);
   });
 
-  it(title("register node"), async () => {
+  it('register node', async () => {
     const tx = node.Register({
       Pledge: 0,
       Profit: 0,
@@ -32,12 +29,10 @@ describe(scriptName, () => {
         value: 1000000
       }
     );
-    // let s = await (await tx).wait();
-    // console.log(s)
-    expect(tx).to.not.be.reverted;
+    await expect(tx).to.not.be.reverted;
   });
 
-  it(title("create sector"), async () => {
+  it('create sector', async () => {
     const tx = sector.CreateSector({
       NodeAddr: addrs[13],
       SectorID: 1,
@@ -52,15 +47,14 @@ describe(scriptName, () => {
       IsPlots: false,
       FileList: []
     });
-    // let r3 = await (await tx).wait()
-    // console.log(r3)
-    expect(tx).to.not.be.reverted;
+    await expect(tx).to.not.be.reverted;
   });
 
-  it(title("get 2"), async () => {
+  it('get 2', async () => {
     const tx = sector.GetSectorsForNode(addrs[13]);
     let res = await tx;
     // console.log(res)
     assert(res.length == 1);
   });
+
 });

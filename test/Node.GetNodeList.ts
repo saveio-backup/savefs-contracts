@@ -4,11 +4,11 @@ import { FileSystem, Node, Config } from "../typechain";
 import { addrs, config, fs, node, space } from "./initialize";
 
 var path = require('path');
-var scriptName = path.basename(__filename);
+var name = path.basename(__filename);
 
-describe(scriptName, () => {
+describe(name, () => {
 
-  it(scriptName, async () => {
+  it("register", async () => {
     let tx = node.Register({
       Pledge: 0,
       Profit: 0,
@@ -21,8 +21,11 @@ describe(scriptName, () => {
       value: 1000000
     });
     expect(tx).to.not.be.reverted;
+  });
 
+  it("get list", async () => {
     const res = await node.GetNodeList();
     assert(res.length > 0);
   });
+
 });

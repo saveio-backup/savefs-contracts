@@ -47,4 +47,5 @@ describe(name, () => {
     const res = node.WithDrawProfit(addrs[26]);
     expect(res).to.not.be.reverted; // profit is not 0
   });
+
 });

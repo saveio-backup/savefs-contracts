@@ -20,7 +20,7 @@ describe(scriptName, () => {
     }, {
       value: 1000000
     });
-    expect(tx).to.not.be.reverted;
+    await expect(tx).to.not.be.reverted;
   });
 
   it("register", async () => {

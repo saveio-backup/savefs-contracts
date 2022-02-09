@@ -4,10 +4,11 @@ import { FileSystem, Node, Config, Sector } from "../typechain";
 import { addrs, config, fs, node, space, sector } from "./initialize";
 
 var path = require('path');
-var scriptName = path.basename(__filename);
+var name = path.basename(__filename);
 
-describe(scriptName, () => {
-  it(`${scriptName} 1`, async () => {
+describe(name, () => {
+
+  it(`get 1`, async () => {
     const tx = sector.GetSectorInfo({
       NodeAddr: addrs[12],
       SectorId: 1024,
@@ -17,7 +18,7 @@ describe(scriptName, () => {
     assert(res.Size.eq(0));
   })
 
-  it(`${scriptName} 2`, async () => {
+  it(`register node`, async () => {
     const tx1 = node.Register({
       Pledge: 0,
       Profit: 0,
@@ -31,10 +32,10 @@ describe(scriptName, () => {
         value: 1000000
       }
     );
-    expect(tx1).to.not.be.reverted;
+    await expect(tx1).to.not.be.reverted;
   })
 
-  it(`${scriptName} 3`, async () => {
+  it(`create sector`, async () => {
     const tx2 = sector.CreateSector({
       NodeAddr: addrs[12],
       SectorID: 1024,
@@ -52,7 +53,7 @@ describe(scriptName, () => {
     expect(tx2).to.not.be.reverted;
   })
 
-  it(`${scriptName} 4`, async () => {
+  it(`get 2`, async () => {
     const tx = sector.GetSectorInfo({
       NodeAddr: addrs[12],
       SectorId: 1024,
@@ -61,4 +62,5 @@ describe(scriptName, () => {
     // console.log(res)
     assert(res.Size.eq(1));
   });
+
 });

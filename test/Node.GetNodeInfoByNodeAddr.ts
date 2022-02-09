@@ -27,4 +27,5 @@ describe(name, () => {
     const res = await node.GetNodeInfoByNodeAddr(addrs[6]);
     assert(res.NodeAddr == addrs[6]);
   });
+  
 });

@@ -4,9 +4,9 @@ import { FileSystem, Node, Config } from "../typechain";
 import { addrs, config, fs, node, space, sector, print } from "./initialize";
 
 var path = require('path');
-var scriptName = path.basename(__filename);
+var name = path.basename(__filename);
 
-describe(scriptName, () => {
+describe(name, () => {
 
   it("register", async () => {
     let tx = node.Register({
@@ -21,7 +21,7 @@ describe(scriptName, () => {
       value: 1000000
     });
     // print(tx);
-    expect(tx).to.not.be.reverted;
+    await expect(tx).to.not.be.reverted;
   });
 
   it("create sector", async () => {
@@ -39,13 +39,13 @@ describe(scriptName, () => {
       IsPlots: false,
       FileList: []
     });
-    expect(tx).to.not.be.reverted;
+    await expect(tx).to.not.be.reverted;
   })
 
   it("cancel", async () => {
     let tx = node.Cancel(addrs[7]);
     // print(tx)
-    expect(tx).to.not.be.reverted;
+    await expect(tx).to.not.be.reverted;
   });
 
 });

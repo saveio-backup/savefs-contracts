@@ -4,18 +4,16 @@ import { FileSystem, Node, Config, Sector } from "../typechain";
 import { addrs, config, fs, node, space, sector } from "./initialize";
 
 var path = require('path');
-var scriptName = path.basename(__filename);
+var name = path.basename(__filename);
 
-describe(scriptName, () => {
+describe(name, () => {
 
-  it(scriptName, async () => {
-
+  it("delete sector", async () => {
     const tx = sector.DeleteSecotr({
-      NodeAddr: addrs[15],
+      NodeAddr: addrs[70],
       SectorId: "100",
     });
-    expect(tx).to.not.be.reverted;
-    // let res = await tx;
-    // console.log(res)
+    await expect(tx).to.not.be.reverted;
   });
+
 });
