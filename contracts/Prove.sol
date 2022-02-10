@@ -20,6 +20,8 @@ contract Prove is Initializable {
         uint64 SectorID;
     }
 
+    uint64 SECTOR_PROVE_BLOCK_NUM = 32;
+
     Config config;
     FileSystem fs;
     Node node;
@@ -462,11 +464,6 @@ contract Prove is Initializable {
             return false;
         }
         // TODO complete pdp prove
-        uint64 challenge = pdp.GenChallenge();
-        bool result = pdp.VerifyProofWithMerklePathForFile(challenge);
-        if (!result) {
-            return false;
-        }
         return true;
     }
 
@@ -503,35 +500,62 @@ contract Prove is Initializable {
         bytes ProveData;
     }
 
-    struct MerkleNode {
-        uint64 Layer;
-        uint64 Index;
-        bytes Hash;
-    }
-
-    struct MerklePath {
-        uint64 PathLen;
-        MerkleNode[] Path;
-    }
-
-    struct SectorProveData {
-        uint64 ProveFileNum;
-        uint64 BlockNum;
-        bytes Proofs;
-        bytes Tags;
-        MerklePath[] MerklePath_;
-        bytes PlotData;
-    }
-
     function checkSectorProve(
         SectorProveParams memory sectorProve,
         SectorInfo memory sectorInfo
     ) public view returns (bool) {
-        // TODO complete pdp prove
-        uint64 challenge = pdp.GenChallenge();
-        bool result = pdp.VerifyProofWithMerklePathForFile(challenge);
-        if (!result) {
-            return false;
+        // TODO decentralized sector prove data
+        SectorProveData memory sectorProveData;
+        // TODO block head hash
+        bytes memory blockHash;
+        GenChallengeParams memory gParams;
+        gParams.WalletAddr = sectorProve.NodeAddr;
+        gParams.HashValue = blockHash;
+        gParams.FileBlockNum = sectorInfo.TotalBlockNum;
+        gParams.ProveNum = SECTOR_PROVE_BLOCK_NUM;
+        Challenge[] memory challenges = pdp.GenChallenge(gParams);
+        // pre
+        PrepareForPdpVerificationParams memory pParams;
+        pParams.SectorInfo_ = sectorInfo;
+        pParams.Challenges = challenges;
+        pParams.ProveData = sectorProveData;
+        PdpVerificationReturns memory pReturns;
+        // pReturns = pdp.PrepareForPdpVerification(pParams);
+        // if (!pReturns.Success) {
+        //     return false;
+        // }
+        // verify
+        VerifyProofWithMerklePathForFileParams memory vParams;
+        vParams.Version = 0;
+        vParams.Proofs = sectorProveData.Proofs;
+        vParams.FileIds = pReturns.FileIDs;
+        vParams.Tags = pReturns.Tags;
+        vParams.Challenges = pReturns.UpdatedChal;
+        vParams.MerklePath_ = pReturns.Path;
+        vParams.RootHashes = pReturns.RootHashes;
+        // bool res = pdp.VerifyProofWithMerklePathForFile(vParams);
+        // if (!res) {
+        //     return false;
+        // }
+        if (sectorInfo.IsPlots) {
+            if (
+                !pReturns.FileInfo_.IsPlotFile ||
+                pReturns.FileInfo_.PlotInfo_.Nonces == 0
+            ) {
+                // TODO
+                // return false;
+            }
+            VerifyPlotDataParams memory vpParams;
+            vpParams.PlotInfo_ = pReturns.FileInfo_.PlotInfo_;
+            vpParams.PlotData = sectorProveData.PlotData;
+            // TODO
+            if (challenges.length > 0) {
+                vpParams.Index = uint64(challenges[0].Index);
+            }
+            // bool res2 = pdp.VerifyPlotData(vpParams);
+            // if (!res2) {
+            //     return false;
+            // }
         }
         return true;
     }

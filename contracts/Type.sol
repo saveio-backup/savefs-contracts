@@ -179,3 +179,67 @@ struct TransferState {
     address To;
     uint64 Value;
 }
+
+struct Challenge {
+    uint32 Index;
+    uint32 Rand;
+}
+
+struct MerkleNode {
+    uint64 Layer;
+    uint64 Index;
+    bytes Hash;
+}
+
+struct MerklePath {
+    uint64 PathLen;
+    MerkleNode[] Path;
+}
+
+struct SectorProveData {
+    uint64 ProveFileNum;
+    uint64 BlockNum;
+    bytes Proofs;
+    bytes Tags;
+    MerklePath[] MerklePath_;
+    bytes PlotData;
+}
+
+struct PrepareForPdpVerificationParams {
+    SectorInfo SectorInfo_;
+    Challenge[] Challenges;
+    SectorProveData ProveData;
+}
+
+struct PdpVerificationReturns {
+    bytes[] FileIDs;
+    bytes[] Tags;
+    Challenge[] UpdatedChal;
+    MerklePath[] Path;
+    bytes[] RootHashes;
+    FileInfo FileInfo_;
+    bool Success;
+}
+
+struct GenChallengeParams {
+    address WalletAddr;
+    bytes HashValue;
+    uint64 FileBlockNum;
+    uint64 ProveNum;
+}
+
+struct VerifyProofWithMerklePathForFileParams {
+    uint64 Version;
+    bytes Proofs;
+    bytes[] FileIds;
+    bytes[] Tags;
+    Challenge[] Challenges;
+    MerklePath[] MerklePath_;
+    bytes[] RootHashes;
+}
+
+struct VerifyPlotDataParams {
+    PlotInfo PlotInfo_;
+    bytes PlotData;
+    uint64 Index;
+}
