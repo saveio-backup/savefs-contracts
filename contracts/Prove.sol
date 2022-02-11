@@ -463,6 +463,29 @@ contract Prove is Initializable {
         ) {
             return false;
         }
+        // TODO deserialize = fileInfo.FileProveParam
+        ProveParam memory proveParam;
+        // TODO params to deserialize  = fileProve.ProveData
+        ProveData memory proveData;
+        // challenge
+        // TODO block head hash
+        bytes memory blockHash;
+        GenChallengeParams memory gParams;
+        gParams.WalletAddr = fileProve.NodeWallet;
+        gParams.HashValue = blockHash;
+        gParams.FileBlockNum = fileInfo.FileBlockNum;
+        gParams.ProveNum = fileInfo.ProveBlockNum;
+        Challenge[] memory challenges = pdp.GenChallenge(gParams);
+        // verify
+        VerifyProofWithMerklePathForFileParams memory vParams;
+        vParams.Version = 0;
+        vParams.Proofs = proveData.Proofs;
+        vParams.FileIds = proveParam.FileID;
+        vParams.Tags = proveData.Tags;
+        vParams.Challenges = challenges;
+        vParams.MerklePath_ = proveData.MerklePath_;
+        vParams.RootHashes = proveParam.RootHash;
+        bool res = pdp.VerifyProofWithMerklePathForFile(vParams);
         // TODO complete pdp prove
         return true;
     }

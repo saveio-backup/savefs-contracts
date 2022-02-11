@@ -216,7 +216,7 @@ struct PdpVerificationReturns {
     bytes[] Tags;
     Challenge[] UpdatedChal;
     MerklePath[] Path;
-    bytes[] RootHashes;
+    bytes RootHashes;
     FileInfo FileInfo_;
     bool Success;
 }
@@ -235,11 +235,23 @@ struct VerifyProofWithMerklePathForFileParams {
     bytes[] Tags;
     Challenge[] Challenges;
     MerklePath[] MerklePath_;
-    bytes[] RootHashes;
+    bytes RootHashes;
 }
 
 struct VerifyPlotDataParams {
     PlotInfo PlotInfo_;
     bytes PlotData;
     uint64 Index;
+}
+
+struct ProveParam {
+    bytes RootHash;
+    bytes[] FileID;
+}
+
+struct ProveData {
+    bytes Proofs;
+    uint64 BlockNum;
+    bytes[] Tags;
+    MerklePath[] MerklePath_;
 }

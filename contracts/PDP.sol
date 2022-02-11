@@ -35,9 +35,11 @@ contract PDP is Initializable {
         return true;
     }
 
-    function VerifyPlotData(
-        VerifyPlotDataParams memory vParams
-    ) public pure returns (bool) {
+    function VerifyPlotData(VerifyPlotDataParams memory vParams)
+        public
+        pure
+        returns (bool)
+    {
         // TODO
         return true;
     }
