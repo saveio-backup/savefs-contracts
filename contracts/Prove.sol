@@ -504,8 +504,6 @@ contract Prove is Initializable {
         SectorProveParams memory sectorProve,
         SectorInfo memory sectorInfo
     ) public view returns (bool) {
-        // TODO decentralized sector prove data
-        SectorProveData memory sectorProveData;
         // TODO block head hash
         bytes memory blockHash;
         GenChallengeParams memory gParams;
@@ -515,15 +513,17 @@ contract Prove is Initializable {
         gParams.ProveNum = SECTOR_PROVE_BLOCK_NUM;
         Challenge[] memory challenges = pdp.GenChallenge(gParams);
         // pre
+        // TODO decentralized sector prove data
+        SectorProveData memory sectorProveData;
         PrepareForPdpVerificationParams memory pParams;
         pParams.SectorInfo_ = sectorInfo;
-        pParams.Challenges = challenges;
+        // pParams.Challenges = challenges;
         pParams.ProveData = sectorProveData;
         PdpVerificationReturns memory pReturns;
-        // pReturns = pdp.PrepareForPdpVerification(pParams);
-        // if (!pReturns.Success) {
-        //     return false;
-        // }
+        pReturns = pdp.PrepareForPdpVerification(pParams);
+        if (!pReturns.Success) {
+            return false;
+        }
         // verify
         VerifyProofWithMerklePathForFileParams memory vParams;
         vParams.Version = 0;
@@ -533,10 +533,10 @@ contract Prove is Initializable {
         vParams.Challenges = pReturns.UpdatedChal;
         vParams.MerklePath_ = pReturns.Path;
         vParams.RootHashes = pReturns.RootHashes;
-        // bool res = pdp.VerifyProofWithMerklePathForFile(vParams);
-        // if (!res) {
-        //     return false;
-        // }
+        bool res = pdp.VerifyProofWithMerklePathForFile(vParams);
+        if (!res) {
+            return false;
+        }
         if (sectorInfo.IsPlots) {
             if (
                 !pReturns.FileInfo_.IsPlotFile ||
@@ -548,14 +548,13 @@ contract Prove is Initializable {
             VerifyPlotDataParams memory vpParams;
             vpParams.PlotInfo_ = pReturns.FileInfo_.PlotInfo_;
             vpParams.PlotData = sectorProveData.PlotData;
-            // TODO
             if (challenges.length > 0) {
                 vpParams.Index = uint64(challenges[0].Index);
             }
-            // bool res2 = pdp.VerifyPlotData(vpParams);
-            // if (!res2) {
-            //     return false;
-            // }
+            bool res2 = pdp.VerifyPlotData(vpParams);
+            if (!res2) {
+                return false;
+            }
         }
         return true;
     }

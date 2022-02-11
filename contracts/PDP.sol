@@ -21,10 +21,11 @@ contract PDP is Initializable {
     function PrepareForPdpVerification(
         PrepareForPdpVerificationParams memory pParams
     ) public pure returns (PdpVerificationReturns memory) {
-        PdpVerificationReturns memory pdpVerificationReturns;
+        PdpVerificationReturns memory pReturns;
 
         // TODO
-        return pdpVerificationReturns;
+        pReturns.Success = true;
+        return pReturns;
     }
 
     function VerifyProofWithMerklePathForFile(
