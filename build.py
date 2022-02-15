@@ -16,7 +16,8 @@ for i in list:
     source = "artifacts/contracts/{}.sol/{}.json".format(i, i)
     abi = "build/{}.abi".format(i)
     bin = "build/{}.bin".format(i)
-    go = "build/go/{}.go".format(i)
+    go = "build/go/{}/{}.go".format(i, i)
+    os.makedirs(os.path.dirname(go), exist_ok=True)
 
     with open(source, "r") as f:
 
@@ -39,6 +40,6 @@ for i in list:
         w.write(b)
         w.close()
 
-        c = "abigen --bin=build/{}.bin --abi=build/{}.abi --pkg=store --out=build/go/{}.go".format(
-            i, i, i)
+        c = "abigen --bin=build/{}.bin --abi=build/{}.abi --pkg=store --out=build/go/{}/{}.go".format(
+            i, i, i, i)
         os.system(c)

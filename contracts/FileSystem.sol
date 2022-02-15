@@ -696,7 +696,7 @@ contract FileSystem is Initializable {
         UpdateFileInfo(fileInfo);
     }
 
-    function deleteFiles(FileInfo[] memory files) public {
+    function deleteFilesInner(FileInfo[] memory files) public {
         if (files.length == 0) {
             return;
         }
@@ -784,7 +784,7 @@ contract FileSystem is Initializable {
         FileInfo memory fileInfo = GetFileInfo(fileHash);
         FileInfo[] memory files = new FileInfo[](1);
         files[0] = fileInfo;
-        deleteFiles(files);
+        deleteFilesInner(files);
         emit DeleteFileEvent(
             FsEvent.DELETE_FILE,
             block.number,
@@ -801,7 +801,7 @@ contract FileSystem is Initializable {
             fileOwner = fileInfo.FileOwner;
             files[i] = fileInfo;
         }
-        deleteFiles(files);
+        deleteFilesInner(files);
         emit DeleteFilesEvent(
             FsEvent.DELETE_FILE,
             block.number,
