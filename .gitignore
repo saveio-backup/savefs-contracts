@@ -205,7 +205,7 @@ node_modules
 # testing
 
 # production
-build
+# build
 build_webpack
 
 # misc

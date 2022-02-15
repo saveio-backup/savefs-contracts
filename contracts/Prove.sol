@@ -486,7 +486,9 @@ contract Prove is Initializable {
         vParams.MerklePath_ = proveData.MerklePath_;
         vParams.RootHashes = proveParam.RootHash;
         bool res = pdp.VerifyProofWithMerklePathForFile(vParams);
-        // TODO complete pdp prove
+        if (!res) {
+            return false;
+        }
         return true;
     }
 
