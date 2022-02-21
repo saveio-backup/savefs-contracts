@@ -9,7 +9,7 @@ var name = path.basename(__filename);
 describe(name, function () {
 
   it("change file privilege", async () => {
-    const tx = fs.ChangeFilePivilege({
+    const tx = fs.ChangeFilePrivilege({
       fileHash: [65, 66, 67, 68, 69, 70],
       privilege: 1
     });

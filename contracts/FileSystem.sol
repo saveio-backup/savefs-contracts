@@ -674,7 +674,7 @@ contract FileSystem is Initializable {
         uint64 privilege;
     }
 
-    function ChangeFilePivilege(PriChange memory priChange) public {
+    function ChangeFilePrivilege(PriChange memory priChange) public {
         FileInfo memory fileInfo = GetFileInfo(priChange.fileHash);
         fileInfo.Privilege = priChange.privilege;
         UpdateFileInfo(fileInfo);

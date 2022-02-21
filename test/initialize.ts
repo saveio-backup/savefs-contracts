@@ -19,6 +19,12 @@ let list: List;
 let prove: Prove;
 let pdp: PDP;
 
+
+var print = async (tx: Promise<ContractTransaction>) => {
+  let res = await (await tx).wait();
+  console.log(res)
+}
+
 describe(name, function () {
   it("Get addrs", async () => {
     const accounts = await ethers.getSigners();
@@ -33,6 +39,7 @@ describe(name, function () {
     const Config = await ethers.getContractFactory("Config");
     config = await Config.deploy();
     let res = config.deployed();
+    // console.log(await res)
     await expect(res).not.to.be.reverted;
   });
 
@@ -40,6 +47,7 @@ describe(name, function () {
     const Node = await ethers.getContractFactory("Node");
     node = await Node.deploy();
     let res = node.deployed();
+    // console.log(await res)
     await expect(res).not.to.be.reverted;
   });
 
@@ -78,7 +86,7 @@ describe(name, function () {
     await expect(res).not.to.be.reverted;
   });
 
-  it("Deploy Prove", async () => {
+  it("Deploy PDP", async () => {
     const PDP = await ethers.getContractFactory("PDP");
     pdp = await PDP.deploy();
     let res = pdp.deployed();
@@ -122,10 +130,6 @@ describe(name, function () {
 
 });
 
-var print = async (tx: Promise<ContractTransaction>) => {
-  let res = await (await tx).wait();
-  console.log(res)
-}
 
 var mine = async (n: number) => {
   for (let index = 0; index < n; index++) {
