@@ -87,6 +87,17 @@ contract Node is Initializable {
         );
     }
 
+    function GetPledgeUpdate(NodeInfo memory nodeInfo)
+        public
+        view
+        returns (int64)
+    {
+        NodeInfo memory oldNode = nodesInfo[nodeInfo.WalletAddr];
+        uint64 newPledge = CalculateNodePledge(nodeInfo);
+        uint64 oldPledge = oldNode.Pledge;
+        return int64(newPledge) - int64(oldPledge);
+    }
+
     function NodeUpdate(NodeInfo memory nodeInfo)
         public
         payable
