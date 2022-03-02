@@ -47,6 +47,7 @@ describe(name, function () {
       RealFileSize: 1,
       PrimaryNodes: [],
       CandidateNodes: [],
+      BlocksRoot: [],
       ProveLevel_: 1,
       IsPlotFile: false,
       PlotInfo_: {

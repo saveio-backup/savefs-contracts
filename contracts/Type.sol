@@ -124,6 +124,7 @@ struct FileInfo {
     uint64 RealFileSize;
     address[] PrimaryNodes;
     address[] CandidateNodes;
+    bytes BlocksRoot;
     ProveLevel ProveLevel_;
     bool IsPlotFile;
     PlotInfo PlotInfo_;
