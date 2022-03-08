@@ -114,10 +114,65 @@ describe(name, function () {
     await expect(tx).to.not.be.reverted;
   });
 
+  it("add space", async () => {
+    const tx = space.ManageUserSpace({
+      WalletAddr: addrs[68],
+      Owner: addrs[68],
+      Size: {
+        Type: 1,
+        Value: 1
+      },
+      BlockCount: {
+        Type: 1,
+        Value: (3600 * 24) / 5
+      }
+    });
+    // await print(tx);
+    await expect(tx).to.not.be.reverted;
+    await expect(tx).to.emit(space, "SetUserSpaceEvent");
+  });
+
+  it("store file to space", async () => {
+    const tx = fs.StoreFile({
+      FileHash: files[10],
+      FileOwner: addrs[68],
+      FileDesc: [],
+      Privilege: 1,
+      FileBlockNum: 0,
+      FileBlockSize: 0,
+      ProveInterval: 1,
+      ProveTimes: 1,
+      ExpiredHeight: 100,
+      CopyNum: 0,
+      Deposit: 0,
+      FileProveParam: [],
+      ProveBlockNum: 1,
+      BlockHeight: 1,
+      ValidFlag: false,
+      BlocksRoot: [],
+      StorageType_: 0,
+      RealFileSize: 1,
+      PrimaryNodes: [],
+      CandidateNodes: [],
+      ProveLevel_: 1,
+      IsPlotFile: false,
+      PlotInfo_: {
+        NumberID: 1,
+        StartNonce: 1,
+        Nonces: 1,
+      }
+    }, {
+      value: 1000000
+    })
+    // await print(tx)
+    await expect(tx).to.not.be.reverted;
+  });
+
   it("delete files", async () => {
     const tx = fs.DeleteFiles([
       files[2],
       files[3],
+      files[10],
     ]);
     // await print(tx)
     await expect(tx).to.not.be.reverted;

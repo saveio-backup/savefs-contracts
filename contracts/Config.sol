@@ -37,7 +37,6 @@ contract Config is Initializable {
         if (proveLevel == ProveLevel.LOW) {
             return setting.DefaultProvePeriod * 8;
         }
-        return setting.DefaultProvePeriod;
     }
 
     function GetSettingWithProveLevel(ProveLevel proveLevel)

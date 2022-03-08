@@ -46,6 +46,10 @@ const config: HardhatUserConfig = {
       accounts: {
         count: 100
       }
+    },
+    b: {
+      url: `http://104.225.158.242:8545/`,
+      accounts: [`97e14a3dc8f8721172090dc5a27681e8eb3e650cb43551b43f0ce4345d4748f7`]
     }
   },
   gasReporter: {
