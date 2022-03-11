@@ -25,6 +25,12 @@ enum StorageType {
     Professional
 }
 
+enum UserSpaceType {
+    None,
+    Add,
+    Revoke
+}
+
 struct Setting {
     uint64 GasPrice;
     uint64 GasPerGBPerBlock;
@@ -55,12 +61,6 @@ struct UserSpace {
     uint64 Balance;
     uint256 ExpireHeight;
     uint256 UpdateHeight;
-}
-
-enum UserSpaceType {
-    None,
-    Add,
-    Revoke
 }
 
 struct StorageFee {
@@ -255,4 +255,15 @@ struct ProveData {
     uint64 BlockNum;
     bytes[] Tags;
     MerklePath[] MerklePath_;
+}
+
+struct OwnerChange {
+    bytes FileHash;
+    address CurOwner;
+    address NewOwner;
+}
+
+struct PriChange {
+    bytes fileHash;
+    uint64 privilege;
 }

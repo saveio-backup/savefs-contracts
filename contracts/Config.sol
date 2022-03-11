@@ -4,9 +4,16 @@ pragma solidity ^0.8.0;
 import "hardhat/console.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "./Type.sol";
+import "./API.sol";
 
-contract Config is Initializable {
-    function GetSetting() public pure returns (Setting memory) {
+contract Config is Initializable, IConfig {
+    function GetSetting()
+        public
+        pure
+        virtual
+        override
+        returns (Setting memory)
+    {
         Setting memory setting;
         setting.GasPrice = 1;
         setting.GasPerGBPerBlock = 1;
@@ -23,7 +30,7 @@ contract Config is Initializable {
     }
 
     function GetProveIntervalByProveLevel(ProveLevel proveLevel)
-        public
+        internal
         pure
         returns (uint64)
     {
@@ -37,11 +44,14 @@ contract Config is Initializable {
         if (proveLevel == ProveLevel.LOW) {
             return setting.DefaultProvePeriod * 8;
         }
+        return 0;
     }
 
     function GetSettingWithProveLevel(ProveLevel proveLevel)
         public
         pure
+        virtual
+        override
         returns (Setting memory)
     {
         Setting memory setting = GetSetting();

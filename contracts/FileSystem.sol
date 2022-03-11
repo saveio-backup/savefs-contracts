@@ -9,12 +9,13 @@ import "./Node.sol";
 import "./Space.sol";
 import "./Sector.sol";
 import "./Prove.sol";
+import "./API.sol";
 
 /**
  * @title FileSystem
  * @dev FileSystem contract
  */
-contract FileSystem is Initializable {
+contract FileSystem is Initializable, IFileSystem {
     Config config;
     Node node;
     Space space;
@@ -26,45 +27,11 @@ contract FileSystem is Initializable {
     uint64 IN_SECTOR_SIZE = 1000 * 1000;
 
     mapping(bytes => FileInfo) fileInfos; // fileHash => FileInfo
-
     mapping(bytes => SectorRef[]) fileSectorRefs; // fileHash => SectorRef[]
     mapping(address => bytes[]) fileList; // walletAddr => bytes[]
     mapping(address => bytes[]) primaryFileList; // walletAddr => bytes[]
     mapping(address => bytes[]) candidateFileList; // walletAddr => bytes[]
     mapping(address => bytes[]) unSettledFileList; // walletAddr => bytes[]
-
-    event StoreFileEvent(
-        FsEvent eventType,
-        uint256 blockHeight,
-        bytes fileHash,
-        uint64 fileSize,
-        address walletAddr,
-        uint64 cost,
-        bool isPlotFile
-    );
-
-    event DeleteFileEvent(
-        FsEvent eventType,
-        uint256 blockHeight,
-        bytes fileHash,
-        address walletAddr
-    );
-
-    event DeleteFilesEvent(
-        FsEvent eventType,
-        uint256 blockHeight,
-        bytes[] fileHashs,
-        address walletAddr
-    );
-
-    error FileNotExist(bytes);
-    error UserspaceInsufficientBalance(uint256 got, uint256 want);
-    error UserspaceInsufficientSpace(uint256 got, uint256 want);
-    error UserspaceWrongExpiredHeight(uint256 got, uint256 want);
-    error NotEnoughTransfer(uint256 got, uint256 want);
-    error DifferenceFileOwner();
-    error InvalidProfit();
-    error OpError(uint64);
 
     modifier NotEmptyFileHash(bytes memory fileHash) {
         require(fileHash.length > 0, "fileHash must be not empty");
@@ -217,7 +184,12 @@ contract FileSystem is Initializable {
         return calcUploadFee(uploadOption, setting, block.number);
     }
 
-    function StoreFile(FileInfo memory fileInfo) public payable {
+    function StoreFile(FileInfo memory fileInfo)
+        public
+        payable
+        virtual
+        override
+    {
         require(
             fileInfos[fileInfo.FileHash].BlockHeight == 0,
             "file already exist"
@@ -669,24 +641,21 @@ contract FileSystem is Initializable {
         return unProveCandidateFiles;
     }
 
-    struct PriChange {
-        bytes fileHash;
-        uint64 privilege;
-    }
-
-    function ChangeFilePrivilege(PriChange memory priChange) public {
+    function ChangeFilePrivilege(PriChange memory priChange)
+        public
+        virtual
+        override
+    {
         FileInfo memory fileInfo = GetFileInfo(priChange.fileHash);
         fileInfo.Privilege = priChange.privilege;
         UpdateFileInfo(fileInfo);
     }
 
-    struct OwnerChange {
-        bytes FileHash;
-        address CurOwner;
-        address NewOwner;
-    }
-
-    function ChangeFileOwner(OwnerChange memory ownerChange) public {
+    function ChangeFileOwner(OwnerChange memory ownerChange)
+        public
+        virtual
+        override
+    {
         FileInfo memory fileInfo = GetFileInfo(ownerChange.FileHash);
         require(
             fileInfo.FileOwner == ownerChange.CurOwner,
@@ -780,7 +749,7 @@ contract FileSystem is Initializable {
         payable(fileOwner).transfer(refundAmount);
     }
 
-    function DeleteFile(bytes memory fileHash) public {
+    function DeleteFile(bytes memory fileHash) public virtual override {
         FileInfo memory fileInfo = GetFileInfo(fileHash);
         FileInfo[] memory files = new FileInfo[](1);
         files[0] = fileInfo;
@@ -793,7 +762,7 @@ contract FileSystem is Initializable {
         );
     }
 
-    function DeleteFiles(bytes[] memory fileHashs) public {
+    function DeleteFiles(bytes[] memory fileHashs) public virtual override {
         address fileOwner;
         FileInfo[] memory files = new FileInfo[](fileHashs.length);
         for (uint256 i = 0; i < fileHashs.length; i++) {
