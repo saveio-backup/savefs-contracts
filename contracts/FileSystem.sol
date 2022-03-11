@@ -177,6 +177,8 @@ contract FileSystem is Initializable, IFileSystem {
     function GetUploadStorageFee(UploadOption memory uploadOption)
         public
         view
+        virtual
+        override
         returns (StorageFee memory)
     {
         require(uploadOption.FileSize > 0, "fileSize must be greater than 0");
@@ -285,7 +287,12 @@ contract FileSystem is Initializable, IFileSystem {
         );
     }
 
-    function FileReNew(FileReNewInfo memory fileReNewInfo) public payable {
+    function FileReNew(FileReNewInfo memory fileReNewInfo)
+        public
+        payable
+        virtual
+        override
+    {
         require(
             fileInfos[fileReNewInfo.FileHash].BlockHeight > 0,
             "file not exist"
@@ -323,6 +330,8 @@ contract FileSystem is Initializable, IFileSystem {
     function GetFileInfo(bytes memory fileHash)
         public
         view
+        virtual
+        override
         NotEmptyFileHash(fileHash)
         returns (FileInfo memory)
     {
@@ -336,6 +345,8 @@ contract FileSystem is Initializable, IFileSystem {
     function GetFileInfos(bytes[] memory _fileList)
         public
         view
+        virtual
+        override
         returns (FileInfo[] memory)
     {
         require(_fileList.length > 0, "fileList is empty");
@@ -354,6 +365,8 @@ contract FileSystem is Initializable, IFileSystem {
     function GetFileList(address walletAddr)
         public
         view
+        virtual
+        override
         returns (bytes[] memory)
     {
         return fileList[walletAddr];
@@ -436,6 +449,8 @@ contract FileSystem is Initializable, IFileSystem {
     function GetUnSettledFileList(address walletAddr)
         public
         view
+        virtual
+        override
         returns (bytes[] memory)
     {
         return unSettledFileList[walletAddr];
@@ -565,7 +580,7 @@ contract FileSystem is Initializable, IFileSystem {
         return (deletedFiles, amount, success);
     }
 
-    function DeleteUnsettledFiles(address walletAddr) public {
+    function DeleteUnsettledFiles(address walletAddr) public virtual override {
         bytes[] memory unsettledList = GetUnSettledFileList(walletAddr);
         StorageType[] memory sType = new StorageType[](2);
         sType[0] = StorageType.Normal;
@@ -592,6 +607,8 @@ contract FileSystem is Initializable, IFileSystem {
     function GetUnProvePrimaryFiles(address walletAddr)
         public
         view
+        virtual
+        override
         returns (bytes[] memory)
     {
         bytes[] memory list = primaryFileList[walletAddr];
@@ -618,6 +635,8 @@ contract FileSystem is Initializable, IFileSystem {
     function GetUnProveCandidateFiles(address walletAddr)
         public
         view
+        virtual
+        override
         returns (bytes[] memory)
     {
         bytes[] memory list = candidateFileList[walletAddr];

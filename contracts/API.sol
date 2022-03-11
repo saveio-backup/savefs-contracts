@@ -47,6 +47,8 @@ interface IFileSystem {
 
     function StoreFile(FileInfo memory fileInfo) external payable;
 
+    function FileReNew(FileReNewInfo memory fileReNewInfo) external payable;
+
     function ChangeFileOwner(OwnerChange memory ownerChange) external;
 
     function ChangeFilePrivilege(PriChange memory priChange) external;
@@ -54,4 +56,41 @@ interface IFileSystem {
     function DeleteFile(bytes memory fileHash) external;
 
     function DeleteFiles(bytes[] memory fileHashs) external;
+
+    function DeleteUnsettledFiles(address walletAddr) external;
+
+    function GetFileInfo(bytes memory fileHash)
+        external
+        view
+        returns (FileInfo memory);
+
+    function GetFileInfos(bytes[] memory _fileList)
+        external
+        view
+        returns (FileInfo[] memory);
+
+    function GetFileList(address walletAddr)
+        external
+        view
+        returns (bytes[] memory);
+
+    function GetUnProvePrimaryFiles(address walletAddr)
+        external
+        view
+        returns (bytes[] memory);
+
+    function GetUnProveCandidateFiles(address walletAddr)
+        external
+        view
+        returns (bytes[] memory);
+
+    function GetUnSettledFileList(address walletAddr)
+        external
+        view
+        returns (bytes[] memory);
+
+    function GetUploadStorageFee(UploadOption memory uploadOption)
+        external
+        view
+        returns (StorageFee memory);
 }
