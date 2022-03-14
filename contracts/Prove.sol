@@ -9,17 +9,9 @@ import "./FileSystem.sol";
 import "./Node.sol";
 import "./PDP.sol";
 import "./Sector.sol";
+import "./API.sol";
 
-contract Prove is Initializable {
-    struct FileProveParams {
-        bytes FileHash;
-        bytes ProveData;
-        uint256 BlockHeight;
-        address NodeWallet;
-        uint64 Profit;
-        uint64 SectorID;
-    }
-
+contract Prove is Initializable, IProve {
     uint64 SECTOR_PROVE_BLOCK_NUM = 32;
 
     Config config;
@@ -35,32 +27,6 @@ contract Prove is Initializable {
     mapping(address => mapping(uint64 => uint256)) punishmentHeightForNode;
     mapping(string => PocProve) pocProve; // miner + height => PocProve
 
-    event FilePDPSuccessEvent(
-        FsEvent eventType,
-        uint256 blockHeight,
-        bytes fileHash,
-        address walletAddr
-    );
-
-    event ProveFileEvent(
-        FsEvent eventType,
-        uint256 blockHeight,
-        address walletAddr,
-        uint64 profit
-    );
-
-    event DeleteFileEvent(
-        FsEvent eventType,
-        uint256 blockHeight,
-        bytes fileHash,
-        address walletAddr
-    );
-
-    error FileProveNotFileOwner();
-    error FileProveFailed(uint64);
-    error SectorProveFailed(uint64);
-    error NodeSectorProvedInTimeError();
-
     function initialize(
         Config _config,
         FileSystem _fs,
@@ -75,7 +41,11 @@ contract Prove is Initializable {
         sector = _sector;
     }
 
-    function FileProve(FileProveParams memory fileProve) public {
+    function FileProve(FileProveParams memory fileProve)
+        public
+        virtual
+        override
+    {
         Setting memory setting = config.GetSetting();
         FileInfo memory fileInfo = fs.GetFileInfo(fileProve.FileHash);
         if (fileInfo.IsPlotFile) {
@@ -214,7 +184,11 @@ contract Prove is Initializable {
         );
     }
 
-    function SectorProve(SectorProveParams memory sectorProve) public {
+    function SectorProve(SectorProveParams memory sectorProve)
+        public
+        virtual
+        override
+    {
         NodeInfo memory nodeInfo = node.GetNodeInfoByNodeAddr(
             sectorProve.NodeAddr
         );
@@ -267,6 +241,8 @@ contract Prove is Initializable {
     function GetProveDetailList(bytes memory fileHash)
         public
         view
+        virtual
+        override
         returns (ProveDetail[] memory)
     {
         ItMap storage data = proveDetails[fileHash];
@@ -395,7 +371,11 @@ contract Prove is Initializable {
         // TODO
     }
 
-    function CheckNodeSectorProvedInTime(SectorRef memory sectorRef) public {
+    function CheckNodeSectorProvedInTime(SectorRef memory sectorRef)
+        public
+        virtual
+        override
+    {
         address nodeAddr = sectorRef.NodeAddr;
         uint64 sectorID = sectorRef.SectorId;
         NodeInfo memory nodeInfo = node.GetNodeInfoByNodeAddr(nodeAddr);
@@ -516,13 +496,6 @@ contract Prove is Initializable {
             uint64(fileInfo.ExpiredHeight - fileInfo.BlockHeight)
         );
         return total.TxnFee + total.SpaceFee + total.ValidationFee;
-    }
-
-    struct SectorProveParams {
-        address NodeAddr;
-        uint64 SectorID;
-        uint64 ChallengeHeight;
-        bytes ProveData;
     }
 
     function checkSectorProve(

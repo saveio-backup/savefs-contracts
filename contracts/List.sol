@@ -4,27 +4,18 @@ pragma solidity ^0.8.0;
 import "hardhat/console.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "./Type.sol";
+import "./API.sol";
 
-contract List is Initializable {
-    enum WhiteListOpType {
-        ADD,
-        DEL,
-        ADD_COV,
-        DEL_ALL,
-        UPDATE
-    }
-
+contract List is Initializable, IList {
     mapping(bytes => WhiteList[]) whiteList; // fileHash => whileList
 
     function initialize() public initializer {}
 
-    struct WhiteListParams {
-        bytes FileHash;
-        WhiteListOpType Op;
-        WhiteList[] List;
-    }
-
-    function WhiteListOperate(WhiteListParams memory params) public {
+    function WhiteListOperate(WhiteListParams memory params)
+        public
+        virtual
+        override
+    {
         if (params.Op == WhiteListOpType.ADD) {
             WhiteList[] storage list = whiteList[params.FileHash];
             for (uint256 i = 0; i < params.List.length; i++) {
@@ -59,6 +50,8 @@ contract List is Initializable {
     function GetWhiteList(bytes memory fileHash)
         public
         view
+        virtual
+        override
         returns (WhiteList[] memory)
     {
         require(fileHash.length > 0, "fileHash must be empty");

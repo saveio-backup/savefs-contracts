@@ -4,13 +4,16 @@ pragma solidity ^0.8.0;
 import "hardhat/console.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "./Type.sol";
+import "./API.sol";
 
-contract PDP is Initializable {
+contract PDP is Initializable, IPDP {
     function initialize() public initializer {}
 
     function GenChallenge(GenChallengeParams memory gParams)
         public
         pure
+        virtual
+        override
         returns (Challenge[] memory)
     {
         // TODO
@@ -30,7 +33,7 @@ contract PDP is Initializable {
 
     function VerifyProofWithMerklePathForFile(
         VerifyProofWithMerklePathForFileParams memory vParams
-    ) public pure returns (bool) {
+    ) public pure virtual override returns (bool) {
         // TODO
         return true;
     }

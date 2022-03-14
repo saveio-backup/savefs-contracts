@@ -31,6 +31,14 @@ enum UserSpaceType {
     Revoke
 }
 
+enum WhiteListOpType {
+    ADD,
+    DEL,
+    ADD_COV,
+    DEL_ALL,
+    UPDATE
+}
+
 struct Setting {
     uint64 GasPrice;
     uint64 GasPerGBPerBlock;
@@ -266,4 +274,38 @@ struct OwnerChange {
 struct PriChange {
     bytes fileHash;
     uint64 privilege;
+}
+
+struct WhiteListParams {
+    bytes FileHash;
+    WhiteListOpType Op;
+    WhiteList[] List;
+}
+
+struct FileProveParams {
+    bytes FileHash;
+    bytes ProveData;
+    uint256 BlockHeight;
+    address NodeWallet;
+    uint64 Profit;
+    uint64 SectorID;
+}
+
+struct SectorProveParams {
+    address NodeAddr;
+    uint64 SectorID;
+    uint64 ChallengeHeight;
+    bytes ProveData;
+}
+
+struct UserSpaceOperation {
+    UserSpaceType Type;
+    uint64 Value;
+}
+
+struct UserSpaceParams {
+    address WalletAddr;
+    address Owner;
+    UserSpaceOperation Size;
+    UserSpaceOperation BlockCount;
 }

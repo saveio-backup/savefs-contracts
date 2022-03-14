@@ -7,28 +7,14 @@ import "./Type.sol";
 import "./FileSystem.sol";
 import "./Config.sol";
 import "./Sector.sol";
+import "./API.sol";
 
-contract Node is Initializable {
+contract Node is Initializable, INode {
     Config config;
     Sector sector;
 
     mapping(address => NodeInfo) nodesInfo; // walletAddr => NodeInfo
     address[] nodeList; // nodeAddr list
-
-    event RegisterNodeEvent(
-        FsEvent eventType,
-        uint256 blockHeight,
-        address walletAddr,
-        address nodeAddr,
-        uint64 volume,
-        uint64 serviceTime
-    );
-
-    event UnRegisterNodeEvent(
-        FsEvent eventType,
-        uint256 blockHeight,
-        address walletAddr
-    );
 
     modifier VolumeRequire(NodeInfo memory nodeInfo, Setting memory setting) {
         require(nodeInfo.Volume >= setting.MinVolume, "Volume is too small");
@@ -45,9 +31,6 @@ contract Node is Initializable {
         _;
     }
 
-    error NotEnoughPledge(uint256 got, uint256 want);
-    error ZeroProfit();
-
     function initialize(Config _config, Sector _sector) public initializer {
         config = _config;
         sector = _sector;
@@ -56,6 +39,8 @@ contract Node is Initializable {
     function CalculateNodePledge(NodeInfo memory nodeInfo)
         public
         view
+        virtual
+        override
         returns (uint64)
     {
         Setting memory setting = config.GetSetting();
@@ -65,6 +50,8 @@ contract Node is Initializable {
     function Register(NodeInfo memory nodeInfo)
         public
         payable
+        virtual
+        override
         VolumeRequire(nodeInfo, config.GetSetting())
         NodeNotRegisted(nodeInfo.WalletAddr)
     {
@@ -101,6 +88,8 @@ contract Node is Initializable {
     function NodeUpdate(NodeInfo memory nodeInfo)
         public
         payable
+        virtual
+        override
         VolumeRequire(nodeInfo, config.GetSetting())
         NodeRegisted(nodeInfo.WalletAddr)
     {
@@ -134,7 +123,12 @@ contract Node is Initializable {
         nodesInfo[nodeInfo.WalletAddr] = nodeInfo;
     }
 
-    function Cancel(address walletAddr) public NodeRegisted(walletAddr) {
+    function Cancel(address walletAddr)
+        public
+        virtual
+        override
+        NodeRegisted(walletAddr)
+    {
         NodeInfo memory nodeInfo = nodesInfo[walletAddr];
         if (nodeInfo.Pledge > 0) {
             payable(nodeInfo.WalletAddr).transfer(
@@ -157,7 +151,13 @@ contract Node is Initializable {
         emit UnRegisterNodeEvent(FsEvent.UN_REG_NODE, block.number, walletAddr);
     }
 
-    function GetNodeList() public view returns (NodeInfo[] memory) {
+    function GetNodeList()
+        public
+        view
+        virtual
+        override
+        returns (NodeInfo[] memory)
+    {
         NodeInfo[] memory _nodesInfo = new NodeInfo[](nodeList.length);
         for (uint256 i = 0; i < nodeList.length; i++) {
             _nodesInfo[i] = nodesInfo[nodeList[i]];
@@ -168,6 +168,8 @@ contract Node is Initializable {
     function GetNodeInfoByWalletAddr(address walletAddr)
         public
         view
+        virtual
+        override
         returns (NodeInfo memory)
     {
         return nodesInfo[walletAddr];
@@ -176,6 +178,8 @@ contract Node is Initializable {
     function GetNodeInfoByNodeAddr(address nodeAddr)
         public
         view
+        virtual
+        override
         returns (NodeInfo memory)
     {
         return nodesInfo[nodeAddr];
@@ -183,6 +187,8 @@ contract Node is Initializable {
 
     function WithDrawProfit(address walletAddr)
         public
+        virtual
+        override
         NodeRegisted(walletAddr)
     {
         NodeInfo memory nodeInfo = nodesInfo[walletAddr];
@@ -199,7 +205,12 @@ contract Node is Initializable {
         return nodesInfo[walletAddr].Volume != 0;
     }
 
-    function UpdateNodeInfo(NodeInfo memory nodeInfo) public payable {
+    function UpdateNodeInfo(NodeInfo memory nodeInfo)
+        public
+        payable
+        virtual
+        override
+    {
         nodesInfo[nodeInfo.WalletAddr] = nodeInfo;
     }
 

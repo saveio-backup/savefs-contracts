@@ -6,8 +6,9 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "./Type.sol";
 import "./Config.sol";
 import "./FileSystem.sol";
+import "./API.sol";
 
-contract Space is Initializable {
+contract Space is Initializable, ISpace {
     Config config;
     FileSystem fs;
 
@@ -32,22 +33,6 @@ contract Space is Initializable {
 
     mapping(address => UserSpace) userSpace; // walletAddr => UserSpace
 
-    event SetUserSpaceEvent(
-        FsEvent eventType,
-        uint256 blockHeight,
-        address walletAddr,
-        UserSpaceType sizeType,
-        uint64 size,
-        UserSpaceType countType,
-        uint64 count
-    );
-
-    error ParamsError();
-    error FirstUserSpaceOperationError();
-    error UserspaceChangeError(uint64);
-    error UserspaceDeleteError();
-    error InsufficientFunds();
-
     function initialize(Config _config, FileSystem _fs) public initializer {
         config = _config;
         fs = _fs;
@@ -56,6 +41,8 @@ contract Space is Initializable {
     function GetUserSpace(address walletAddr)
         public
         view
+        virtual
+        override
         returns (UserSpace memory)
     {
         return userSpace[walletAddr];
@@ -64,13 +51,20 @@ contract Space is Initializable {
     function GetUpdateCost(UserSpaceParams memory params)
         public
         view
+        virtual
+        override
         returns (TransferState memory)
     {
         ChangeReturn memory ret = getUserspaceChange(params);
         return ret.state;
     }
 
-    function ManageUserSpace(UserSpaceParams memory params) public payable {
+    function ManageUserSpace(UserSpaceParams memory params)
+        public
+        payable
+        virtual
+        override
+    {
         ChangeReturn memory ret = getUserspaceChange(params);
         if (ret.state.Value > 0) {
             if (ret.state.From == address(this)) {
@@ -102,7 +96,7 @@ contract Space is Initializable {
         userSpace[walletAddr] = _userSpace;
     }
 
-    function DeleteUserSpace(address walletAddr) public {
+    function DeleteUserSpace(address walletAddr) public virtual override {
         UserSpace memory _userSpace = GetUserSpace(walletAddr);
         if (_userSpace.Used == 0 && _userSpace.Balance > 0) {
             payable(walletAddr).transfer(_userSpace.Balance);
@@ -656,18 +650,6 @@ contract Space is Initializable {
         ret.state = processRet.state;
         ret.updatedFiles = processRet.updatedFiles;
         return ret;
-    }
-
-    struct UserSpaceOperation {
-        UserSpaceType Type;
-        uint64 Value;
-    }
-
-    struct UserSpaceParams {
-        address WalletAddr;
-        address Owner;
-        UserSpaceOperation Size;
-        UserSpaceOperation BlockCount;
     }
 
     function deleteExpiredUserSpace(

@@ -5,8 +5,9 @@ import "hardhat/console.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "./Type.sol";
 import "./Node.sol";
+import "./API.sol";
 
-contract Sector is Initializable {
+contract Sector is Initializable, ISector {
     struct SectorFileInfo {
         bytes FileHash;
         uint64 BlockCount;
@@ -26,33 +27,15 @@ contract Sector is Initializable {
     mapping(string => SectorFileInfoGroup) sectorFileInfoGroup; // nodeAddr + sectorId + groupId => groupId
     mapping(uint64 => SectorFileInfo[]) sectorFileInfoFileList; // GroupId => SectorFileInfo[]
 
-    event CreateSectorEvent(
-        FsEvent eventType,
-        uint256 blockHeight,
-        address walletAddr,
-        uint64 sectorId,
-        ProveLevel provLevel,
-        uint64 size,
-        bool isPlots
-    );
-
-    event DeleteSectorEvent(
-        FsEvent eventType,
-        uint256 blockHeight,
-        address walletAddr,
-        uint64 sectorId
-    );
-
-    error NotEnoughVolume(uint64 got, uint64 want);
-    error NotEmptySector(uint64 got, uint64 want);
-    error NotEnoughSpace();
-    error OpError(uint64);
-
     function initialize(Node _node) public initializer {
         node = _node;
     }
 
-    function CreateSector(SectorInfo memory sectorInfo) public {
+    function CreateSector(SectorInfo memory sectorInfo)
+        public
+        virtual
+        override
+    {
         require(sectorInfo.SectorID > 0, "sectorId is wrong");
         require(sectorInfo.Size > 0, "sector size is wrong");
         require(
@@ -93,6 +76,8 @@ contract Sector is Initializable {
     function GetSectorInfo(SectorRef memory sectorRef)
         public
         view
+        virtual
+        override
         returns (SectorInfo memory)
     {
         require(sectorRef.SectorId > 0, "sectorId must be greater than 0");
@@ -109,12 +94,14 @@ contract Sector is Initializable {
     function GetSectorsForNode(address nodeAddr)
         public
         view
+        virtual
+        override
         returns (SectorInfo[] memory)
     {
         return sectorInfos[nodeAddr];
     }
 
-    function DeleteSecotr(SectorRef memory sectorRef) public {
+    function DeleteSecotr(SectorRef memory sectorRef) public virtual override {
         SectorInfo memory sectorInfo = GetSectorInfo(sectorRef);
         if (sectorInfo.FileNum > 0) {
             revert NotEmptySector(0, sectorInfo.FileNum);
