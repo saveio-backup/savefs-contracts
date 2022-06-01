@@ -19,7 +19,7 @@ contract Sector is Initializable, ISector {
         bytes MaxFileHash;
     }
 
-    uint64 SECTOR_FILE_INFO_GROUP_MAX_LEN = 5000;
+    uint64 constant SECTOR_FILE_INFO_GROUP_MAX_LEN = 5000;
 
     Node node;
 
