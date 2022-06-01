@@ -22,9 +22,9 @@ contract FileSystem is Initializable, IFileSystem {
     Sector sector;
     Prove prove;
 
-    uint64 DEFAULT_BLOCK_INTERVAL = 5;
-    uint64 DEFAULT_PROVE_PERIOD = (3600 * 24) / DEFAULT_BLOCK_INTERVAL;
-    uint64 IN_SECTOR_SIZE = 1000 * 1000;
+    uint64 constant DEFAULT_BLOCK_INTERVAL = 5;
+    uint64 constant DEFAULT_PROVE_PERIOD = (3600 * 24) / DEFAULT_BLOCK_INTERVAL;
+    uint64 constant IN_SECTOR_SIZE = 1000 * 1000;
 
     mapping(bytes => FileInfo) fileInfos; // fileHash => FileInfo
     mapping(bytes => SectorRef[]) fileSectorRefs; // fileHash => SectorRef[]

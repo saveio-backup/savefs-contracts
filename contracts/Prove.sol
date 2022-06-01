@@ -12,7 +12,7 @@ import "./Sector.sol";
 import "./API.sol";
 
 contract Prove is Initializable, IProve {
-    uint64 SECTOR_PROVE_BLOCK_NUM = 32;
+    uint64 constant SECTOR_PROVE_BLOCK_NUM = 32;
 
     Config config;
     FileSystem fs;

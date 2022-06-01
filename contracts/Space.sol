@@ -12,23 +12,23 @@ contract Space is Initializable, ISpace {
     Config config;
     FileSystem fs;
 
-    uint64 UserSpaceOps_None_None =
+    uint64 constant UserSpaceOps_None_None =
         (uint8(UserSpaceType.None) << 4) | uint8(UserSpaceType.None);
-    uint64 UserspaceOps_None_Add =
+    uint64 constant UserspaceOps_None_Add =
         (uint8(UserSpaceType.None) << 4) | uint8(UserSpaceType.Add);
-    uint64 UserspaceOps_None_Revoke =
+    uint64 constant UserspaceOps_None_Revoke =
         (uint8(UserSpaceType.None) << 4) | uint8(UserSpaceType.Revoke);
-    uint64 UserspaceOps_Add_None =
+    uint64 constant UserspaceOps_Add_None =
         (uint8(UserSpaceType.Add) << 4) | uint8(UserSpaceType.None);
-    uint64 UserspaceOps_Add_Add =
+    uint64 constant UserspaceOps_Add_Add =
         (uint8(UserSpaceType.Add) << 4) | uint8(UserSpaceType.Add);
-    uint64 UserspaceOps_Add_Revoke =
+    uint64 constant UserspaceOps_Add_Revoke =
         (uint8(UserSpaceType.Add) << 4) | uint8(UserSpaceType.Revoke);
-    uint64 UserspaceOps_Revoke_None =
+    uint64 constant UserspaceOps_Revoke_None =
         (uint8(UserSpaceType.Revoke) << 4) | uint8(UserSpaceType.None);
-    uint64 UserspaceOps_Revoke_Add =
+    uint64 constant UserspaceOps_Revoke_Add =
         (uint8(UserSpaceType.Revoke) << 4) | uint8(UserSpaceType.Add);
-    uint64 UserspaceOps_Revoke_Revoke =
+    uint64 constant UserspaceOps_Revoke_Revoke =
         (uint8(UserSpaceType.Revoke) << 4) | uint8(UserSpaceType.Revoke);
 
     mapping(address => UserSpace) userSpace; // walletAddr => UserSpace
