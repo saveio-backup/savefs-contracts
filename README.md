@@ -2,7 +2,6 @@
 
 ## TODO
 
-- Resolve test case failed
 - Customize constant with the contractor
 
 ## Test Coverage
