@@ -319,3 +319,7 @@ struct FSConfig {
 struct ProveConfig {
     uint64 SECTOR_PROVE_BLOCK_NUM;
 }
+
+struct SectorConfig {
+    uint64 SECTOR_FILE_INFO_GROUP_MAX_LEN;
+}

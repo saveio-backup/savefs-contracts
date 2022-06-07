@@ -43,12 +43,17 @@ async function main() {
   console.log("PDP deployed to:", pdp.address);
 
   await node.initialize(config.address, sector.address);
-  await sector.initialize(node.address);
+  await sector.initialize(
+    node.address,
+    {
+      SECTOR_FILE_INFO_GROUP_MAX_LEN: 5000
+    }
+  );
   await fs.initialize(
-    config.address, 
-    node.address, 
-    space.address, 
-    sector.address, 
+    config.address,
+    node.address,
+    space.address,
+    sector.address,
     prove.address,
     {
       DEFAULT_BLOCK_INTERVAL: 5,
@@ -58,10 +63,10 @@ async function main() {
   );
   await space.initialize(config.address, fs.address);
   await prove.initialize(
-    config.address, 
-    fs.address, 
-    node.address, 
-    pdp.address, 
+    config.address,
+    fs.address,
+    node.address,
+    pdp.address,
     sector.address,
     {
       SECTOR_PROVE_BLOCK_NUM: 32

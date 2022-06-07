@@ -19,16 +19,20 @@ contract Sector is Initializable, ISector {
         bytes MaxFileHash;
     }
 
-    uint64 constant SECTOR_FILE_INFO_GROUP_MAX_LEN = 5000;
-
     Node node;
+    uint64 SECTOR_FILE_INFO_GROUP_MAX_LEN;
 
     mapping(address => SectorInfo[]) sectorInfos; // nodeAddr => SectorInfo[]
     mapping(string => SectorFileInfoGroup) sectorFileInfoGroup; // nodeAddr + sectorId + groupId => groupId
     mapping(uint64 => SectorFileInfo[]) sectorFileInfoFileList; // GroupId => SectorFileInfo[]
 
-    function initialize(Node _node) public initializer {
+    function initialize(Node _node, SectorConfig memory sectorConfig)
+        public
+        initializer
+    {
         node = _node;
+        SECTOR_FILE_INFO_GROUP_MAX_LEN = sectorConfig
+            .SECTOR_FILE_INFO_GROUP_MAX_LEN;
     }
 
     function CreateSector(SectorInfo memory sectorInfo)

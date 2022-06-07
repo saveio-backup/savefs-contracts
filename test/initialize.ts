@@ -101,13 +101,20 @@ describe(name, function () {
   });
 
   it("initialize Sector", async () => {
-    let tx = sector.initialize(node.address);
+    let tx = sector.initialize(node.address, {
+      SECTOR_FILE_INFO_GROUP_MAX_LEN: 5000
+    });
     await expect(tx).not.to.be.reverted;
   });
 
   it("initialize FileSystem", async () => {
     let tx = fs.initialize(
-      config.address, node.address, space.address, sector.address, prove.address
+      config.address, node.address, space.address, sector.address, prove.address,
+      {
+        DEFAULT_BLOCK_INTERVAL: 5,
+        DEFAULT_PROVE_PERIOD: 3600 * 24,
+        IN_SECTOR_SIZE: 1000 * 1000
+      }
     );
     await expect(tx).not.to.be.reverted;
   });
@@ -123,7 +130,10 @@ describe(name, function () {
       fs.address,
       node.address,
       pdp.address,
-      sector.address
+      sector.address,
+      {
+        SECTOR_PROVE_BLOCK_NUM: 32
+      }
     );
     await expect(tx).not.to.be.reverted;
   });
