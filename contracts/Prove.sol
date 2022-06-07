@@ -12,14 +12,13 @@ import "./Sector.sol";
 import "./API.sol";
 
 contract Prove is Initializable, IProve {
-    uint64 constant SECTOR_PROVE_BLOCK_NUM = 32;
-
     Config config;
     FileSystem fs;
     Node node;
     PDP pdp;
     Sector sector;
 
+    uint64 SECTOR_PROVE_BLOCK_NUM;
     using IterableMapping for ItMap;
 
     mapping(bytes => ItMap) proveDetails; // fileHash => nodeAddr => ProveDetail
@@ -32,13 +31,15 @@ contract Prove is Initializable, IProve {
         FileSystem _fs,
         Node _node,
         PDP _pdp,
-        Sector _sector
+        Sector _sector,
+        ProveConfig memory proveConfig
     ) public initializer {
         config = _config;
         fs = _fs;
         node = _node;
         pdp = _pdp;
         sector = _sector;
+        SECTOR_PROVE_BLOCK_NUM = proveConfig.SECTOR_PROVE_BLOCK_NUM;
     }
 
     function FileProve(FileProveParams memory fileProve)

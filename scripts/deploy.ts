@@ -44,9 +44,29 @@ async function main() {
 
   await node.initialize(config.address, sector.address);
   await sector.initialize(node.address);
-  await fs.initialize(config.address, node.address, space.address, sector.address, prove.address);
+  await fs.initialize(
+    config.address, 
+    node.address, 
+    space.address, 
+    sector.address, 
+    prove.address,
+    {
+      DEFAULT_BLOCK_INTERVAL: 5,
+      DEFAULT_PROVE_PERIOD: 3600 * 24,
+      IN_SECTOR_SIZE: 1000 * 1000
+    }
+  );
   await space.initialize(config.address, fs.address);
-  await prove.initialize(config.address, fs.address, node.address, pdp.address, sector.address);
+  await prove.initialize(
+    config.address, 
+    fs.address, 
+    node.address, 
+    pdp.address, 
+    sector.address,
+    {
+      SECTOR_PROVE_BLOCK_NUM: 32
+    }
+  );
   console.log("Initialize finished");
 
 }

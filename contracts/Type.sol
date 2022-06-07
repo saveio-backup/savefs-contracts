@@ -309,3 +309,13 @@ struct UserSpaceParams {
     UserSpaceOperation Size;
     UserSpaceOperation BlockCount;
 }
+
+struct FSConfig {
+    uint64 DEFAULT_BLOCK_INTERVAL;
+    uint64 DEFAULT_PROVE_PERIOD;
+    uint64 IN_SECTOR_SIZE;
+}
+
+struct ProveConfig {
+    uint64 SECTOR_PROVE_BLOCK_NUM;
+}
