@@ -48,10 +48,19 @@ const config: HardhatUserConfig = {
         count: 100
       }
     },
-    b: {
-      url: `http://104.225.158.242:8545/`,
-      accounts: [`97e14a3dc8f8721172090dc5a27681e8eb3e650cb43551b43f0ce4345d4748f7`]
-    }
+    Ganache: {
+      allowUnlimitedContractSize: true,
+      url: `http://127.0.0.1:7545/`,
+      accounts: [`97fdf998f0066250048ce059aac640b9432e0076a842d51c9710c0e083ed3e86`],
+    },
+    op: {
+      url: " http://localhost:8545",
+      accounts:["0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"],
+    },
+    eth: {
+      url: " http://localhost:9545",
+      accounts:["0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"],
+    },
   },
   gasReporter: {
     enabled: process.env.REPORT_GAS !== undefined,
