@@ -48,17 +48,16 @@ const config: HardhatUserConfig = {
         count: 100
       }
     },
-    Ganache: {
-      allowUnlimitedContractSize: true,
+    ganache: {
       url: `http://127.0.0.1:7545/`,
       accounts: [`97fdf998f0066250048ce059aac640b9432e0076a842d51c9710c0e083ed3e86`],
     },
     op: {
-      url: " http://localhost:8545",
+      url: "http://localhost:8545",
       accounts:["0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"],
     },
     eth: {
-      url: " http://localhost:9545",
+      url: "http://localhost:9545",
       accounts:["0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"],
     },
   },
