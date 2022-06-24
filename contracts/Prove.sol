@@ -3,13 +3,13 @@ pragma solidity ^0.8.0;
 
 import "hardhat/console.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import "./Type.sol";
+import "./type.sol";
 import "./Config.sol";
 import "./FileSystem.sol";
 import "./Node.sol";
 import "./PDP.sol";
 import "./Sector.sol";
-import "./API.sol";
+import "./interface.sol";
 
 contract Prove is Initializable, IProve {
     Config config;

@@ -3,13 +3,13 @@ pragma solidity ^0.8.0;
 
 import "hardhat/console.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import "./Type.sol";
+import "./type.sol";
 import "./Config.sol";
 import "./Node.sol";
 import "./Space.sol";
 import "./Sector.sol";
 import "./Prove.sol";
-import "./API.sol";
+import "./interface.sol";
 
 /**
  * @title FileSystem

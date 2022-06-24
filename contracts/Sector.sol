@@ -3,9 +3,9 @@ pragma solidity ^0.8.0;
 
 import "hardhat/console.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import "./Type.sol";
+import "./type.sol";
 import "./Node.sol";
-import "./API.sol";
+import "./interface.sol";
 
 contract Sector is Initializable, ISector {
     struct SectorFileInfo {
