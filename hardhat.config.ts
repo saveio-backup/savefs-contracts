@@ -43,14 +43,14 @@ const config: HardhatUserConfig = {
         process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
     },
     hardhat: {
-      // allowUnlimitedContractSize: true,
+      allowUnlimitedContractSize: true,
       accounts: {
         count: 100
       }
     },
     ganache: {
       url: `http://127.0.0.1:7545/`,
-      accounts: [`57755526edd4862b40376da46b5fb33eb52776e0398321d46dd73605a71e69aa`],
+      accounts: [`58d923527aac8f3e792f341e7e186f5aa9a8555ec7426bb639415710015460d2`],
     },
     op: {
       url: "http://localhost:8545",

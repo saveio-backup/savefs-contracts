@@ -4,13 +4,11 @@ pragma solidity ^0.8.0;
 import "hardhat/console.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "./type.sol";
-import "./Config.sol";
-import "./FileSystem.sol";
 import "./interface.sol";
 
 contract Space is Initializable, ISpace {
-    Config config;
-    FileSystem fs;
+    IConfig config;
+    IFileSystem fs;
 
     uint64 constant UserSpaceOps_None_None =
         (uint8(UserSpaceType.None) << 4) | uint8(UserSpaceType.None);
@@ -33,7 +31,7 @@ contract Space is Initializable, ISpace {
 
     mapping(address => UserSpace) userSpace; // walletAddr => UserSpace
 
-    function initialize(Config _config, FileSystem _fs) public initializer {
+    function initialize(IConfig _config, IFileSystem _fs) public initializer {
         config = _config;
         fs = _fs;
     }
@@ -92,6 +90,9 @@ contract Space is Initializable, ISpace {
 
     function UpdateUserSpace(address walletAddr, UserSpace memory _userSpace)
         public
+        payable
+        virtual
+        override
     {
         userSpace[walletAddr] = _userSpace;
     }

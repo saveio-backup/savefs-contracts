@@ -24,7 +24,7 @@ contract PDP is Initializable, IPDP {
 
     function PrepareForPdpVerification(
         PrepareForPdpVerificationParams memory pParams
-    ) public view returns (PdpVerificationReturns memory) {
+    ) public view virtual override returns (PdpVerificationReturns memory) {
         // TODO
         console.log(pParams.SectorInfo_.NodeAddr);
         PdpVerificationReturns memory pReturns;
@@ -43,6 +43,8 @@ contract PDP is Initializable, IPDP {
     function VerifyPlotData(VerifyPlotDataParams memory vParams)
         public
         view
+        virtual
+        override
         returns (bool)
     {
         // TODO

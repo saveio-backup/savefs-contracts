@@ -4,20 +4,15 @@ pragma solidity ^0.8.0;
 import "hardhat/console.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "./type.sol";
-import "./Config.sol";
-import "./FileSystem.sol";
-import "./Node.sol";
-import "./PDP.sol";
-import "./Sector.sol";
 import "./interface.sol";
 import "./IterableMapping.sol";
 
 contract Prove is Initializable, IProve {
-    Config config;
-    FileSystem fs;
-    Node node;
-    PDP pdp;
-    Sector sector;
+    IConfig config;
+    IFileSystem fs;
+    INode node;
+    IPDP pdp;
+    ISector sector;
 
     uint64 SECTOR_PROVE_BLOCK_NUM;
     using IterableMapping for ItMap;
@@ -28,11 +23,11 @@ contract Prove is Initializable, IProve {
     mapping(string => PocProve) pocProve; // miner + height => PocProve
 
     function initialize(
-        Config _config,
-        FileSystem _fs,
-        Node _node,
-        PDP _pdp,
-        Sector _sector,
+        IConfig _config,
+        IFileSystem _fs,
+        INode _node,
+        IPDP _pdp,
+        ISector _sector,
         ProveConfig memory proveConfig
     ) public initializer {
         config = _config;
@@ -268,7 +263,7 @@ contract Prove is Initializable, IProve {
     function UpdateProveDetailMeta(
         bytes memory fileHash,
         ProveDetailMeta memory details
-    ) public payable {
+    ) public payable virtual override {
         proveDetailMeta[fileHash] = details;
     }
 
@@ -283,7 +278,12 @@ contract Prove is Initializable, IProve {
         }
     }
 
-    function DeleteProveDetails(bytes memory fileHash) public payable {
+    function DeleteProveDetails(bytes memory fileHash)
+        public
+        payable
+        virtual
+        override
+    {
         delete proveDetails[fileHash];
         delete proveDetailMeta[fileHash];
     }

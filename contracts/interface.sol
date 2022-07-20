@@ -93,6 +93,54 @@ interface IFileSystem {
         external
         view
         returns (StorageFee memory);
+
+    function UpdateFileInfo(FileInfo memory f) external payable;
+
+    function CleanupForDeleteFile(
+        FileInfo memory fileInfo,
+        bool rmInfo,
+        bool rmList
+    ) external payable;
+
+    function AddFileToUnSettleList(address fileOwner, bytes memory fileHash)
+        external
+        payable;
+
+    function CalcFee(
+        Setting memory setting,
+        uint64 proveTime,
+        uint64 copyNum,
+        uint64 fileSize,
+        uint64 duration
+    ) external pure returns (StorageFee memory);
+
+    function CalcDepositFee(
+        UploadOption memory uploadOption,
+        Setting memory setting,
+        uint256 currentHeight
+    ) external pure returns (StorageFee memory);
+
+    function UpdateFilesForRenew(
+        bytes[] memory _fileList,
+        Setting memory setting,
+        uint256 newExpireHeight
+    ) external view returns (FileInfo[] memory, bool);
+
+    function DeleteExpiredFilesFromList(
+        bytes[] memory _fileList,
+        address walletAddr,
+        StorageType[] memory storageType
+    )
+        external
+        returns (
+            bytes[] memory,
+            uint64,
+            bool
+        );
+
+    function UpdateFileList(address walletAddr, bytes[] memory list)
+        external
+        payable;
 }
 
 interface IList {
@@ -149,6 +197,8 @@ interface INode {
     function UpdateNodeInfo(NodeInfo memory nodeInfo) external payable;
 
     function WithDrawProfit(address walletAddr) external;
+
+    function IsNodeRegisted(address walletAddr) external view returns (bool);
 }
 
 interface IPDP {
@@ -160,6 +210,15 @@ interface IPDP {
     function VerifyProofWithMerklePathForFile(
         VerifyProofWithMerklePathForFileParams memory vParams
     ) external view returns (bool);
+
+    function PrepareForPdpVerification(
+        PrepareForPdpVerificationParams memory pParams
+    ) external view returns (PdpVerificationReturns memory);
+
+    function VerifyPlotData(VerifyPlotDataParams memory vParams)
+        external
+        view
+        returns (bool);
 }
 
 interface IProve {
@@ -201,6 +260,13 @@ interface IProve {
         returns (ProveDetail[] memory);
 
     function SectorProve(SectorProveParams memory sectorProve) external payable;
+
+    function UpdateProveDetailMeta(
+        bytes memory fileHash,
+        ProveDetailMeta memory details
+    ) external payable;
+
+    function DeleteProveDetails(bytes memory fileHash) external payable;
 }
 
 interface ISector {
@@ -239,6 +305,22 @@ interface ISector {
         external
         view
         returns (SectorInfo[] memory);
+
+    function DeleteFileFromSector(
+        SectorInfo memory sectorInfo,
+        FileInfo memory fileInfo
+    ) external payable;
+
+    function AddFileToSector(
+        SectorInfo memory sectorInfo,
+        FileInfo memory fileInfo
+    ) external payable;
+
+    function AddSectorRefForFileInfo(SectorInfo memory sectorInfo)
+        external
+        payable;
+
+    function UpdateSectorInfo(SectorInfo memory sector) external payable;
 }
 
 interface ISpace {
@@ -271,4 +353,8 @@ interface ISpace {
         returns (UserSpace memory);
 
     function ManageUserSpace(UserSpaceParams memory params) external payable;
+
+    function UpdateUserSpace(address walletAddr, UserSpace memory _userSpace)
+        external
+        payable;
 }

@@ -4,7 +4,6 @@ pragma solidity ^0.8.0;
 import "hardhat/console.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "./type.sol";
-import "./Node.sol";
 import "./interface.sol";
 
 contract Sector is Initializable, ISector {
@@ -19,14 +18,14 @@ contract Sector is Initializable, ISector {
         bytes MaxFileHash;
     }
 
-    Node node;
+    INode node;
     uint64 SECTOR_FILE_INFO_GROUP_MAX_LEN;
 
     mapping(address => SectorInfo[]) sectorInfos; // nodeAddr => SectorInfo[]
     mapping(string => SectorFileInfoGroup) sectorFileInfoGroup; // nodeAddr + sectorId + groupId => groupId
     mapping(uint64 => SectorFileInfo[]) sectorFileInfoFileList; // GroupId => SectorFileInfo[]
 
-    function initialize(Node _node, SectorConfig memory sectorConfig)
+    function initialize(INode _node, SectorConfig memory sectorConfig)
         public
         initializer
     {
@@ -119,7 +118,12 @@ contract Sector is Initializable, ISector {
         );
     }
 
-    function UpdateSectorInfo(SectorInfo memory sector) public {
+    function UpdateSectorInfo(SectorInfo memory sector)
+        public
+        payable
+        virtual
+        override
+    {
         SectorInfo[] storage _sectorInfos = sectorInfos[sector.NodeAddr];
         for (uint64 i = 0; i < _sectorInfos.length; i++) {
             if (_sectorInfos[i].SectorID == sector.SectorID) {
@@ -133,7 +137,7 @@ contract Sector is Initializable, ISector {
     function DeleteFileFromSector(
         SectorInfo memory sectorInfo,
         FileInfo memory fileInfo
-    ) public {
+    ) public payable virtual override {
         bool groupDeleted = deleteSectorFileInfo(
             sectorInfo.NodeAddr,
             sectorInfo.SectorID,
@@ -154,7 +158,7 @@ contract Sector is Initializable, ISector {
     function AddFileToSector(
         SectorInfo memory sectorInfo,
         FileInfo memory fileInfo
-    ) public {
+    ) public payable virtual override {
         if (
             sectorInfo.Used + fileInfo.FileBlockNum * fileInfo.FileBlockSize >
             sectorInfo.Size
@@ -178,7 +182,12 @@ contract Sector is Initializable, ISector {
         UpdateSectorInfo(sectorInfo);
     }
 
-    function AddSectorRefForFileInfo(SectorInfo memory sectorInfo) public {
+    function AddSectorRefForFileInfo(SectorInfo memory sectorInfo)
+        public
+        payable
+        virtual
+        override
+    {
         bool r = isSectorRefByFileInfo(
             sectorInfo.NodeAddr,
             sectorInfo.SectorID

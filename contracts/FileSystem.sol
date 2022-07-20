@@ -4,11 +4,6 @@ pragma solidity ^0.8.0;
 import "hardhat/console.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "./type.sol";
-import "./Config.sol";
-import "./Node.sol";
-import "./Space.sol";
-import "./Sector.sol";
-import "./Prove.sol";
 import "./interface.sol";
 
 /**
@@ -16,11 +11,11 @@ import "./interface.sol";
  * @dev FileSystem contract
  */
 contract FileSystem is Initializable, IFileSystem {
-    Config config;
-    Node node;
-    Space space;
-    Sector sector;
-    Prove prove;
+    IConfig config;
+    INode node;
+    ISpace space;
+    ISector sector;
+    IProve prove;
 
     uint64 DEFAULT_BLOCK_INTERVAL;
     uint64 DEFAULT_PROVE_PERIOD;
@@ -39,11 +34,11 @@ contract FileSystem is Initializable, IFileSystem {
     }
 
     function initialize(
-        Config _config,
-        Node _node,
-        Space _space,
-        Sector _sector,
-        Prove _prove,
+        IConfig _config,
+        INode _node,
+        ISpace _space,
+        ISector _sector,
+        IProve _prove,
         FSConfig memory fsConfig
     ) public initializer {
         config = _config;
@@ -120,7 +115,7 @@ contract FileSystem is Initializable, IFileSystem {
         uint64 copyNum,
         uint64 fileSize,
         uint64 duration
-    ) public pure returns (StorageFee memory) {
+    ) public pure virtual override returns (StorageFee memory) {
         StorageFee memory fee;
         uint64 validFee = calcValidFee(setting, proveTime, copyNum, fileSize);
         uint64 storageFee = calcStorageFee(
@@ -138,7 +133,7 @@ contract FileSystem is Initializable, IFileSystem {
         UploadOption memory uploadOption,
         Setting memory setting,
         uint256 currentHeight
-    ) public pure returns (StorageFee memory) {
+    ) public pure virtual override returns (StorageFee memory) {
         uint64 proveTime = CalcProveTimesByUploadInfo(
             uploadOption,
             currentHeight
@@ -378,7 +373,7 @@ contract FileSystem is Initializable, IFileSystem {
         return fileList[walletAddr];
     }
 
-    function UpdateFileInfo(FileInfo memory f) public {
+    function UpdateFileInfo(FileInfo memory f) public payable virtual override {
         fileInfos[f.FileHash] = f;
     }
 
@@ -391,7 +386,12 @@ contract FileSystem is Initializable, IFileSystem {
         prove.DeleteProveDetails(fileHash);
     }
 
-    function UpdateFileList(address walletAddr, bytes[] memory list) public {
+    function UpdateFileList(address walletAddr, bytes[] memory list)
+        public
+        payable
+        virtual
+        override
+    {
         fileList[walletAddr] = list;
     }
 
@@ -399,7 +399,7 @@ contract FileSystem is Initializable, IFileSystem {
         bytes[] memory _fileList,
         Setting memory setting,
         uint256 newExpireHeight
-    ) public view returns (FileInfo[] memory, bool) {
+    ) public view virtual override returns (FileInfo[] memory, bool) {
         FileInfo[] memory fileInfo;
         for (uint256 i = 0; i < _fileList.length; i++) {
             FileInfo memory _fileInfo = GetFileInfo(_fileList[i]);
@@ -464,6 +464,9 @@ contract FileSystem is Initializable, IFileSystem {
 
     function AddFileToUnSettleList(address fileOwner, bytes memory fileHash)
         public
+        payable
+        virtual
+        override
     {
         unSettledFileList[fileOwner].push(fileHash);
     }
@@ -522,7 +525,7 @@ contract FileSystem is Initializable, IFileSystem {
         FileInfo memory fileInfo,
         bool rmInfo,
         bool rmList
-    ) public {
+    ) public payable virtual override {
         bytes memory fileHash = fileInfo.FileHash;
         if (rmInfo) {
             DeleteFileInfo(fileHash);
@@ -546,6 +549,8 @@ contract FileSystem is Initializable, IFileSystem {
         StorageType[] memory storageType
     )
         public
+        virtual
+        override
         returns (
             bytes[] memory,
             uint64,

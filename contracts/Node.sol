@@ -5,13 +5,11 @@ import "hardhat/console.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "./type.sol";
 import "./FileSystem.sol";
-import "./Config.sol";
-import "./Sector.sol";
 import "./interface.sol";
 
 contract Node is Initializable, INode {
-    Config config;
-    Sector sector;
+    IConfig config;
+    ISector sector;
 
     mapping(address => NodeInfo) nodesInfo; // walletAddr => NodeInfo
     address[] nodeList; // nodeAddr list
@@ -31,7 +29,7 @@ contract Node is Initializable, INode {
         _;
     }
 
-    function initialize(Config _config, Sector _sector) public initializer {
+    function initialize(IConfig _config, ISector _sector) public initializer {
         config = _config;
         sector = _sector;
     }
@@ -201,7 +199,13 @@ contract Node is Initializable, INode {
         nodesInfo[walletAddr] = nodeInfo;
     }
 
-    function IsNodeRegisted(address walletAddr) public view returns (bool) {
+    function IsNodeRegisted(address walletAddr)
+        public
+        view
+        virtual
+        override
+        returns (bool)
+    {
         return nodesInfo[walletAddr].Volume != 0;
     }
 
