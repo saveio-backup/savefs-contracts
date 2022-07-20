@@ -229,7 +229,7 @@ contract Space is Initializable, ISpace {
     function checkForFirstUserSpaceOperation(
         Setting memory setting,
         UserSpaceParams memory params
-    ) private view returns (bool) {
+    ) private pure returns (bool) {
         uint64 ops = getUserSpaceOperationsFromParams(params);
         if (ops != UserspaceOps_Add_Add) {
             return false;

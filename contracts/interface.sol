@@ -154,12 +154,12 @@ interface INode {
 interface IPDP {
     function GenChallenge(GenChallengeParams memory gParams)
         external
-        pure
+        view
         returns (Challenge[] memory);
 
     function VerifyProofWithMerklePathForFile(
         VerifyProofWithMerklePathForFileParams memory vParams
-    ) external pure returns (bool);
+    ) external view returns (bool);
 }
 
 interface IProve {
@@ -189,16 +189,18 @@ interface IProve {
     error SectorProveFailed(uint64);
     error NodeSectorProvedInTimeError();
 
-    function CheckNodeSectorProvedInTime(SectorRef memory sectorRef) external;
+    function CheckNodeSectorProvedInTime(SectorRef memory sectorRef)
+        external
+        payable;
 
-    function FileProve(FileProveParams memory fileProve) external;
+    function FileProve(FileProveParams memory fileProve) external payable;
 
     function GetProveDetailList(bytes memory fileHash)
         external
         view
         returns (ProveDetail[] memory);
 
-    function SectorProve(SectorProveParams memory sectorProve) external;
+    function SectorProve(SectorProveParams memory sectorProve) external payable;
 }
 
 interface ISector {

@@ -11,39 +11,42 @@ contract PDP is Initializable, IPDP {
 
     function GenChallenge(GenChallengeParams memory gParams)
         public
-        pure
+        view
         virtual
         override
         returns (Challenge[] memory)
     {
         // TODO
+        console.log(gParams.WalletAddr);
         Challenge[] memory challenges;
         return challenges;
     }
 
     function PrepareForPdpVerification(
         PrepareForPdpVerificationParams memory pParams
-    ) public pure returns (PdpVerificationReturns memory) {
-        PdpVerificationReturns memory pReturns;
-
+    ) public view returns (PdpVerificationReturns memory) {
         // TODO
+        console.log(pParams.SectorInfo_.NodeAddr);
+        PdpVerificationReturns memory pReturns;
         pReturns.Success = true;
         return pReturns;
     }
 
     function VerifyProofWithMerklePathForFile(
         VerifyProofWithMerklePathForFileParams memory vParams
-    ) public pure virtual override returns (bool) {
+    ) public view virtual override returns (bool) {
         // TODO
+        console.log(vParams.Version);
         return true;
     }
 
     function VerifyPlotData(VerifyPlotDataParams memory vParams)
         public
-        pure
+        view
         returns (bool)
     {
         // TODO
+        console.log(vParams.Index);
         return true;
     }
 }

@@ -45,6 +45,7 @@ contract Prove is Initializable, IProve {
 
     function FileProve(FileProveParams memory fileProve)
         public
+        payable
         virtual
         override
     {
@@ -188,6 +189,7 @@ contract Prove is Initializable, IProve {
 
     function SectorProve(SectorProveParams memory sectorProve)
         public
+        payable
         virtual
         override
     {
@@ -266,14 +268,14 @@ contract Prove is Initializable, IProve {
     function UpdateProveDetailMeta(
         bytes memory fileHash,
         ProveDetailMeta memory details
-    ) public {
+    ) public payable {
         proveDetailMeta[fileHash] = details;
     }
 
     function UpdateProveDetailList(
         bytes memory fileHash,
         ProveDetail[] memory details
-    ) public {
+    ) public payable {
         ItMap storage data = proveDetails[fileHash];
         for (uint256 i = 0; i < details.length; i++) {
             ProveDetail memory detail = details[i];
@@ -281,7 +283,7 @@ contract Prove is Initializable, IProve {
         }
     }
 
-    function DeleteProveDetails(bytes memory fileHash) public {
+    function DeleteProveDetails(bytes memory fileHash) public payable {
         delete proveDetails[fileHash];
         delete proveDetailMeta[fileHash];
     }
@@ -292,7 +294,7 @@ contract Prove is Initializable, IProve {
         ProveDetail memory detail,
         ProveDetail[] memory details,
         Setting memory setting
-    ) public {
+    ) public payable {
         uint64 profit = calculateProfitForSettle(fileInfo, detail, setting);
         if (fileInfo.Deposit < profit) {
             revert FileProveFailed(9);
@@ -364,7 +366,7 @@ contract Prove is Initializable, IProve {
         return pocProve[key];
     }
 
-    function putPocProve(PocProve memory prove) public {
+    function putPocProve(PocProve memory prove) public payable {
         string memory key = string(abi.encodePacked(prove.Miner, prove.Height));
         pocProve[key] = prove;
     }
@@ -375,6 +377,7 @@ contract Prove is Initializable, IProve {
 
     function CheckNodeSectorProvedInTime(SectorRef memory sectorRef)
         public
+        payable
         virtual
         override
     {
@@ -415,7 +418,7 @@ contract Prove is Initializable, IProve {
         address nodeAddr,
         uint64 sectorId,
         uint256 height
-    ) public {
+    ) public payable {
         punishmentHeightForNode[nodeAddr][sectorId] = height;
     }
 
@@ -581,7 +584,7 @@ contract Prove is Initializable, IProve {
         SectorInfo memory sectorInfo,
         NodeInfo memory nodeInfo,
         Setting memory setting
-    ) private returns (bool) {
+    ) public payable returns (bool) {
         for (uint256 i = 0; i < sectorInfo.FileNum; i++) {
             bytes memory fileHash = sectorInfo.FileList[i];
             FileInfo memory fileInfo = fs.GetFileInfo(fileHash);
@@ -662,4 +665,3 @@ contract Prove is Initializable, IProve {
         return punishmentHeightForNode[nodeAddr][sectorID];
     }
 }
-
