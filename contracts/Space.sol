@@ -8,7 +8,7 @@ import "./interface.sol";
 
 contract Space is Initializable, ISpace {
     IConfig config;
-    IFileSystem fs;
+    IFile fs;
 
     uint64 constant UserSpaceOps_None_None =
         (uint8(UserSpaceType.None) << 4) | uint8(UserSpaceType.None);
@@ -31,7 +31,7 @@ contract Space is Initializable, ISpace {
 
     mapping(address => UserSpace) userSpace; // walletAddr => UserSpace
 
-    function initialize(IConfig _config, IFileSystem _fs) public initializer {
+    function initialize(IConfig _config, IFile _fs) public initializer {
         config = _config;
         fs = _fs;
     }

@@ -11,7 +11,7 @@ interface IConfig {
         returns (Setting memory);
 }
 
-interface IFileSystem {
+interface IFile {
     event StoreFileEvent(
         FsEvent eventType,
         uint256 blockHeight,

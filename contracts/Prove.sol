@@ -9,7 +9,7 @@ import "./IterableMapping.sol";
 
 contract Prove is Initializable, IProve {
     IConfig config;
-    IFileSystem fs;
+    IFile fs;
     INode node;
     IPDP pdp;
     ISector sector;
@@ -24,7 +24,7 @@ contract Prove is Initializable, IProve {
 
     function initialize(
         IConfig _config,
-        IFileSystem _fs,
+        IFile _fs,
         INode _node,
         IPDP _pdp,
         ISector _sector,

@@ -34,7 +34,7 @@ All files             |     72.4 |    45.19 |    86.52 |    69.18 |             
 ## Contract size
 
 ```
-npx hardhat size-contracts 
+npx hardhat run size-contracts 
 ```
 
 Report:
