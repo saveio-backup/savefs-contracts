@@ -1,7 +1,5 @@
 import { assert, expect } from "chai";
-import { ethers } from "hardhat";
-import { FileSystem, Node, Config, Space } from "../typechain";
-import { addrs, config, fs, node, space, print } from "./initialize";
+import { addrs, file, space } from "./initialize";
 
 var path = require('path');
 var name = path.basename(__filename);
@@ -10,8 +8,8 @@ describe(name, function () {
 
   it("space 1-1", async () => {
     const tx = space.ManageUserSpace({
-      WalletAddr: addrs[62],
-      Owner: addrs[62],
+      WalletAddr: addrs[43],
+      Owner: addrs[43],
       Size: {
         Type: 1,
         Value: 1
@@ -27,9 +25,9 @@ describe(name, function () {
   });
 
   it("store file to space", async () => {
-    const tx = fs.StoreFile({
-      FileHash: [65, 66, 67, 68, 69, 70],
-      FileOwner: addrs[62],
+    const tx = file.StoreFile({
+      FileHash: [1, 2, 3],
+      FileOwner: addrs[43],
       FileDesc: [],
       Privilege: 1,
       FileBlockNum: 0,
@@ -43,11 +41,11 @@ describe(name, function () {
       ProveBlockNum: 1,
       BlockHeight: 1,
       ValidFlag: false,
+      BlocksRoot: [],
       StorageType_: 0,
       RealFileSize: 1,
       PrimaryNodes: [],
       CandidateNodes: [],
-      BlocksRoot: [],
       ProveLevel_: 1,
       IsPlotFile: false,
       PlotInfo_: {
@@ -62,24 +60,47 @@ describe(name, function () {
     await expect(tx).to.not.be.reverted;
   });
 
-  it("change file owner success", async () => {
-    const tx = fs.ChangeFileOwner({
-      FileHash: [65, 66, 67, 68, 69, 70],
-      CurOwner: addrs[62],
-      NewOwner: addrs[63]
-    });
+  it("store file to sector", async () => {
+    const tx = file.StoreFile({
+      FileHash: [1, 2, 3, 4, 5],
+      FileOwner: addrs[43],
+      FileDesc: [],
+      Privilege: 1,
+      FileBlockNum: 0,
+      FileBlockSize: 0,
+      ProveInterval: 1,
+      ProveTimes: 1,
+      ExpiredHeight: 100,
+      CopyNum: 0,
+      Deposit: 0,
+      FileProveParam: [],
+      ProveBlockNum: 1,
+      BlockHeight: 1,
+      ValidFlag: false,
+      BlocksRoot: [],
+      StorageType_: 1,
+      RealFileSize: 1,
+      PrimaryNodes: [],
+      CandidateNodes: [],
+      ProveLevel_: 1,
+      IsPlotFile: false,
+      PlotInfo_: {
+        NumberID: 1,
+        StartNonce: 1,
+        Nonces: 1,
+      }
+    }, {
+      value: 1000000
+    })
     // await print(tx)
     await expect(tx).to.not.be.reverted;
   });
 
-  it("change file owner failed", async () => {
-    const tx = fs.ChangeFileOwner({
-      FileHash: [65, 66, 67, 68, 69, 70],
-      CurOwner: addrs[64],
-      NewOwner: addrs[63]
-    });
-    // await print(tx)
-    await expect(tx).to.be.reverted;
+  it("get file list", async () => {
+    const tx = file.GetFileList(addrs[43]);
+    let res = await tx;
+    // console.log(tx)
+    assert(res.length == 2)
   });
 
 });

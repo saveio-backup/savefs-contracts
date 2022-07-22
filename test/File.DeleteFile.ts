@@ -1,7 +1,5 @@
-import { assert, expect } from "chai";
-import { ethers } from "hardhat";
-import { FileSystem, Node, Config, Space } from "../typechain";
-import { files, addrs, config, fs, node, space, print, sector } from "./initialize";
+import { expect } from "chai";
+import { files, addrs, file, node, space, sector } from "./initialize";
 
 var path = require('path');
 var name = path.basename(__filename);
@@ -27,7 +25,7 @@ describe(name, function () {
   });
 
   it("store file to space", async () => {
-    const tx = fs.StoreFile({
+    const tx = file.StoreFile({
       FileHash: files[0],
       FileOwner: addrs[67],
       FileDesc: [],
@@ -63,7 +61,7 @@ describe(name, function () {
   });
 
   it("delete file fail because space used = 0", async () => {
-    const tx = fs.DeleteFile(files[0]);
+    const tx = file.DeleteFile(files[0]);
     // await print(tx)
     await expect(tx).to.be.reverted;
   });
@@ -103,7 +101,7 @@ describe(name, function () {
   });
 
   it("store file to sector", async () => {
-    const tx = fs.StoreFile({
+    const tx = file.StoreFile({
       FileHash: files[1],
       FileOwner: addrs[67],
       FileDesc: [],
@@ -139,7 +137,7 @@ describe(name, function () {
   });
 
   it("delete file success", async () => {
-    const tx = fs.DeleteFile(files[1]);
+    const tx = file.DeleteFile(files[1]);
     // await print(tx)
     await expect(tx).to.not.be.reverted;
   });

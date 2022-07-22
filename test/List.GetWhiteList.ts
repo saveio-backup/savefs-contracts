@@ -1,7 +1,5 @@
 import { expect, assert } from "chai";
-import { ethers, network } from "hardhat";
-import { FileSystem } from "../typechain";
-import { addrs, config, fs, node, space, list } from "./initialize";
+import { addrs, list } from "./initialize";
 
 var path = require('path');
 var name = path.basename(__filename);

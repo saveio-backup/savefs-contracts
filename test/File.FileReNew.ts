@@ -1,7 +1,5 @@
 import { assert, expect } from "chai";
-import { ethers } from "hardhat";
-import { FileSystem, Node, Config, Space } from "../typechain";
-import { addrs, config, fs, node, space } from "./initialize";
+import { addrs, file } from "./initialize";
 
 var path = require('path');
 var name = path.basename(__filename);
@@ -9,7 +7,7 @@ var name = path.basename(__filename);
 describe(name, function () {
 
   it("store file", async () => {
-    const tx = fs.StoreFile({
+    const tx = file.StoreFile({
       FileHash: [1, 2, 3, 4, 5, 6, 7],
       FileOwner: addrs[65],
       FileDesc: [],
@@ -44,14 +42,14 @@ describe(name, function () {
   });
 
   it("get file info", async () => {
-    const tx = fs.GetFileInfo([1, 2, 3, 4, 5, 6, 7]);
+    const tx = file.GetFileInfo([1, 2, 3, 4, 5, 6, 7]);
     let res = await tx;
     // console.log(res)
     assert(res.ExpiredHeight.eq(10000000))
   });
 
   it("renew file", async () => {
-    const tx = fs.FileReNew({
+    const tx = file.FileReNew({
       FileHash: [1, 2, 3, 4, 5, 6, 7],
       FromAddr: addrs[25],
       ReNewTimes: 123,
@@ -63,7 +61,7 @@ describe(name, function () {
   });
 
   it("get file info again", async () => {
-    const tx = fs.GetFileInfo([1, 2, 3, 4, 5, 6, 7]);
+    const tx = file.GetFileInfo([1, 2, 3, 4, 5, 6, 7]);
     let res = await tx;
     assert(res.ExpiredHeight.eq(12125440))
   });

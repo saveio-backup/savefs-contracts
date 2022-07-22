@@ -1,7 +1,5 @@
-import { assert, expect } from "chai";
-import { ethers } from "hardhat";
-import { FileSystem, Node, Config, Space } from "../typechain";
-import { addrs, config, fs, node, space, prove, print, sector } from "./initialize";
+import { expect } from "chai";
+import { addrs, file, node, prove, sector } from "./initialize";
 
 var path = require('path');
 var name = path.basename(__filename);
@@ -44,7 +42,7 @@ describe(name, function () {
   });
 
   it("store file to sector", async () => {
-    const tx = fs.StoreFile({
+    const tx = file.StoreFile({
       FileHash: [3, 2, 1],
       FileOwner: addrs[49],
       FileDesc: [],

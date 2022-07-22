@@ -1,7 +1,5 @@
 import { assert, expect } from "chai";
-import { ethers } from "hardhat";
-import { FileSystem, Node, Config, Space } from "../typechain";
-import { addrs, config, fs, node, space, print } from "./initialize";
+import { addrs, file } from "./initialize";
 import { randomBytes } from "crypto";
 
 var path = require('path');
@@ -12,12 +10,12 @@ describe(name, function () {
   let fileHash = randomBytes(32)
 
   it("get file info fail", async () => {
-    const tx = fs.GetFileInfo(fileHash);
+    const tx = file.GetFileInfo(fileHash);
     await expect(tx).to.be.reverted;
   });
 
   it("store file", async () => {
-    const tx = fs.StoreFile({
+    const tx = file.StoreFile({
       FileHash: fileHash,
       FileOwner: addrs[66],
       FileDesc: [],
@@ -53,7 +51,7 @@ describe(name, function () {
   });
 
   it("get file info success", async () => {
-    const tx = fs.GetFileInfo(fileHash);
+    const tx = file.GetFileInfo(fileHash);
     let res = await tx
     // console.log(res)
     assert(res.FileBlockNum.eq(1))

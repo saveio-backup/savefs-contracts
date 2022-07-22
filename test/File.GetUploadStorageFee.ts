@@ -1,7 +1,5 @@
-import { assert, expect } from "chai";
-import { ethers } from "hardhat";
-import { FileSystem, Node, Config, Space } from "../typechain";
-import { print, config, fs, node, space } from "./initialize";
+import { expect } from "chai";
+import { file } from "./initialize";
 
 var path = require('path');
 var name = path.basename(__filename);
@@ -9,7 +7,7 @@ var name = path.basename(__filename);
 describe(name, function () {
 
   it(`fileSize<0`, async () => {
-    const tx = fs.GetUploadStorageFee({
+    const tx = file.GetUploadStorageFee({
       FileDesc: [],
       FileSize: 0,
       ProveInterval: 1,
@@ -36,7 +34,7 @@ describe(name, function () {
   });
 
   it(`fileSize>0 num==0`, async () => {
-    const tx = fs.GetUploadStorageFee({
+    const tx = file.GetUploadStorageFee({
       FileDesc: [],
       FileSize: 1,
       ProveInterval: 1,
@@ -63,7 +61,7 @@ describe(name, function () {
   });
 
   it(`fileSize>0 num>0`, async () => {
-    const tx = fs.GetUploadStorageFee({
+    const tx = file.GetUploadStorageFee({
       FileDesc: [],
       FileSize: 1,
       ProveInterval: 1,

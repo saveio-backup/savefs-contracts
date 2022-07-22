@@ -1,6 +1,5 @@
 import { expect, assert } from "chai";
-import { ethers, network } from "hardhat";
-import { addrs, config, fs, node, space, sector } from "./initialize";
+import { addrs, space } from "./initialize";
 
 var path = require('path');
 var name = path.basename(__filename);

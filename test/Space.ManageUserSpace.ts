@@ -1,7 +1,6 @@
-import { expect, assert } from "chai";
-import { ethers, network } from "hardhat";
+import { expect } from "chai";
 import {
-  addrs, print, config, fs, node, space, sector
+  addrs, space
 } from "./initialize";
 
 var path = require('path');

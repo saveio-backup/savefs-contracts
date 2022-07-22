@@ -1,15 +1,18 @@
 import { assert, expect } from "chai";
-import { ethers, network } from "hardhat";
+import { ethers } from "hardhat";
 import { FileSystem, Node, Config, Space } from "../typechain";
-import { addrs, config, fs, node, space } from "./initialize";
+import { config, file, node, space } from "./initialize";
 
 var path = require('path');
 var name = path.basename(__filename);
 
 describe(name, function () {
 
-  it("delete unsettled files", async () => {
-    const tx = fs.DeleteUnsettledFiles(addrs[10])
+  it("change file privilege", async () => {
+    const tx = file.ChangeFilePrivilege({
+      fileHash: [65, 66, 67, 68, 69, 70],
+      privilege: 1
+    });
     await expect(tx).to.not.be.reverted;
   });
 

@@ -1,8 +1,8 @@
-import { assert, expect } from "chai";
+import { expect } from "chai";
 import { ContractTransaction } from "ethers";
-import { ethers, network } from "hardhat";
+import { ethers } from "hardhat";
 import {
-  FileSystem, Node, Config, Sector, Space, List, Prove, PDP
+  File, Node, Config, Sector, Space, List, Prove, PDP
 } from "../typechain";
 import { randomBytes } from "crypto";
 
@@ -12,7 +12,7 @@ var name = path.basename(__filename);
 let addrs: Array<string> = [];
 let config: Config;
 let node: Node;
-let fs: FileSystem;
+let file: File;
 let sector: Sector;
 let space: Space;
 let list: List;
@@ -66,9 +66,9 @@ describe(name, function () {
   });
 
   it("Deploy FileSystem", async () => {
-    const FS = await ethers.getContractFactory("FileSystem");
-    fs = await FS.deploy();
-    let res = fs.deployed();
+    const File = await ethers.getContractFactory("File");
+    file = await File.deploy();
+    let res = file.deployed();
     await expect(res).not.to.be.reverted;
   });
 
@@ -107,8 +107,8 @@ describe(name, function () {
     await expect(tx).not.to.be.reverted;
   });
 
-  it("initialize FileSystem", async () => {
-    let tx = fs.initialize(
+  it("initialize File", async () => {
+    let tx = file.initialize(
       config.address, node.address, space.address, sector.address, prove.address,
       {
         DEFAULT_BLOCK_INTERVAL: 5,
@@ -120,14 +120,14 @@ describe(name, function () {
   });
 
   it("initialize Space", async () => {
-    let tx = space.initialize(config.address, fs.address);
+    let tx = space.initialize(config.address, file.address);
     await expect(tx).not.to.be.reverted;
   });
 
   it("initialize Prove", async () => {
     let tx = prove.initialize(
       config.address,
-      fs.address,
+      file.address,
       node.address,
       pdp.address,
       sector.address,
@@ -160,7 +160,7 @@ export {
   addrs,
   config,
   node,
-  fs,
+  file,
   sector,
   space,
   list,
