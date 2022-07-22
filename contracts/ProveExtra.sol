@@ -10,11 +10,12 @@ import "./IterableMapping.sol";
 /**
  * Slice contract from prove.sol
  */
-contract ProveProveDetail {
+contract ProveExtra {
     using IterableMapping for ItMap;
 
     mapping(bytes => ItMap) proveDetails; // fileHash => nodeAddr => ProveDetail
     mapping(bytes => ProveDetailMeta) proveDetailMeta; // fileHash => ProveDetailMeta
+    mapping(string => PocProve) pocProve; // miner + height => PocProve
 
     function GetProveDetailList(bytes memory fileHash)
         public
@@ -58,5 +59,23 @@ contract ProveProveDetail {
         ProveDetailMeta memory details
     ) public payable {
         proveDetailMeta[fileHash] = details;
+    }
+
+    function getPocProve(address nodeAddr, uint256 height)
+        public
+        view
+        returns (PocProve memory)
+    {
+        string memory key = string(abi.encodePacked(nodeAddr, height));
+        return pocProve[key];
+    }
+
+    function putPocProve(PocProve memory prove) public payable {
+        string memory key = string(abi.encodePacked(prove.Miner, prove.Height));
+        pocProve[key] = prove;
+    }
+
+    function GetPocProveList() public view returns (PocProve[] memory) {
+        // TODO
     }
 }

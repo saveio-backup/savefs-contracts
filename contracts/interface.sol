@@ -89,6 +89,39 @@ interface IFsEvent {
         UserSpaceType countType,
         uint64 count
     );
+
+    // file
+    error FileNotExist(bytes);
+    error UserspaceInsufficientBalance(uint256 got, uint256 want);
+    error UserspaceInsufficientSpace(uint256 got, uint256 want);
+    error UserspaceWrongExpiredHeight(uint256 got, uint256 want);
+    error NotEnoughTransfer(uint256 got, uint256 want);
+    error DifferenceFileOwner();
+    error InvalidProfit();
+    error OpError(uint64);
+
+    // node
+    error NotEnoughPledge(uint256 got, uint256 want);
+    error ZeroProfit();
+
+    // prove
+    error FileProveNotFileOwner();
+    error FileProveFailed(uint64);
+    error SectorProveFailed(uint64);
+    error NodeSectorProvedInTimeError();
+
+    // sector
+    error NotEnoughVolume(uint64 got, uint64 want);
+    error NotEmptySector(uint64 got, uint64 want);
+    error NotEnoughSpace();
+    error SectorOpError(uint64);
+
+    // space
+    error ParamsError();
+    error FirstUserSpaceOperationError();
+    error UserspaceChangeError(uint64);
+    error UserspaceDeleteError();
+    error InsufficientFunds();
 }
 
 interface IConfig {
@@ -101,15 +134,6 @@ interface IConfig {
 }
 
 interface IFile {
-    error FileNotExist(bytes);
-    error UserspaceInsufficientBalance(uint256 got, uint256 want);
-    error UserspaceInsufficientSpace(uint256 got, uint256 want);
-    error UserspaceWrongExpiredHeight(uint256 got, uint256 want);
-    error NotEnoughTransfer(uint256 got, uint256 want);
-    error DifferenceFileOwner();
-    error InvalidProfit();
-    error OpError(uint64);
-
     function StoreFile(FileInfo memory fileInfo) external payable;
 
     function FileReNew(FileReNewInfo memory fileReNewInfo) external payable;
@@ -218,9 +242,6 @@ interface IList {
 }
 
 interface INode {
-    error NotEnoughPledge(uint256 got, uint256 want);
-    error ZeroProfit();
-
     function CalculateNodePledge(NodeInfo memory nodeInfo)
         external
         view
@@ -272,11 +293,6 @@ interface IPDP {
 }
 
 interface IProve {
-    error FileProveNotFileOwner();
-    error FileProveFailed(uint64);
-    error SectorProveFailed(uint64);
-    error NodeSectorProvedInTimeError();
-
     function CheckNodeSectorProvedInTime(SectorRef memory sectorRef)
         external
         payable;
@@ -299,11 +315,6 @@ interface IProve {
 }
 
 interface ISector {
-    error NotEnoughVolume(uint64 got, uint64 want);
-    error NotEmptySector(uint64 got, uint64 want);
-    error NotEnoughSpace();
-    error SectorOpError(uint64);
-
     function CreateSector(SectorInfo memory sectorInfo) external;
 
     function DeleteSector(SectorRef memory sectorRef) external;
@@ -336,12 +347,6 @@ interface ISector {
 }
 
 interface ISpace {
-    error ParamsError();
-    error FirstUserSpaceOperationError();
-    error UserspaceChangeError(uint64);
-    error UserspaceDeleteError();
-    error InsufficientFunds();
-
     function DeleteUserSpace(address walletAddr) external;
 
     function GetUpdateCost(UserSpaceParams memory params)

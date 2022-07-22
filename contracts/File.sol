@@ -5,7 +5,7 @@ import "hardhat/console.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "./type.sol";
 import "./interface.sol";
-import "./Prove.sol";
+import "./FileExtra.sol";
 
 /**
  * @title FileSystem
@@ -17,22 +17,13 @@ contract File is Initializable, IFile, IFsEvent {
     ISpace space;
     ISector sector;
     IProve prove;
+    FileExtra fileExtra;
 
     uint64 DEFAULT_BLOCK_INTERVAL;
     uint64 DEFAULT_PROVE_PERIOD;
     uint64 IN_SECTOR_SIZE;
 
-    mapping(bytes => FileInfo) fileInfos; // fileHash => FileInfo
     mapping(bytes => SectorRef[]) fileSectorRefs; // fileHash => SectorRef[]
-    mapping(address => bytes[]) fileList; // walletAddr => bytes[]
-    mapping(address => bytes[]) primaryFileList; // walletAddr => bytes[]
-    mapping(address => bytes[]) candidateFileList; // walletAddr => bytes[]
-    mapping(address => bytes[]) unSettledFileList; // walletAddr => bytes[]
-
-    modifier NotEmptyFileHash(bytes memory fileHash) {
-        require(fileHash.length > 0, "fileHash must be not empty");
-        _;
-    }
 
     function initialize(
         IConfig _config,
@@ -40,7 +31,8 @@ contract File is Initializable, IFile, IFsEvent {
         ISpace _space,
         ISector _sector,
         IProve _prove,
-        FSConfig memory fsConfig
+        FSConfig memory fsConfig,
+        FileExtra _fileExtra
     ) public initializer {
         config = _config;
         node = _node;
@@ -52,62 +44,7 @@ contract File is Initializable, IFile, IFsEvent {
             fsConfig.DEFAULT_PROVE_PERIOD /
             DEFAULT_BLOCK_INTERVAL;
         IN_SECTOR_SIZE = fsConfig.IN_SECTOR_SIZE;
-    }
-
-    function CalcProveTimesByUploadInfo(
-        UploadOption memory uploadOption,
-        uint256 beginHeight
-    ) public pure returns (uint64) {
-        return
-            uint64(uploadOption.ExpiredHeight - beginHeight) /
-            uploadOption.ProveInterval +
-            1;
-    }
-
-    function calcSingleValidFeeForFile(Setting memory setting, uint64 fileSize)
-        public
-        pure
-        returns (uint64)
-    {
-        return (setting.GasForChallenge * fileSize) / 1024000;
-    }
-
-    function calcValidFeeForOneNode(
-        Setting memory setting,
-        uint64 proveTime,
-        uint64 fileSize
-    ) public pure returns (uint64) {
-        return proveTime * calcSingleValidFeeForFile(setting, fileSize);
-    }
-
-    function calcValidFee(
-        Setting memory setting,
-        uint64 proveTime,
-        uint64 copyNum,
-        uint64 fileSize
-    ) public pure returns (uint64) {
-        return
-            (copyNum + 1) *
-            calcValidFeeForOneNode(setting, proveTime, fileSize);
-    }
-
-    function calcStorageFeeForOneNode(
-        Setting memory setting,
-        uint64 fileSize,
-        uint64 duration
-    ) public pure returns (uint64) {
-        return (setting.GasPerGBPerBlock * fileSize * duration) / 1024000;
-    }
-
-    function calcStorageFee(
-        Setting memory setting,
-        uint64 copyNum,
-        uint64 fileSize,
-        uint64 duration
-    ) public pure returns (uint64) {
-        return
-            (copyNum + 1) *
-            calcStorageFeeForOneNode(setting, fileSize, duration);
+        fileExtra = _fileExtra;
     }
 
     function CalcFee(
@@ -118,8 +55,13 @@ contract File is Initializable, IFile, IFsEvent {
         uint64 duration
     ) public view virtual override returns (StorageFee memory) {
         StorageFee memory fee;
-        uint64 validFee = calcValidFee(setting, proveTime, copyNum, fileSize);
-        uint64 storageFee = calcStorageFee(
+        uint64 validFee = fileExtra.calcValidFee(
+            setting,
+            proveTime,
+            copyNum,
+            fileSize
+        );
+        uint64 storageFee = fileExtra.calcStorageFee(
             setting,
             copyNum,
             fileSize,
@@ -135,7 +77,7 @@ contract File is Initializable, IFile, IFsEvent {
         Setting memory setting,
         uint256 currentHeight
     ) public view virtual override returns (StorageFee memory) {
-        uint64 proveTime = CalcProveTimesByUploadInfo(
+        uint64 proveTime = fileExtra.CalcProveTimesByUploadInfo(
             uploadOption,
             currentHeight
         );
@@ -195,7 +137,7 @@ contract File is Initializable, IFile, IFsEvent {
         override
     {
         require(
-            fileInfos[fileInfo.FileHash].BlockHeight == 0,
+            fileExtra.GetFileInfo(fileInfo.FileHash).BlockHeight == 0,
             "file already exist"
         );
         require(fileInfo.ExpiredHeight > block.number, "file expired");
@@ -224,7 +166,7 @@ contract File is Initializable, IFile, IFsEvent {
             uploadFee.TxnFee +
             uploadFee.SpaceFee +
             uploadFee.ValidationFee;
-        fileInfo.ProveTimes = CalcProveTimesByUploadInfo(
+        fileInfo.ProveTimes = fileExtra.CalcProveTimesByUploadInfo(
             uploadOption,
             block.number
         );
@@ -263,16 +205,19 @@ contract File is Initializable, IFile, IFsEvent {
         fileInfo.ProveBlockNum = setting.MaxProveBlockNum;
         fileInfo.BlockHeight = block.number;
         // store file
-        fileInfos[fileInfo.FileHash] = fileInfo;
-        bytes[] storage list = fileList[fileInfo.FileOwner];
-        list.push(fileInfo.FileHash);
+        fileExtra.UpdateFileInfo(fileInfo);
+        fileExtra.AddFileToFileList(fileInfo.FileOwner, fileInfo.FileHash);
         for (uint256 i = 0; i < fileInfo.PrimaryNodes.length; i++) {
-            bytes[] storage p = fileList[fileInfo.PrimaryNodes[i]];
-            p.push(fileInfo.FileHash);
+            fileExtra.AddFileToPrimaryList(
+                fileInfo.PrimaryNodes[i],
+                fileInfo.FileHash
+            );
         }
         for (uint256 i = 0; i < fileInfo.CandidateNodes.length; i++) {
-            bytes[] storage p = fileList[fileInfo.CandidateNodes[i]];
-            p.push(fileInfo.FileHash);
+            fileExtra.AddFileToCandidateList(
+                fileInfo.CandidateNodes[i],
+                fileInfo.FileHash
+            );
         }
         ProveDetailMeta memory _proveDetailMeta;
         _proveDetailMeta.CopyNum = fileInfo.CopyNum;
@@ -296,20 +241,23 @@ contract File is Initializable, IFile, IFsEvent {
         override
     {
         require(
-            fileInfos[fileReNewInfo.FileHash].BlockHeight > 0,
+            fileExtra.GetFileInfo(fileReNewInfo.FileHash).BlockHeight > 0,
             "file not exist"
         );
         require(
-            fileInfos[fileReNewInfo.FileHash].StorageType_ ==
+            fileExtra.GetFileInfo(fileReNewInfo.FileHash).StorageType_ ==
                 StorageType.Professional,
             "file type error"
         );
         require(
-            fileInfos[fileReNewInfo.FileHash].ExpiredHeight > block.number,
+            fileExtra.GetFileInfo(fileReNewInfo.FileHash).ExpiredHeight >
+                block.number,
             "file expired"
         );
         Setting memory setting = config.GetSetting();
-        FileInfo memory fileInfo = fileInfos[fileReNewInfo.FileHash];
+        FileInfo memory fileInfo = fileExtra.GetFileInfo(
+            fileReNewInfo.FileHash
+        );
         StorageFee memory totalRenew = CalcFee(
             setting,
             fileReNewInfo.ReNewTimes,
@@ -326,7 +274,7 @@ contract File is Initializable, IFile, IFsEvent {
         fileInfo.ExpiredHeight +=
             fileInfo.ProveInterval *
             fileReNewInfo.ReNewTimes;
-        fileInfos[fileReNewInfo.FileHash] = fileInfo;
+        fileExtra.UpdateFileInfo(fileInfo);
     }
 
     function GetFileInfo(bytes memory fileHash)
@@ -334,14 +282,9 @@ contract File is Initializable, IFile, IFsEvent {
         view
         virtual
         override
-        NotEmptyFileHash(fileHash)
         returns (FileInfo memory)
     {
-        FileInfo memory fileInfo = fileInfos[fileHash];
-        if (fileInfo.FileHash.length == 0) {
-            revert FileNotExist(fileHash);
-        }
-        return fileInfo;
+        return fileExtra.GetFileInfo(fileHash);
     }
 
     function GetFileInfos(bytes[] memory _fileList)
@@ -351,17 +294,7 @@ contract File is Initializable, IFile, IFsEvent {
         override
         returns (FileInfo[] memory)
     {
-        require(_fileList.length > 0, "fileList is empty");
-        FileInfo[] memory _fileInfos = new FileInfo[](_fileList.length);
-        for (uint256 i = 0; i < _fileList.length; i++) {
-            bytes memory fileHash = _fileList[i];
-            FileInfo memory fileInfo = fileInfos[fileHash];
-            if (fileInfo.FileHash.length == 0) {
-                revert FileNotExist(fileHash);
-            }
-            _fileInfos[i] = fileInfos[fileHash];
-        }
-        return _fileInfos;
+        return fileExtra.GetFileInfos(_fileList);
     }
 
     function GetFileList(address walletAddr)
@@ -371,19 +304,19 @@ contract File is Initializable, IFile, IFsEvent {
         override
         returns (bytes[] memory)
     {
-        return fileList[walletAddr];
+        return fileExtra.GetFileList(walletAddr);
     }
 
     function UpdateFileInfo(FileInfo memory f) public payable virtual override {
-        fileInfos[f.FileHash] = f;
+        fileExtra.UpdateFileInfo(f);
     }
 
     function DeleteFileInfo(bytes memory fileHash) public {
-        delete fileInfos[fileHash];
+        fileExtra.DeleteFileInfo(fileHash);
     }
 
     function deleteProveDetails(bytes memory fileHash) public {
-        delete fileInfos[fileHash];
+        fileExtra.DeleteFileInfo(fileHash);
         prove.DeleteProveDetails(fileHash);
     }
 
@@ -393,7 +326,7 @@ contract File is Initializable, IFile, IFsEvent {
         virtual
         override
     {
-        fileList[walletAddr] = list;
+        fileExtra.UpdateFileList(walletAddr, list);
     }
 
     function UpdateFilesForRenew(
@@ -446,7 +379,7 @@ contract File is Initializable, IFile, IFsEvent {
             return false;
         }
         fileInfo.Deposit = newDepositSum;
-        fileInfo.ProveTimes = CalcProveTimesByUploadInfo(
+        fileInfo.ProveTimes = fileExtra.CalcProveTimesByUploadInfo(
             uploadOpt,
             beginHeight
         );
@@ -460,7 +393,7 @@ contract File is Initializable, IFile, IFsEvent {
         override
         returns (bytes[] memory)
     {
-        return unSettledFileList[walletAddr];
+        return fileExtra.GetUnSettledFileList(walletAddr);
     }
 
     function AddFileToUnSettleList(address fileOwner, bytes memory fileHash)
@@ -469,57 +402,7 @@ contract File is Initializable, IFile, IFsEvent {
         virtual
         override
     {
-        unSettledFileList[fileOwner].push(fileHash);
-    }
-
-    function DelFileFromUnSettledList(address walletAddr, bytes memory fileHash)
-        public
-    {
-        for (uint256 i = 0; i < unSettledFileList[walletAddr].length; i++) {
-            if (
-                keccak256(unSettledFileList[walletAddr][i]) ==
-                keccak256(fileHash)
-            ) {
-                delete unSettledFileList[walletAddr][i];
-                break;
-            }
-        }
-    }
-
-    function DelFileFromList(address walletAddr, bytes memory fileHash) public {
-        for (uint256 i = 0; i < fileList[walletAddr].length; i++) {
-            if (keccak256(fileList[walletAddr][i]) == keccak256(fileHash)) {
-                delete fileList[walletAddr][i];
-                break;
-            }
-        }
-    }
-
-    function DelFileFromPrimaryList(address walletAddr, bytes memory fileHash)
-        public
-    {
-        for (uint256 i = 0; i < primaryFileList[walletAddr].length; i++) {
-            if (
-                keccak256(primaryFileList[walletAddr][i]) == keccak256(fileHash)
-            ) {
-                delete primaryFileList[walletAddr][i];
-                break;
-            }
-        }
-    }
-
-    function DelFileFromCandidateList(address walletAddr, bytes memory fileHash)
-        public
-    {
-        for (uint256 i = 0; i < candidateFileList[walletAddr].length; i++) {
-            if (
-                keccak256(candidateFileList[walletAddr][i]) ==
-                keccak256(fileHash)
-            ) {
-                delete candidateFileList[walletAddr][i];
-                break;
-            }
-        }
+        fileExtra.AddFileToUnSettleList(fileOwner, fileHash);
     }
 
     function CleanupForDeleteFile(
@@ -531,15 +414,21 @@ contract File is Initializable, IFile, IFsEvent {
         if (rmInfo) {
             DeleteFileInfo(fileHash);
             deleteProveDetails(fileHash);
-            DelFileFromUnSettledList(fileInfo.FileOwner, fileHash);
+            fileExtra.DelFileFromUnSettledList(fileInfo.FileOwner, fileHash);
         }
         if (rmList) {
-            DelFileFromList(fileInfo.FileOwner, fileHash);
+            fileExtra.DelFileFromList(fileInfo.FileOwner, fileHash);
             for (uint256 i = 0; i < fileInfo.PrimaryNodes.length; i++) {
-                DelFileFromPrimaryList(fileInfo.PrimaryNodes[i], fileHash);
+                fileExtra.DelFileFromPrimaryList(
+                    fileInfo.PrimaryNodes[i],
+                    fileHash
+                );
             }
             for (uint256 i = 0; i < fileInfo.CandidateNodes.length; i++) {
-                DelFileFromCandidateList(fileInfo.CandidateNodes[i], fileHash);
+                fileExtra.DelFileFromCandidateList(
+                    fileInfo.CandidateNodes[i],
+                    fileHash
+                );
             }
         }
     }
@@ -606,13 +495,13 @@ contract File is Initializable, IFile, IFsEvent {
             sType
         );
         for (uint256 i = 0; i < deletedFiles.length; i++) {
-            bytes[] memory list = unSettledFileList[walletAddr];
+            bytes[] memory list = GetUnSettledFileList(walletAddr);
             for (uint256 j = 0; j < list.length; j++) {
                 if (keccak256(list[j]) == keccak256(deletedFiles[i])) {
                     delete list[j];
                 }
             }
-            unSettledFileList[walletAddr] = list;
+            fileExtra.UpdateUnSettleList(walletAddr, list);
         }
     }
 
@@ -623,7 +512,7 @@ contract File is Initializable, IFile, IFsEvent {
         override
         returns (bytes[] memory)
     {
-        bytes[] memory list = primaryFileList[walletAddr];
+        bytes[] memory list = fileExtra.GetPrimaryFiles(walletAddr);
         bytes[] memory unProvePrimaryFiles = new bytes[](list.length);
         uint64 n = 0;
         for (uint256 i = 0; i < list.length; i++) {
@@ -651,7 +540,7 @@ contract File is Initializable, IFile, IFsEvent {
         override
         returns (bytes[] memory)
     {
-        bytes[] memory list = candidateFileList[walletAddr];
+        bytes[] memory list = fileExtra.GetCandidateFiles(walletAddr);
         bytes[] memory unProveCandidateFiles = new bytes[](list.length);
         uint64 n = 0;
         for (uint256 i = 0; i < list.length; i++) {
@@ -727,7 +616,7 @@ contract File is Initializable, IFile, IFsEvent {
             );
             uint64 restProfit = fileInfo.Deposit;
             uint64 fileSize = fileInfo.FileBlockNum * fileInfo.FileBlockSize;
-            uint64 singleProveProfit = calcSingleValidFeeForFile(
+            uint64 singleProveProfit = fileExtra.calcSingleValidFeeForFile(
                 setting,
                 fileSize
             );
@@ -737,7 +626,7 @@ contract File is Initializable, IFile, IFsEvent {
                 );
                 uint64 validProfit = (details[j].ProveTimes - 1) *
                     singleProveProfit;
-                uint64 storageProfit = calcStorageFeeForOneNode(
+                uint64 storageProfit = fileExtra.calcStorageFeeForOneNode(
                     setting,
                     fileSize,
                     uint64(block.number - fileInfo.BlockHeight)

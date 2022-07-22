@@ -6,8 +6,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "./type.sol";
 import "./interface.sol";
 import "./IterableMapping.sol";
-import "./ProvePocProve.sol";
-import "./ProveProveDetail.sol";
+import "./ProveExtra.sol";
 
 contract Prove is Initializable, IProve, IFsEvent {
     IConfig config;
@@ -15,8 +14,7 @@ contract Prove is Initializable, IProve, IFsEvent {
     INode node;
     IPDP pdp;
     ISector sector;
-    ProvePocProve pocProve;
-    ProveProveDetail proveDetail;
+    ProveExtra proveExtra;
 
     uint64 SECTOR_PROVE_BLOCK_NUM;
 
@@ -29,8 +27,7 @@ contract Prove is Initializable, IProve, IFsEvent {
         IPDP _pdp,
         ISector _sector,
         ProveConfig memory proveConfig,
-        ProvePocProve _pocProve,
-        ProveProveDetail _proveDetail
+        ProveExtra _proveExtra
     ) public initializer {
         config = _config;
         fs = _fs;
@@ -38,8 +35,7 @@ contract Prove is Initializable, IProve, IFsEvent {
         pdp = _pdp;
         sector = _sector;
         SECTOR_PROVE_BLOCK_NUM = proveConfig.SECTOR_PROVE_BLOCK_NUM;
-        pocProve = _pocProve;
-        proveDetail = _proveDetail;
+        proveExtra = _proveExtra;
     }
 
     function FileProve(FileProveParams memory fileProve)
@@ -231,14 +227,14 @@ contract Prove is Initializable, IProve, IFsEvent {
             revert SectorProveFailed(4);
         }
         // poc prove
-        PocProve memory _pocProve = pocProve.getPocProve(
+        PocProve memory _pocProve = proveExtra.getPocProve(
             sectorInfo.NodeAddr,
             block.number
         );
         _pocProve.Height = block.number;
         _pocProve.Miner = sectorInfo.NodeAddr;
         _pocProve.PlotSize = sectorInfo.Used;
-        pocProve.putPocProve(_pocProve);
+        proveExtra.putPocProve(_pocProve);
     }
 
     function GetProveDetailList(bytes memory fileHash)
@@ -248,14 +244,14 @@ contract Prove is Initializable, IProve, IFsEvent {
         override
         returns (ProveDetail[] memory)
     {
-        return proveDetail.GetProveDetailList(fileHash);
+        return proveExtra.GetProveDetailList(fileHash);
     }
 
     function UpdateProveDetailList(
         bytes memory fileHash,
         ProveDetail[] memory details
     ) public payable {
-        proveDetail.UpdateProveDetailList(fileHash, details);
+        proveExtra.UpdateProveDetailList(fileHash, details);
     }
 
     function DeleteProveDetails(bytes memory fileHash)
@@ -264,14 +260,14 @@ contract Prove is Initializable, IProve, IFsEvent {
         virtual
         override
     {
-        proveDetail.DeleteProveDetails(fileHash);
+        proveExtra.DeleteProveDetails(fileHash);
     }
 
     function UpdateProveDetailMeta(
         bytes memory fileHash,
         ProveDetailMeta memory details
     ) public payable virtual override {
-        proveDetail.UpdateProveDetailMeta(fileHash, details);
+        proveExtra.UpdateProveDetailMeta(fileHash, details);
     }
 
     function SettleForFile(
