@@ -6,7 +6,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "./type.sol";
 import "./interface.sol";
 
-contract Config is Initializable, IConfig {
+contract Config is Initializable, IConfig, IFsEvent {
     function GetSetting()
         public
         pure
@@ -31,7 +31,7 @@ contract Config is Initializable, IConfig {
 
     function GetProveIntervalByProveLevel(ProveLevel proveLevel)
         internal
-        pure
+        view
         returns (uint64)
     {
         Setting memory setting = GetSetting();
@@ -49,7 +49,7 @@ contract Config is Initializable, IConfig {
 
     function GetSettingWithProveLevel(ProveLevel proveLevel)
         public
-        pure
+        view
         virtual
         override
         returns (Setting memory)

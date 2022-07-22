@@ -7,7 +7,7 @@ import "./type.sol";
 import "./FileSystem.sol";
 import "./interface.sol";
 
-contract Node is Initializable, INode {
+contract Node is Initializable, INode, IFsEvent {
     IConfig config;
     ISector sector;
 
@@ -139,7 +139,7 @@ contract Node is Initializable, INode {
             nodeInfo.NodeAddr
         );
         for (uint256 i = 0; i < sectorInfos.length; i++) {
-            sector.DeleteSecotr(
+            sector.DeleteSector(
                 SectorRef({
                     NodeAddr: nodeInfo.NodeAddr,
                     SectorId: sectorInfos[i].SectorID

@@ -6,7 +6,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "./type.sol";
 import "./interface.sol";
 
-contract List is Initializable, IList {
+contract List is Initializable, IList, IFsEvent {
     mapping(bytes => WhiteList[]) whiteList; // fileHash => whileList
 
     function initialize() public initializer {}

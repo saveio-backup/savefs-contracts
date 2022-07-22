@@ -11,7 +11,7 @@ import "./Prove.sol";
  * @title FileSystem
  * @dev FileSystem contract
  */
-contract File is Initializable, IFile {
+contract File is Initializable, IFile, IFsEvent {
     IConfig config;
     INode node;
     ISpace space;
@@ -116,7 +116,7 @@ contract File is Initializable, IFile {
         uint64 copyNum,
         uint64 fileSize,
         uint64 duration
-    ) public pure virtual override returns (StorageFee memory) {
+    ) public view virtual override returns (StorageFee memory) {
         StorageFee memory fee;
         uint64 validFee = calcValidFee(setting, proveTime, copyNum, fileSize);
         uint64 storageFee = calcStorageFee(
@@ -134,7 +134,7 @@ contract File is Initializable, IFile {
         UploadOption memory uploadOption,
         Setting memory setting,
         uint256 currentHeight
-    ) public pure virtual override returns (StorageFee memory) {
+    ) public view virtual override returns (StorageFee memory) {
         uint64 proveTime = CalcProveTimesByUploadInfo(
             uploadOption,
             currentHeight
@@ -153,7 +153,7 @@ contract File is Initializable, IFile {
         UploadOption memory uploadOption,
         Setting memory setting,
         uint256 currentHeight
-    ) public pure returns (StorageFee memory) {
+    ) public view returns (StorageFee memory) {
         uint64 fee;
         uint64 txGas = 10000000;
         if (uploadOption.WhiteList_.length > 0) {
@@ -426,7 +426,7 @@ contract File is Initializable, IFile {
         Setting memory setting,
         uint256 newExpireHeight,
         FileInfo memory fileInfo
-    ) public pure returns (bool) {
+    ) public view returns (bool) {
         fileInfo.ExpiredHeight = newExpireHeight;
         UploadOption memory uploadOpt;
         uploadOpt.ExpiredHeight = fileInfo.ExpiredHeight;

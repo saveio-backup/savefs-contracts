@@ -2,16 +2,8 @@
 pragma solidity ^0.8.0;
 import "./type.sol";
 
-interface IConfig {
-    function GetSetting() external pure returns (Setting memory);
-
-    function GetSettingWithProveLevel(ProveLevel proveLevel)
-        external
-        pure
-        returns (Setting memory);
-}
-
-interface IFile {
+interface IFsEvent {
+    // file
     event StoreFileEvent(
         FsEvent eventType,
         uint256 blockHeight,
@@ -36,6 +28,79 @@ interface IFile {
         address walletAddr
     );
 
+    // node
+    event RegisterNodeEvent(
+        FsEvent eventType,
+        uint256 blockHeight,
+        address walletAddr,
+        address nodeAddr,
+        uint64 volume,
+        uint64 serviceTime
+    );
+
+    event UnRegisterNodeEvent(
+        FsEvent eventType,
+        uint256 blockHeight,
+        address walletAddr
+    );
+
+    // prove
+    event FilePDPSuccessEvent(
+        FsEvent eventType,
+        uint256 blockHeight,
+        bytes fileHash,
+        address walletAddr
+    );
+
+    event ProveFileEvent(
+        FsEvent eventType,
+        uint256 blockHeight,
+        address walletAddr,
+        uint64 profit
+    );
+
+    // sector
+
+    event CreateSectorEvent(
+        FsEvent eventType,
+        uint256 blockHeight,
+        address walletAddr,
+        uint64 sectorId,
+        ProveLevel provLevel,
+        uint64 size,
+        bool isPlots
+    );
+
+    event DeleteSectorEvent(
+        FsEvent eventType,
+        uint256 blockHeight,
+        address walletAddr,
+        uint64 sectorId
+    );
+
+    // space
+
+    event SetUserSpaceEvent(
+        FsEvent eventType,
+        uint256 blockHeight,
+        address walletAddr,
+        UserSpaceType sizeType,
+        uint64 size,
+        UserSpaceType countType,
+        uint64 count
+    );
+}
+
+interface IConfig {
+    function GetSetting() external view returns (Setting memory);
+
+    function GetSettingWithProveLevel(ProveLevel proveLevel)
+        external
+        view
+        returns (Setting memory);
+}
+
+interface IFile {
     error FileNotExist(bytes);
     error UserspaceInsufficientBalance(uint256 got, uint256 want);
     error UserspaceInsufficientSpace(uint256 got, uint256 want);
@@ -112,13 +177,13 @@ interface IFile {
         uint64 copyNum,
         uint64 fileSize,
         uint64 duration
-    ) external pure returns (StorageFee memory);
+    ) external view returns (StorageFee memory);
 
     function CalcDepositFee(
         UploadOption memory uploadOption,
         Setting memory setting,
         uint256 currentHeight
-    ) external pure returns (StorageFee memory);
+    ) external view returns (StorageFee memory);
 
     function UpdateFilesForRenew(
         bytes[] memory _fileList,
@@ -153,21 +218,6 @@ interface IList {
 }
 
 interface INode {
-    event RegisterNodeEvent(
-        FsEvent eventType,
-        uint256 blockHeight,
-        address walletAddr,
-        address nodeAddr,
-        uint64 volume,
-        uint64 serviceTime
-    );
-
-    event UnRegisterNodeEvent(
-        FsEvent eventType,
-        uint256 blockHeight,
-        address walletAddr
-    );
-
     error NotEnoughPledge(uint256 got, uint256 want);
     error ZeroProfit();
 
@@ -222,27 +272,6 @@ interface IPDP {
 }
 
 interface IProve {
-    event FilePDPSuccessEvent(
-        FsEvent eventType,
-        uint256 blockHeight,
-        bytes fileHash,
-        address walletAddr
-    );
-
-    event ProveFileEvent(
-        FsEvent eventType,
-        uint256 blockHeight,
-        address walletAddr,
-        uint64 profit
-    );
-
-    event DeleteFileEvent(
-        FsEvent eventType,
-        uint256 blockHeight,
-        bytes fileHash,
-        address walletAddr
-    );
-
     error FileProveNotFileOwner();
     error FileProveFailed(uint64);
     error SectorProveFailed(uint64);
@@ -270,31 +299,14 @@ interface IProve {
 }
 
 interface ISector {
-    event CreateSectorEvent(
-        FsEvent eventType,
-        uint256 blockHeight,
-        address walletAddr,
-        uint64 sectorId,
-        ProveLevel provLevel,
-        uint64 size,
-        bool isPlots
-    );
-
-    event DeleteSectorEvent(
-        FsEvent eventType,
-        uint256 blockHeight,
-        address walletAddr,
-        uint64 sectorId
-    );
-
     error NotEnoughVolume(uint64 got, uint64 want);
     error NotEmptySector(uint64 got, uint64 want);
     error NotEnoughSpace();
-    error OpError(uint64);
+    error SectorOpError(uint64);
 
     function CreateSector(SectorInfo memory sectorInfo) external;
 
-    function DeleteSecotr(SectorRef memory sectorRef) external;
+    function DeleteSector(SectorRef memory sectorRef) external;
 
     function GetSectorInfo(SectorRef memory sectorRef)
         external
@@ -324,16 +336,6 @@ interface ISector {
 }
 
 interface ISpace {
-    event SetUserSpaceEvent(
-        FsEvent eventType,
-        uint256 blockHeight,
-        address walletAddr,
-        UserSpaceType sizeType,
-        uint64 size,
-        UserSpaceType countType,
-        uint64 count
-    );
-
     error ParamsError();
     error FirstUserSpaceOperationError();
     error UserspaceChangeError(uint64);

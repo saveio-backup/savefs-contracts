@@ -6,7 +6,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "./type.sol";
 import "./interface.sol";
 
-contract Sector is Initializable, ISector {
+contract Sector is Initializable, ISector, IFsEvent {
     struct SectorFileInfo {
         bytes FileHash;
         uint64 BlockCount;
@@ -104,7 +104,7 @@ contract Sector is Initializable, ISector {
         return sectorInfos[nodeAddr];
     }
 
-    function DeleteSecotr(SectorRef memory sectorRef) public virtual override {
+    function DeleteSector(SectorRef memory sectorRef) public virtual override {
         SectorInfo memory sectorInfo = GetSectorInfo(sectorRef);
         if (sectorInfo.FileNum > 0) {
             revert NotEmptySector(0, sectorInfo.FileNum);
@@ -193,7 +193,7 @@ contract Sector is Initializable, ISector {
             sectorInfo.SectorID
         );
         if (!r) {
-            revert OpError(3);
+            revert SectorOpError(3);
         }
         AddSectorInfo(sectorInfo.NodeAddr, sectorInfo);
     }

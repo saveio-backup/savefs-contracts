@@ -6,7 +6,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "./type.sol";
 import "./interface.sol";
 
-contract PDP is Initializable, IPDP {
+contract PDP is Initializable, IPDP, IFsEvent {
     function initialize() public initializer {}
 
     function GenChallenge(GenChallengeParams memory gParams)

@@ -6,7 +6,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "./type.sol";
 import "./interface.sol";
 
-contract Space is Initializable, ISpace {
+contract Space is Initializable, ISpace, IFsEvent {
     IConfig config;
     IFile fs;
 

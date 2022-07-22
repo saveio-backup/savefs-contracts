@@ -7,7 +7,7 @@ import "./type.sol";
 import "./interface.sol";
 import "./IterableMapping.sol";
 
-contract Prove is Initializable, IProve {
+contract Prove is Initializable, IProve, IFsEvent {
     IConfig config;
     IFile fs;
     INode node;

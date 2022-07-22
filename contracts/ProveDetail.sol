@@ -8,5 +8,5 @@ import "./interface.sol";
 import "./IterableMapping.sol";
 
 // contract ProveDetail {
-    
+
 // }

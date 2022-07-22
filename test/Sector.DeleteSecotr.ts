@@ -9,7 +9,7 @@ var name = path.basename(__filename);
 describe(name, () => {
 
   it("delete sector", async () => {
-    const tx = sector.DeleteSecotr({
+    const tx = sector.DeleteSector({
       NodeAddr: addrs[70],
       SectorId: "100",
     });
