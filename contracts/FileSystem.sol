@@ -7,6 +7,10 @@ import "./type.sol";
 import "./interface.sol";
 import "./IterableMapping.sol";
 
+/**
+ * This contract as Main enter but can't use because
+ * code size large than 24 KB.
+ */
 contract FileSystem is
     Initializable,
     IConfig,

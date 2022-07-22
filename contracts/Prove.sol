@@ -6,6 +6,8 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "./type.sol";
 import "./interface.sol";
 import "./IterableMapping.sol";
+import "./ProvePocProve.sol";
+import "./ProveProveDetail.sol";
 
 contract Prove is Initializable, IProve, IFsEvent {
     IConfig config;
@@ -13,14 +15,12 @@ contract Prove is Initializable, IProve, IFsEvent {
     INode node;
     IPDP pdp;
     ISector sector;
+    ProvePocProve pocProve;
+    ProveProveDetail proveDetail;
 
     uint64 SECTOR_PROVE_BLOCK_NUM;
-    using IterableMapping for ItMap;
 
-    mapping(bytes => ItMap) proveDetails; // fileHash => nodeAddr => ProveDetail
-    mapping(bytes => ProveDetailMeta) proveDetailMeta; // fileHash => ProveDetailMeta
     mapping(address => mapping(uint64 => uint256)) punishmentHeightForNode;
-    mapping(string => PocProve) pocProve; // miner + height => PocProve
 
     function initialize(
         IConfig _config,
@@ -28,7 +28,9 @@ contract Prove is Initializable, IProve, IFsEvent {
         INode _node,
         IPDP _pdp,
         ISector _sector,
-        ProveConfig memory proveConfig
+        ProveConfig memory proveConfig,
+        ProvePocProve _pocProve,
+        ProveProveDetail _proveDetail
     ) public initializer {
         config = _config;
         fs = _fs;
@@ -36,6 +38,8 @@ contract Prove is Initializable, IProve, IFsEvent {
         pdp = _pdp;
         sector = _sector;
         SECTOR_PROVE_BLOCK_NUM = proveConfig.SECTOR_PROVE_BLOCK_NUM;
+        pocProve = _pocProve;
+        proveDetail = _proveDetail;
     }
 
     function FileProve(FileProveParams memory fileProve)
@@ -227,14 +231,14 @@ contract Prove is Initializable, IProve, IFsEvent {
             revert SectorProveFailed(4);
         }
         // poc prove
-        PocProve memory _pocProve = getPocProve(
+        PocProve memory _pocProve = pocProve.getPocProve(
             sectorInfo.NodeAddr,
             block.number
         );
         _pocProve.Height = block.number;
         _pocProve.Miner = sectorInfo.NodeAddr;
         _pocProve.PlotSize = sectorInfo.Used;
-        putPocProve(_pocProve);
+        pocProve.putPocProve(_pocProve);
     }
 
     function GetProveDetailList(bytes memory fileHash)
@@ -244,38 +248,14 @@ contract Prove is Initializable, IProve, IFsEvent {
         override
         returns (ProveDetail[] memory)
     {
-        ItMap storage data = proveDetails[fileHash];
-        ProveDetail[] memory result = new ProveDetail[](data.size);
-        if (data.size == 0) {
-            return result;
-        }
-        for (
-            uint256 i = data.iterate_start();
-            data.iterate_valid(i);
-            i = data.iterate_next(i)
-        ) {
-            (, ProveDetail memory value) = data.iterate_get(i);
-            result[i] = value;
-        }
-        return result;
-    }
-
-    function UpdateProveDetailMeta(
-        bytes memory fileHash,
-        ProveDetailMeta memory details
-    ) public payable virtual override {
-        proveDetailMeta[fileHash] = details;
+        return proveDetail.GetProveDetailList(fileHash);
     }
 
     function UpdateProveDetailList(
         bytes memory fileHash,
         ProveDetail[] memory details
     ) public payable {
-        ItMap storage data = proveDetails[fileHash];
-        for (uint256 i = 0; i < details.length; i++) {
-            ProveDetail memory detail = details[i];
-            data.insert(detail.NodeAddr, detail);
-        }
+        proveDetail.UpdateProveDetailList(fileHash, details);
     }
 
     function DeleteProveDetails(bytes memory fileHash)
@@ -284,8 +264,14 @@ contract Prove is Initializable, IProve, IFsEvent {
         virtual
         override
     {
-        delete proveDetails[fileHash];
-        delete proveDetailMeta[fileHash];
+        proveDetail.DeleteProveDetails(fileHash);
+    }
+
+    function UpdateProveDetailMeta(
+        bytes memory fileHash,
+        ProveDetailMeta memory details
+    ) public payable virtual override {
+        proveDetail.UpdateProveDetailMeta(fileHash, details);
     }
 
     function SettleForFile(
@@ -355,24 +341,6 @@ contract Prove is Initializable, IProve, IFsEvent {
             sectorInfo.SectorID,
             block.number
         );
-    }
-
-    function getPocProve(address nodeAddr, uint256 height)
-        public
-        view
-        returns (PocProve memory)
-    {
-        string memory key = string(abi.encodePacked(nodeAddr, height));
-        return pocProve[key];
-    }
-
-    function putPocProve(PocProve memory prove) public payable {
-        string memory key = string(abi.encodePacked(prove.Miner, prove.Height));
-        pocProve[key] = prove;
-    }
-
-    function GetPocProveList() public view returns (PocProve[] memory) {
-        // TODO
     }
 
     function CheckNodeSectorProvedInTime(SectorRef memory sectorRef)
