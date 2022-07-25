@@ -235,7 +235,7 @@ contract FileSystem is
         bytes[] memory _fileList,
         Setting memory setting,
         uint256 newExpireHeight
-    ) public view virtual override returns (FileInfo[] memory, bool) {
+    ) public payable virtual override returns (FileInfo[] memory, bool) {
         return file.UpdateFilesForRenew(_fileList, setting, newExpireHeight);
     }
 
@@ -536,7 +536,7 @@ contract FileSystem is
 
     function GetUpdateCost(UserSpaceParams memory params)
         public
-        view
+        payable
         virtual
         override
         returns (TransferState memory)

@@ -213,7 +213,7 @@ interface IFile {
         bytes[] memory _fileList,
         Setting memory setting,
         uint256 newExpireHeight
-    ) external view returns (FileInfo[] memory, bool);
+    ) external payable returns (FileInfo[] memory, bool);
 
     function DeleteExpiredFilesFromList(
         bytes[] memory _fileList,
@@ -351,7 +351,7 @@ interface ISpace {
 
     function GetUpdateCost(UserSpaceParams memory params)
         external
-        view
+        payable
         returns (TransferState memory);
 
     function GetUserSpace(address walletAddr)

@@ -23,8 +23,6 @@ contract File is Initializable, IFile, IFsEvent {
     uint64 DEFAULT_PROVE_PERIOD;
     uint64 IN_SECTOR_SIZE;
 
-    mapping(bytes => SectorRef[]) fileSectorRefs; // fileHash => SectorRef[]
-
     function initialize(
         IConfig _config,
         INode _node,
@@ -54,22 +52,8 @@ contract File is Initializable, IFile, IFsEvent {
         uint64 fileSize,
         uint64 duration
     ) public view virtual override returns (StorageFee memory) {
-        StorageFee memory fee;
-        uint64 validFee = fileExtra.calcValidFee(
-            setting,
-            proveTime,
-            copyNum,
-            fileSize
-        );
-        uint64 storageFee = fileExtra.calcStorageFee(
-            setting,
-            copyNum,
-            fileSize,
-            duration
-        );
-        fee.ValidationFee = validFee;
-        fee.SpaceFee = storageFee;
-        return fee;
+        return
+            fileExtra.CalcFee(setting, proveTime, copyNum, fileSize, duration);
     }
 
     function CalcDepositFee(
@@ -77,18 +61,7 @@ contract File is Initializable, IFile, IFsEvent {
         Setting memory setting,
         uint256 currentHeight
     ) public view virtual override returns (StorageFee memory) {
-        uint64 proveTime = fileExtra.CalcProveTimesByUploadInfo(
-            uploadOption,
-            currentHeight
-        );
-        StorageFee memory fee = CalcFee(
-            setting,
-            proveTime,
-            uploadOption.CopyNum,
-            uploadOption.FileSize,
-            uint64(uploadOption.ExpiredHeight - currentHeight)
-        );
-        return fee;
+        return fileExtra.CalcDepositFee(uploadOption, setting, currentHeight);
     }
 
     function calcUploadFee(
@@ -96,26 +69,7 @@ contract File is Initializable, IFile, IFsEvent {
         Setting memory setting,
         uint256 currentHeight
     ) public view returns (StorageFee memory) {
-        uint64 fee;
-        uint64 txGas = 10000000;
-        if (uploadOption.WhiteList_.length > 0) {
-            fee = txGas * 4;
-        } else {
-            fee = txGas * 3;
-        }
-        StorageFee memory sf;
-        sf.TxnFee = fee;
-        if (uploadOption.StorageType_ == StorageType.Normal) {
-            return sf;
-        }
-        StorageFee memory depositFee = CalcDepositFee(
-            uploadOption,
-            setting,
-            currentHeight
-        );
-        sf.ValidationFee = depositFee.ValidationFee;
-        sf.SpaceFee = depositFee.SpaceFee;
-        return sf;
+        return fileExtra.calcUploadFee(uploadOption, setting, currentHeight);
     }
 
     function GetUploadStorageFee(UploadOption memory uploadOption)
@@ -333,57 +287,9 @@ contract File is Initializable, IFile, IFsEvent {
         bytes[] memory _fileList,
         Setting memory setting,
         uint256 newExpireHeight
-    ) public view virtual override returns (FileInfo[] memory, bool) {
-        FileInfo[] memory fileInfo;
-        for (uint256 i = 0; i < _fileList.length; i++) {
-            FileInfo memory _fileInfo = GetFileInfo(_fileList[i]);
-            if (_fileInfo.StorageType_ != StorageType.Normal) {
-                continue;
-            }
-            if (newExpireHeight <= _fileInfo.ExpiredHeight) {
-                continue;
-            }
-            bool res = UpdateFileInfoForRenew(
-                setting,
-                newExpireHeight,
-                _fileInfo
-            );
-            if (!res) {
-                return (fileInfo, false);
-            }
-        }
-        return (fileInfo, true);
-    }
-
-    function UpdateFileInfoForRenew(
-        Setting memory setting,
-        uint256 newExpireHeight,
-        FileInfo memory fileInfo
-    ) public view returns (bool) {
-        fileInfo.ExpiredHeight = newExpireHeight;
-        UploadOption memory uploadOpt;
-        uploadOpt.ExpiredHeight = fileInfo.ExpiredHeight;
-        uploadOpt.ProveInterval = fileInfo.ProveInterval;
-        uploadOpt.CopyNum = fileInfo.CopyNum;
-        uploadOpt.FileSize = fileInfo.FileBlockSize * fileInfo.FileBlockNum;
-        uint256 beginHeight = fileInfo.BlockHeight;
-        StorageFee memory newDeposit = CalcDepositFee(
-            uploadOpt,
-            setting,
-            beginHeight
-        );
-        uint64 newDepositSum = newDeposit.TxnFee +
-            newDeposit.SpaceFee +
-            newDeposit.ValidationFee;
-        if (newDepositSum <= fileInfo.Deposit) {
-            return false;
-        }
-        fileInfo.Deposit = newDepositSum;
-        fileInfo.ProveTimes = fileExtra.CalcProveTimesByUploadInfo(
-            uploadOpt,
-            beginHeight
-        );
-        return true;
+    ) public payable virtual override returns (FileInfo[] memory, bool) {
+        return
+            fileExtra.UpdateFilesForRenew(_fileList, setting, newExpireHeight);
     }
 
     function GetUnSettledFileList(address walletAddr)
@@ -600,7 +506,9 @@ contract File is Initializable, IFile, IFsEvent {
         }
         for (uint256 i = 0; i < files.length; i++) {
             FileInfo memory fileInfo = files[i];
-            SectorRef[] memory sectorRefs = fileSectorRefs[fileInfo.FileHash];
+            SectorRef[] memory sectorRefs = fileExtra.GetFileSectorRefs(
+                fileInfo.FileHash
+            );
             for (uint256 j = 0; j < sectorRefs.length; j++) {
                 SectorInfo memory sectorInfo = sector.GetSectorInfo(
                     sectorRefs[j]

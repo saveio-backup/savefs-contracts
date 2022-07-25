@@ -48,7 +48,7 @@ contract Space is Initializable, ISpace, IFsEvent {
 
     function GetUpdateCost(UserSpaceParams memory params)
         public
-        view
+        payable
         virtual
         override
         returns (TransferState memory)
@@ -278,8 +278,8 @@ contract Space is Initializable, ISpace, IFsEvent {
     }
 
     function AddUserSpace(AddParams memory params)
-        private
-        view
+        public
+        payable
         returns (AddReturn memory)
     {
         AddReturn memory ret;
@@ -444,7 +444,7 @@ contract Space is Initializable, ISpace, IFsEvent {
 
     function processForUserSpaceOneAddOneRevoke(
         ProcessRevokeParams memory params
-    ) private view returns (ProcessRevokeReturn memory) {
+    ) public payable returns (ProcessRevokeReturn memory) {
         ProcessRevokeReturn memory ret;
         uint64 addedSize;
         uint64 addedBlockCount;
@@ -503,8 +503,8 @@ contract Space is Initializable, ISpace, IFsEvent {
     }
 
     function processForUserSpaceOperations(ProcessParams memory params)
-        private
-        view
+        public
+        payable
         returns (ProcessReturn memory)
     {
         ProcessReturn memory ret;
@@ -614,8 +614,8 @@ contract Space is Initializable, ISpace, IFsEvent {
     }
 
     function getUserspaceChange(UserSpaceParams memory params)
-        private
-        view
+        public
+        payable
         returns (ChangeReturn memory)
     {
         ChangeReturn memory ret;
