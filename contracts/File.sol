@@ -106,13 +106,13 @@ contract File is Initializable, IFile, IFsEvent {
             fileInfo.ProveInterval = DEFAULT_PROVE_PERIOD;
         }
         fileInfo.ValidFlag = true;
-        UploadOption memory uploadOption;
-        uploadOption.ExpiredHeight = fileInfo.ExpiredHeight;
-        uploadOption.ProveInterval = fileInfo.ProveInterval;
-        uploadOption.CopyNum = fileInfo.CopyNum;
-        uploadOption.FileSize = fileInfo.FileBlockSize * fileInfo.FileBlockNum;
+        UploadOption memory option;
+        option.ExpiredHeight = fileInfo.ExpiredHeight;
+        option.ProveInterval = fileInfo.ProveInterval;
+        option.CopyNum = fileInfo.CopyNum;
+        option.FileSize = fileInfo.FileBlockSize * fileInfo.FileBlockNum;
         StorageFee memory uploadFee = CalcDepositFee(
-            uploadOption,
+            option,
             setting,
             block.number
         );
@@ -121,37 +121,32 @@ contract File is Initializable, IFile, IFsEvent {
             uploadFee.SpaceFee +
             uploadFee.ValidationFee;
         fileInfo.ProveTimes = fileExtra.CalcProveTimesByUploadInfo(
-            uploadOption,
+            option,
             block.number
         );
         if (fileInfo.StorageType_ == StorageType.Normal) {
-            UserSpace memory _userSpace = space.GetUserSpace(
-                fileInfo.FileOwner
-            );
-            if (_userSpace.Balance < fileInfo.Deposit) {
+            UserSpace memory us = space.GetUserSpace(fileInfo.FileOwner);
+            if (us.Balance < fileInfo.Deposit) {
                 revert UserspaceInsufficientBalance(
-                    _userSpace.Balance,
+                    us.Balance,
                     fileInfo.Deposit
                 );
             }
-            if (
-                _userSpace.Remain <
-                fileInfo.FileBlockSize * fileInfo.FileBlockNum
-            ) {
+            if (us.Remain < fileInfo.FileBlockSize * fileInfo.FileBlockNum) {
                 revert UserspaceInsufficientSpace(
-                    _userSpace.Remain,
+                    us.Remain,
                     fileInfo.FileBlockSize
                 );
             }
-            if (_userSpace.ExpireHeight < fileInfo.ExpiredHeight) {
+            if (us.ExpireHeight < fileInfo.ExpiredHeight) {
                 revert UserspaceWrongExpiredHeight(
-                    _userSpace.ExpireHeight,
+                    us.ExpireHeight,
                     fileInfo.ExpiredHeight
                 );
             }
-            _userSpace.Balance -= fileInfo.Deposit;
-            _userSpace.Remain -= fileInfo.FileBlockNum * fileInfo.FileBlockSize;
-            _userSpace.Used += fileInfo.FileBlockNum * fileInfo.FileBlockSize;
+            us.Balance -= fileInfo.Deposit;
+            us.Remain -= fileInfo.FileBlockNum * fileInfo.FileBlockSize;
+            us.Used += fileInfo.FileBlockNum * fileInfo.FileBlockSize;
         } else {
             require(msg.value >= fileInfo.Deposit, "insufficient deposit");
             fileInfo.StorageType_ = StorageType.Professional;
@@ -159,24 +154,11 @@ contract File is Initializable, IFile, IFsEvent {
         fileInfo.ProveBlockNum = setting.MaxProveBlockNum;
         fileInfo.BlockHeight = block.number;
         // store file
-        fileExtra.UpdateFileInfo(fileInfo);
-        fileExtra.AddFileToFileList(fileInfo.FileOwner, fileInfo.FileHash);
-        for (uint256 i = 0; i < fileInfo.PrimaryNodes.length; i++) {
-            fileExtra.AddFileToPrimaryList(
-                fileInfo.PrimaryNodes[i],
-                fileInfo.FileHash
-            );
-        }
-        for (uint256 i = 0; i < fileInfo.CandidateNodes.length; i++) {
-            fileExtra.AddFileToCandidateList(
-                fileInfo.CandidateNodes[i],
-                fileInfo.FileHash
-            );
-        }
-        ProveDetailMeta memory _proveDetailMeta;
-        _proveDetailMeta.CopyNum = fileInfo.CopyNum;
-        _proveDetailMeta.ProveDetailNum = 0;
-        prove.UpdateProveDetailMeta(fileInfo.FileHash, _proveDetailMeta);
+        fileExtra.SaveFile(fileInfo);
+        ProveDetailMeta memory meta;
+        meta.CopyNum = fileInfo.CopyNum;
+        meta.ProveDetailNum = 0;
+        prove.UpdateProveDetailMeta(fileInfo.FileHash, meta);
         emit StoreFileEvent(
             FsEvent.STORE_FILE,
             block.number,
@@ -269,7 +251,7 @@ contract File is Initializable, IFile, IFsEvent {
         fileExtra.DeleteFileInfo(fileHash);
     }
 
-    function deleteProveDetails(bytes memory fileHash) public {
+    function DeleteProveDetails(bytes memory fileHash) public {
         fileExtra.DeleteFileInfo(fileHash);
         prove.DeleteProveDetails(fileHash);
     }
@@ -316,26 +298,16 @@ contract File is Initializable, IFile, IFsEvent {
         bool rmInfo,
         bool rmList
     ) public payable virtual override {
-        bytes memory fileHash = fileInfo.FileHash;
         if (rmInfo) {
-            DeleteFileInfo(fileHash);
-            deleteProveDetails(fileHash);
-            fileExtra.DelFileFromUnSettledList(fileInfo.FileOwner, fileHash);
+            DeleteFileInfo(fileInfo.FileHash);
+            DeleteProveDetails(fileInfo.FileHash);
+            fileExtra.DelFileFromUnSettledList(
+                fileInfo.FileOwner,
+                fileInfo.FileHash
+            );
         }
         if (rmList) {
-            fileExtra.DelFileFromList(fileInfo.FileOwner, fileHash);
-            for (uint256 i = 0; i < fileInfo.PrimaryNodes.length; i++) {
-                fileExtra.DelFileFromPrimaryList(
-                    fileInfo.PrimaryNodes[i],
-                    fileHash
-                );
-            }
-            for (uint256 i = 0; i < fileInfo.CandidateNodes.length; i++) {
-                fileExtra.DelFileFromCandidateList(
-                    fileInfo.CandidateNodes[i],
-                    fileHash
-                );
-            }
+            fileExtra.DeleteFileFromList(fileInfo);
         }
     }
 
@@ -419,24 +391,7 @@ contract File is Initializable, IFile, IFsEvent {
         returns (bytes[] memory)
     {
         bytes[] memory list = fileExtra.GetPrimaryFiles(walletAddr);
-        bytes[] memory unProvePrimaryFiles = new bytes[](list.length);
-        uint64 n = 0;
-        for (uint256 i = 0; i < list.length; i++) {
-            ProveDetail[] memory details = prove.GetProveDetailList(list[i]);
-            bool isProve = false;
-            for (uint256 j = 0; j < details.length; j++) {
-                if (details[j].WalletAddr == walletAddr) {
-                    isProve = true;
-                    break;
-                }
-            }
-            if (!isProve) {
-                continue;
-            }
-            unProvePrimaryFiles[n] = list[i];
-            n++;
-        }
-        return unProvePrimaryFiles;
+        return GetUnProveFiles(list, walletAddr);
     }
 
     function GetUnProveCandidateFiles(address walletAddr)
@@ -447,7 +402,15 @@ contract File is Initializable, IFile, IFsEvent {
         returns (bytes[] memory)
     {
         bytes[] memory list = fileExtra.GetCandidateFiles(walletAddr);
-        bytes[] memory unProveCandidateFiles = new bytes[](list.length);
+        return GetUnProveFiles(list, walletAddr);
+    }
+
+    function GetUnProveFiles(bytes[] memory list, address walletAddr)
+        private
+        view
+        returns (bytes[] memory)
+    {
+        bytes[] memory files = new bytes[](list.length);
         uint64 n = 0;
         for (uint256 i = 0; i < list.length; i++) {
             ProveDetail[] memory details = prove.GetProveDetailList(list[i]);
@@ -461,10 +424,10 @@ contract File is Initializable, IFile, IFsEvent {
             if (!isProve) {
                 continue;
             }
-            unProveCandidateFiles[n] = list[i];
+            files[n] = list[i];
             n++;
         }
-        return unProveCandidateFiles;
+        return files;
     }
 
     function ChangeFilePrivilege(PriChange memory priChange)
@@ -482,13 +445,7 @@ contract File is Initializable, IFile, IFsEvent {
         virtual
         override
     {
-        FileInfo memory fileInfo = GetFileInfo(ownerChange.FileHash);
-        require(
-            fileInfo.FileOwner == ownerChange.CurOwner,
-            "Current owner must be the owner of the file"
-        );
-        fileInfo.FileOwner = ownerChange.NewOwner;
-        UpdateFileInfo(fileInfo);
+        fileExtra.ChangeFileOwner(ownerChange);
     }
 
     function deleteFilesInner(FileInfo[] memory files) public {
@@ -499,82 +456,65 @@ contract File is Initializable, IFile, IFsEvent {
         address fileOwner = files[0].FileOwner;
         Setting memory setting = config.GetSetting();
         for (uint256 i = 0; i < files.length; i++) {
-            FileInfo memory fileInfo = files[i];
-            if (fileInfo.FileOwner != fileOwner) {
+            FileInfo memory info = files[i];
+            if (info.FileOwner != fileOwner) {
                 revert DifferenceFileOwner();
             }
-        }
-        for (uint256 i = 0; i < files.length; i++) {
-            FileInfo memory fileInfo = files[i];
             SectorRef[] memory sectorRefs = fileExtra.GetFileSectorRefs(
-                fileInfo.FileHash
+                info.FileHash
             );
             for (uint256 j = 0; j < sectorRefs.length; j++) {
                 SectorInfo memory sectorInfo = sector.GetSectorInfo(
                     sectorRefs[j]
                 );
-                sector.DeleteFileFromSector(sectorInfo, fileInfo);
+                sector.DeleteFileFromSector(sectorInfo, info);
             }
-            if (fileInfo.Deposit == 0) {
-                CleanupForDeleteFile(fileInfo, true, true);
+            if (info.Deposit == 0) {
+                CleanupForDeleteFile(info, true, true);
                 continue;
             }
             ProveDetail[] memory details = prove.GetProveDetailList(
-                fileInfo.FileHash
+                info.FileHash
             );
-            uint64 restProfit = fileInfo.Deposit;
-            uint64 fileSize = fileInfo.FileBlockNum * fileInfo.FileBlockSize;
-            uint64 singleProveProfit = fileExtra.calcSingleValidFeeForFile(
-                setting,
-                fileSize
-            );
+            uint64 profit = info.Deposit;
+            uint64 size = info.FileBlockNum * info.FileBlockSize;
+            uint64 fee = fileExtra.calcSingleValidFeeForFile(setting, size);
             for (uint256 j = 0; j < details.length; j++) {
                 NodeInfo memory nodeInfo = node.GetNodeInfoByWalletAddr(
                     details[j].WalletAddr
                 );
-                uint64 validProfit = (details[j].ProveTimes - 1) *
-                    singleProveProfit;
+                uint64 validProfit = (details[j].ProveTimes - 1) * fee;
                 uint64 storageProfit = fileExtra.calcStorageFeeForOneNode(
                     setting,
-                    fileSize,
-                    uint64(block.number - fileInfo.BlockHeight)
+                    size,
+                    uint64(block.number - info.BlockHeight)
                 );
                 uint64 totalProfit = validProfit + storageProfit;
-                if (totalProfit > restProfit) {
+                if (totalProfit > profit) {
                     revert InvalidProfit();
                 }
                 nodeInfo.Profit += totalProfit;
                 node.UpdateNodeInfo(nodeInfo);
-                restProfit -= totalProfit;
+                profit -= totalProfit;
             }
-            if (fileInfo.StorageType_ == StorageType.Normal) {
-                refundAmount += restProfit;
-            } else if (fileInfo.StorageType_ == StorageType.Professional) {
-                UserSpace memory userSpace = space.GetUserSpace(
-                    fileInfo.FileOwner
-                );
-                if (
-                    userSpace.Used >=
-                    fileInfo.FileBlockNum * fileInfo.FileBlockSize
-                ) {
-                    userSpace.Balance += restProfit;
-                    userSpace.Remain +=
-                        fileInfo.FileBlockNum *
-                        fileInfo.FileBlockSize;
-                    userSpace.Used -=
-                        fileInfo.FileBlockNum *
-                        fileInfo.FileBlockSize;
+            if (info.StorageType_ == StorageType.Normal) {
+                refundAmount += profit;
+            } else if (info.StorageType_ == StorageType.Professional) {
+                UserSpace memory us = space.GetUserSpace(info.FileOwner);
+                if (us.Used >= info.FileBlockNum * info.FileBlockSize) {
+                    us.Balance += profit;
+                    us.Remain += info.FileBlockNum * info.FileBlockSize;
+                    us.Used -= info.FileBlockNum * info.FileBlockSize;
                 } else {
                     revert OpError(1);
                 }
-                space.UpdateUserSpace(fileInfo.FileOwner, userSpace);
+                space.UpdateUserSpace(info.FileOwner, us);
             }
-            CleanupForDeleteFile(fileInfo, true, true);
+            CleanupForDeleteFile(info, true, true);
         }
-        if (refundAmount == 0) {
-            return;
+        if (refundAmount > 0) {
+            payable(fileOwner).transfer(refundAmount);
         }
-        payable(fileOwner).transfer(refundAmount);
     }
 
     function DeleteFile(bytes memory fileHash) public virtual override {

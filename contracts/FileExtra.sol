@@ -159,11 +159,11 @@ contract FileExtra is IFsEvent {
         unSettledFileList[fileOwner].push(fileHash);
     }
 
-    function UpdateUnSettleList(address fileOwner, bytes[] memory fileList)
+    function UpdateUnSettleList(address fileOwner, bytes[] memory _fileList)
         public
         payable
     {
-        unSettledFileList[fileOwner] = fileList;
+        unSettledFileList[fileOwner] = _fileList;
     }
 
     function DelFileFromUnSettledList(address walletAddr, bytes memory fileHash)
@@ -358,5 +358,42 @@ contract FileExtra is IFsEvent {
         );
         UpdateFileInfo(fileInfo);
         return true;
+    }
+
+    function ChangeFileOwner(OwnerChange memory ownerChange) public {
+        FileInfo memory fileInfo = GetFileInfo(ownerChange.FileHash);
+        require(
+            fileInfo.FileOwner == ownerChange.CurOwner,
+            "Current owner must be the owner of the file"
+        );
+        fileInfo.FileOwner = ownerChange.NewOwner;
+        UpdateFileInfo(fileInfo);
+    }
+
+    function SaveFile(FileInfo memory fileInfo) public {
+        UpdateFileInfo(fileInfo);
+        AddFileToFileList(fileInfo.FileOwner, fileInfo.FileHash);
+        for (uint256 i = 0; i < fileInfo.PrimaryNodes.length; i++) {
+            AddFileToPrimaryList(fileInfo.PrimaryNodes[i], fileInfo.FileHash);
+        }
+        for (uint256 i = 0; i < fileInfo.CandidateNodes.length; i++) {
+            AddFileToCandidateList(
+                fileInfo.CandidateNodes[i],
+                fileInfo.FileHash
+            );
+        }
+    }
+
+    function DeleteFileFromList(FileInfo memory fileInfo) public {
+        DelFileFromList(fileInfo.FileOwner, fileInfo.FileHash);
+        for (uint256 i = 0; i < fileInfo.PrimaryNodes.length; i++) {
+            DelFileFromPrimaryList(fileInfo.PrimaryNodes[i], fileInfo.FileHash);
+        }
+        for (uint256 i = 0; i < fileInfo.CandidateNodes.length; i++) {
+            DelFileFromCandidateList(
+                fileInfo.CandidateNodes[i],
+                fileInfo.FileHash
+            );
+        }
     }
 }

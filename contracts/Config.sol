@@ -31,7 +31,7 @@ contract Config is Initializable, IConfig, IFsEvent {
 
     function GetProveIntervalByProveLevel(ProveLevel proveLevel)
         internal
-        view
+        pure
         returns (uint64)
     {
         Setting memory setting = GetSetting();
