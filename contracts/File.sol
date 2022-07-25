@@ -176,10 +176,10 @@ contract File is Initializable, IFile, IFsEvent {
         virtual
         override
     {
-        require(
-            fileExtra.GetFileInfo(fileReNewInfo.FileHash).BlockHeight > 0,
-            "file not exist"
-        );
+        // require(
+        //     fileExtra.GetFileInfo(fileReNewInfo.FileHash).BlockHeight > 0,
+        //     "file not exist"
+        // );
         require(
             fileExtra.GetFileInfo(fileReNewInfo.FileHash).StorageType_ ==
                 StorageType.Professional,
@@ -190,6 +190,9 @@ contract File is Initializable, IFile, IFsEvent {
                 block.number,
             "file expired"
         );
+        if (fileExtra.GetFileInfo(fileReNewInfo.FileHash).BlockHeight <= 0) {
+            revert OpError(3);
+        }
         Setting memory setting = config.GetSetting();
         FileInfo memory fileInfo = fileExtra.GetFileInfo(
             fileReNewInfo.FileHash
@@ -220,7 +223,11 @@ contract File is Initializable, IFile, IFsEvent {
         override
         returns (FileInfo memory)
     {
-        return fileExtra.GetFileInfo(fileHash);
+        FileInfo memory fileInfo = fileExtra.GetFileInfo(fileHash);
+        if (fileInfo.FileHash.length == 0) {
+            revert FileNotExist(fileHash);
+        }
+        return fileInfo;
     }
 
     function GetFileInfos(bytes[] memory _fileList)

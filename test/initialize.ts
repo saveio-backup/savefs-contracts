@@ -2,7 +2,7 @@ import { expect } from "chai";
 import { ContractTransaction } from "ethers";
 import { ethers } from "hardhat";
 import {
-  File, Node, Config, Sector, Space, List, Prove, PDP
+  File, Node, Config, Sector, Space, List, Prove, PDP, FileExtra, ProveExtra
 } from "../typechain";
 import { randomBytes } from "crypto";
 
@@ -13,10 +13,12 @@ let addrs: Array<string> = [];
 let config: Config;
 let node: Node;
 let file: File;
+let fileExtra: FileExtra;
 let sector: Sector;
 let space: Space;
 let list: List;
 let prove: Prove;
+let proveExtra: ProveExtra;
 let pdp: PDP;
 
 
@@ -65,9 +67,16 @@ describe(name, function () {
     await expect(res).not.to.be.reverted;
   });
 
-  it("Deploy FileSystem", async () => {
+  it("Deploy File", async () => {
     const File = await ethers.getContractFactory("File");
     file = await File.deploy();
+    let res = file.deployed();
+    await expect(res).not.to.be.reverted;
+  });
+
+  it("Deploy FileExtra", async () => {
+    const FileExtra = await ethers.getContractFactory("FileExtra");
+    fileExtra = await FileExtra.deploy();
     let res = file.deployed();
     await expect(res).not.to.be.reverted;
   });
@@ -83,6 +92,13 @@ describe(name, function () {
     const Prove = await ethers.getContractFactory("Prove");
     prove = await Prove.deploy();
     let res = prove.deployed();
+    await expect(res).not.to.be.reverted;
+  });
+
+  it("Deploy ProveExtra", async () => {
+    const ProveExtra = await ethers.getContractFactory("ProveExtra");
+    proveExtra = await ProveExtra.deploy();
+    let res = proveExtra.deployed();
     await expect(res).not.to.be.reverted;
   });
 
@@ -114,7 +130,8 @@ describe(name, function () {
         DEFAULT_BLOCK_INTERVAL: 5,
         DEFAULT_PROVE_PERIOD: 3600 * 24,
         IN_SECTOR_SIZE: 1000 * 1000
-      }
+      },
+      fileExtra.address
     );
     await expect(tx).not.to.be.reverted;
   });
@@ -133,7 +150,8 @@ describe(name, function () {
       sector.address,
       {
         SECTOR_PROVE_BLOCK_NUM: 32
-      }
+      },
+      proveExtra.address
     );
     await expect(tx).not.to.be.reverted;
   });

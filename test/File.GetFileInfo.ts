@@ -1,5 +1,5 @@
 import { assert, expect } from "chai";
-import { addrs, file } from "./initialize";
+import { addrs, file, print } from "./initialize";
 import { randomBytes } from "crypto";
 
 var path = require('path');
@@ -46,8 +46,8 @@ describe(name, function () {
     }, {
       value: 1000000
     })
-    // await print(tx)
-    await expect(tx).to.not.be.reverted;
+    // await print(tx);
+    await expect(tx).not.to.be.reverted;
   });
 
   it("get file info success", async () => {
