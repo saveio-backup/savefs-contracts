@@ -22,10 +22,15 @@ async function main() {
   await space.deployed();
   console.log("Space deployed to:", space.address);
 
-  const FS = await ethers.getContractFactory("FileSystem");
-  let fs = await upgrades.deployProxy(FS, [], { initializer: false });
-  await fs.deployed();
-  console.log("FS deployed to:", fs.address);
+  const File = await ethers.getContractFactory("File");
+  let file = await upgrades.deployProxy(File, [], { initializer: false });
+  await file.deployed();
+  console.log("File deployed to:", file.address);
+
+  const FileExtra = await ethers.getContractFactory("FileExtra");
+  let fileExtra = await upgrades.deployProxy(FileExtra, [], { initializer: false });
+  await fileExtra.deployed();
+  console.log("fileExtra deployed to:", fileExtra.address);
 
   const List = await ethers.getContractFactory("List");
   let list = await upgrades.deployProxy(List, [], { initializer: false });
@@ -36,6 +41,11 @@ async function main() {
   let prove = await upgrades.deployProxy(Prove, [], { initializer: false });
   await prove.deployed();
   console.log("Prove deployed to:", prove.address);
+
+  const ProveExtra = await ethers.getContractFactory("ProveExtra");
+  let proveExtra = await upgrades.deployProxy(ProveExtra, [], { initializer: false });
+  await proveExtra.deployed();
+  console.log("proveExtra deployed to:", proveExtra.address);
 
   const PDP = await ethers.getContractFactory("PDP");
   let pdp = await upgrades.deployProxy(PDP, [], { initializer: false });
@@ -49,7 +59,7 @@ async function main() {
       SECTOR_FILE_INFO_GROUP_MAX_LEN: 5000
     }
   );
-  await fs.initialize(
+  await file.initialize(
     config.address,
     node.address,
     space.address,
@@ -59,18 +69,20 @@ async function main() {
       DEFAULT_BLOCK_INTERVAL: 5,
       DEFAULT_PROVE_PERIOD: 3600 * 24,
       IN_SECTOR_SIZE: 1000 * 1000
-    }
+    },
+    fileExtra.address
   );
-  await space.initialize(config.address, fs.address);
+  await space.initialize(config.address, file.address);
   await prove.initialize(
     config.address,
-    fs.address,
+    file.address,
     node.address,
     pdp.address,
     sector.address,
     {
       SECTOR_PROVE_BLOCK_NUM: 32
-    }
+    },
+    proveExtra.address
   );
   console.log("Initialize finished");
 
