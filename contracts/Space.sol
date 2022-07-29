@@ -54,6 +54,7 @@ contract Space is Initializable, ISpace, IFsEvent {
         returns (TransferState memory)
     {
         ChangeReturn memory ret = getUserspaceChange(params);
+        emit GetUpdateCostEvent(ret.state);
         return ret.state;
     }
 
@@ -69,6 +70,7 @@ contract Space is Initializable, ISpace, IFsEvent {
                 payable(ret.state.To).transfer(ret.state.Value);
             } else {
                 if (msg.value < ret.state.Value) {
+                    console.log("InsufficientFunds", msg.value, ret.state.Value);
                     revert InsufficientFunds();
                 }
             }

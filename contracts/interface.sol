@@ -90,6 +90,10 @@ interface IFsEvent {
         uint64 count
     );
 
+    event GetUpdateCostEvent(
+        TransferState state
+    );
+
     // file
     error FileNotExist(bytes);
     error UserspaceInsufficientBalance(uint256 got, uint256 want);
