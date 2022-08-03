@@ -136,12 +136,12 @@ contract Node is Initializable, INode, IFsEvent {
         delete nodesInfo[walletAddr];
         NodeListRemove(walletAddr);
         SectorInfo[] memory sectorInfos = sector.GetSectorsForNode(
-            nodeInfo.NodeAddr
+            nodeInfo.WalletAddr
         );
         for (uint256 i = 0; i < sectorInfos.length; i++) {
             sector.DeleteSector(
                 SectorRef({
-                    NodeAddr: nodeInfo.NodeAddr,
+                    NodeAddr: nodeInfo.WalletAddr,
                     SectorId: sectorInfos[i].SectorID
                 })
             );
@@ -173,14 +173,21 @@ contract Node is Initializable, INode, IFsEvent {
         return nodesInfo[walletAddr];
     }
 
-    function GetNodeInfoByNodeAddr(address nodeAddr)
+    function GetNodeInfoByNodeAddr(bytes memory nodeAddr)
         public
         view
         virtual
         override
         returns (NodeInfo memory)
     {
-        return nodesInfo[nodeAddr];
+        NodeInfo memory node;
+        for (uint256 i = 0; i < nodeList.length; i++) {
+            node = nodesInfo[nodeList[i]];
+            if (keccak256(node.NodeAddr) == keccak256(nodeAddr)) {
+                return node;
+            }
+        }
+        return node;
     }
 
     function WithDrawProfit(address walletAddr)

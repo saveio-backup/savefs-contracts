@@ -54,7 +54,7 @@ contract Sector is Initializable, ISector, IFsEvent {
             ).Size == 0,
             "sector already exists"
         );
-        NodeInfo memory nodeInfo = node.GetNodeInfoByNodeAddr(
+        NodeInfo memory nodeInfo = node.GetNodeInfoByWalletAddr(
             sectorInfo.NodeAddr
         );
         uint64 totalSize = GetSectorTotalSizeForNode(sectorInfo.NodeAddr);

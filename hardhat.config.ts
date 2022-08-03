@@ -57,9 +57,13 @@ const config: HardhatUserConfig = {
       url: "http://localhost:8545",
       accounts:["0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"],
     },
-    eth: {
+    opeth: {
       url: "http://localhost:9545",
       accounts:["0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"],
+    },
+    eth: {
+      url: "http://localhost:8545",
+      accounts:["3fd8c7f630a5517da7a01c97ee5e3e2d36f79bf254bd6d85f78895541aaa860a"],
     },
   },
   gasReporter: {

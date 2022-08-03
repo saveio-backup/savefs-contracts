@@ -33,7 +33,7 @@ interface IFsEvent {
         FsEvent eventType,
         uint256 blockHeight,
         address walletAddr,
-        address nodeAddr,
+        bytes nodeAddr,
         uint64 volume,
         uint64 serviceTime
     );
@@ -253,7 +253,7 @@ interface INode {
 
     function Cancel(address walletAddr) external;
 
-    function GetNodeInfoByNodeAddr(address nodeAddr)
+    function GetNodeInfoByNodeAddr(bytes memory nodeAddr)
         external
         view
         returns (NodeInfo memory);

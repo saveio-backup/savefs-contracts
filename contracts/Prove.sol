@@ -128,7 +128,7 @@ contract Prove is Initializable, IProve, IFsEvent {
             }
             nodeInfo.RestVol -= fileInfo.FileBlockNum * fileInfo.FileBlockSize;
             node.UpdateNodeInfo(nodeInfo);
-            detail.NodeAddr = nodeInfo.NodeAddr;
+            detail.NodeAddr = nodeInfo.WalletAddr;
             detail.WalletAddr = fileProve.NodeWallet;
             detail.ProveTimes = 1;
             detail.BlockHeight = block.number;
@@ -146,7 +146,7 @@ contract Prove is Initializable, IProve, IFsEvent {
         if (!found) {
             SectorInfo memory sectorInfo = sector.GetSectorInfo(
                 SectorRef({
-                    NodeAddr: nodeInfo.NodeAddr,
+                    NodeAddr: nodeInfo.WalletAddr,
                     SectorId: fileProve.SectorID
                 })
             );
@@ -166,7 +166,7 @@ contract Prove is Initializable, IProve, IFsEvent {
             if (fileProve.SectorID != 0) {
                 SectorInfo memory sectorInfo = sector.GetSectorInfo(
                     SectorRef({
-                        NodeAddr: nodeInfo.NodeAddr,
+                        NodeAddr: nodeInfo.WalletAddr,
                         SectorId: fileProve.SectorID
                     })
                 );
@@ -188,7 +188,7 @@ contract Prove is Initializable, IProve, IFsEvent {
         virtual
         override
     {
-        NodeInfo memory nodeInfo = node.GetNodeInfoByNodeAddr(
+        NodeInfo memory nodeInfo = node.GetNodeInfoByWalletAddr(
             sectorProve.NodeAddr
         );
         SectorInfo memory sectorInfo = sector.GetSectorInfo(
@@ -347,7 +347,7 @@ contract Prove is Initializable, IProve, IFsEvent {
     {
         address nodeAddr = sectorRef.NodeAddr;
         uint64 sectorID = sectorRef.SectorId;
-        NodeInfo memory nodeInfo = node.GetNodeInfoByNodeAddr(nodeAddr);
+        NodeInfo memory nodeInfo = node.GetNodeInfoByWalletAddr(nodeAddr);
         if (nodeInfo.ServiceTime < block.timestamp) {
             revert NodeSectorProvedInTimeError();
         }
@@ -396,7 +396,7 @@ contract Prove is Initializable, IProve, IFsEvent {
             NodeInfo memory nodeInfo = node.GetNodeInfoByWalletAddr(
                 details[i].WalletAddr
             );
-            details[i].NodeAddr = nodeInfo.NodeAddr;
+            details[i].NodeAddr = nodeInfo.WalletAddr;
         }
         return details;
     }

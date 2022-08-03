@@ -1,6 +1,5 @@
 import { assert, expect } from "chai";
 import { ethers } from "hardhat";
-import { FileSystem, Node, Config, Space } from "../typechain";
 import { config, file, node, space } from "./initialize";
 
 var path = require('path');

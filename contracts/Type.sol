@@ -60,7 +60,7 @@ struct NodeInfo {
     uint64 RestVol;
     uint64 ServiceTime;
     address WalletAddr;
-    address NodeAddr;
+    bytes NodeAddr;
 }
 
 struct UserSpace {
