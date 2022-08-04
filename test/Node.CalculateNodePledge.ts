@@ -13,8 +13,8 @@ describe(name, () => {
       Volume: 1000 * 1000,
       RestVol: 0,
       ServiceTime: 0,
-      WalletAddr: addrs[8],
-      NodeAddr: addrs[8],
+      WalletAddr: addrs[0],
+      NodeAddr: new Array(),
     });
     let res = await tx;
     assert(res.eq(1000000));
