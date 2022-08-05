@@ -1,6 +1,6 @@
 import { expect } from "chai";
 import {
-  addrs, space
+  addrs, space, print
 } from "./initialize";
 
 var path = require('path');
@@ -27,8 +27,8 @@ describe(name, () => {
 
   it("space 1-1", async () => {
     const tx = space.ManageUserSpace({
-      WalletAddr: addrs[32],
-      Owner: addrs[32],
+      WalletAddr: addrs[70],
+      Owner: addrs[70],
       Size: {
         Type: 1,
         Value: 1
@@ -45,8 +45,8 @@ describe(name, () => {
 
   it("space 1-2", async () => {
     const tx = space.ManageUserSpace({
-      WalletAddr: addrs[32],
-      Owner: addrs[32],
+      WalletAddr: addrs[71],
+      Owner: addrs[71],
       Size: {
         Type: 1,
         Value: 1
@@ -57,15 +57,14 @@ describe(name, () => {
       }
     });
     // await print(tx);
-    await expect(tx).to.not.be.reverted;
-    await expect(tx).to.emit(space, "SetUserSpaceEvent");
+    await expect(tx).to.be.reverted;
   });
 
   let value = 0;
   it("get update cost", async () => {
     const tx = space.GetUpdateCost({
-      WalletAddr: addrs[50],
-      Owner: addrs[50],
+      WalletAddr: addrs[72],
+      Owner: addrs[72],
       Size: {
         Type: 1,
         Value: 1024000
@@ -79,7 +78,7 @@ describe(name, () => {
 
     let res = await tx;
     let wait = await res.wait();
-    if (wait.events){
+    if (wait.events) {
       if (wait.events.length > 0) {
         let event = wait.events[0];
         if (event.args) {
@@ -96,8 +95,8 @@ describe(name, () => {
 
   it("space 1-1", async () => {
     const tx = space.ManageUserSpace({
-      WalletAddr: addrs[32],
-      Owner: addrs[32],
+      WalletAddr: addrs[73],
+      Owner: addrs[73],
       Size: {
         Type: 1,
         Value: 1024000

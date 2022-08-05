@@ -70,7 +70,11 @@ contract Space is Initializable, ISpace, IFsEvent {
                 payable(ret.state.To).transfer(ret.state.Value);
             } else {
                 if (msg.value < ret.state.Value) {
-                    console.log("InsufficientFunds", msg.value, ret.state.Value);
+                    console.log(
+                        "InsufficientFunds",
+                        msg.value,
+                        ret.state.Value
+                    );
                     revert InsufficientFunds();
                 }
             }
@@ -627,16 +631,15 @@ contract Space is Initializable, ISpace, IFsEvent {
             revert UserspaceChangeError(1);
         }
         UserSpace memory oldUserSpace = GetUserSpace(params.Owner);
-        if (
-            oldUserSpace.ExpireHeight > 0 &&
-            oldUserSpace.ExpireHeight <= block.number
-        ) {
+        bool userSpaceExisted = oldUserSpace.Used != 0 &&
+            oldUserSpace.Remain != 0 &&
+            oldUserSpace.Balance != 0 &&
+            oldUserSpace.UpdateHeight != 0 &&
+            oldUserSpace.ExpireHeight != 0;
+        if (userSpaceExisted && oldUserSpace.ExpireHeight <= block.number) {
             oldUserSpace = processExpiredUserSpace(oldUserSpace, block.number);
         }
-        if (
-            oldUserSpace.ExpireHeight == 0 ||
-            oldUserSpace.ExpireHeight == block.number
-        ) {
+        if (!userSpaceExisted || oldUserSpace.ExpireHeight == block.number) {
             bool b = checkForFirstUserSpaceOperation(setting, params);
             if (!b) {
                 revert UserspaceChangeError(2);
