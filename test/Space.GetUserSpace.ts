@@ -1,5 +1,5 @@
 import { expect, assert } from "chai";
-import { addrs, space } from "./initialize";
+import { addrs, space, print } from "./initialize";
 
 var path = require('path');
 var name = path.basename(__filename);
