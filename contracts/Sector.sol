@@ -109,7 +109,7 @@ contract Sector is Initializable, ISector, IFsEvent {
         if (sectorInfo.FileNum > 0) {
             revert NotEmptySector(0, sectorInfo.FileNum);
         }
-        DeleteSector(sectorRef.NodeAddr, sectorRef.SectorId);
+        deleteSector(sectorRef.NodeAddr, sectorRef.SectorId);
         emit DeleteSectorEvent(
             FsEvent.DELETE_SECTOR,
             block.number,
@@ -240,7 +240,7 @@ contract Sector is Initializable, ISector, IFsEvent {
         }
     }
 
-    function DeleteSector(address nodeAddr, uint64 sectorId) private {
+    function deleteSector(address nodeAddr, uint64 sectorId) private {
         deleteAllSectorFileInfoGroup(nodeAddr, sectorId);
         deleteSectorInfo(nodeAddr, sectorId);
     }

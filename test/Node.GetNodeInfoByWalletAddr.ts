@@ -21,7 +21,7 @@ describe(scriptName, () => {
     await expect(tx).to.not.be.reverted;
   });
 
-  it("register", async () => {
+  it("query", async () => {
     const res = await node.GetNodeInfoByWalletAddr(addrs[5]);
     assert(res.WalletAddr == addrs[5]);
   });

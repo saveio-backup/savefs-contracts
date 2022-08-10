@@ -1,18 +1,21 @@
 import { expect } from "chai";
-import { addrs, node, sector } from "./initialize";
+import { assert } from "console";
+import { addrs, node, sector, print } from "./initialize";
 
 var path = require('path');
 var name = path.basename(__filename);
 
+
 describe(name, () => {
 
   it("register", async () => {
+    // console.log(addrs[7])
     let tx = node.Register({
-      Pledge: 0,
-      Profit: 0,
+      Pledge: 10000,
+      Profit: 10000,
       Volume: 1000 * 1000,
-      RestVol: 0,
-      ServiceTime: 0,
+      RestVol: 10000,
+      ServiceTime: 10000,
       WalletAddr: addrs[7],
       NodeAddr: addrs[7],
     }, {
@@ -26,24 +29,37 @@ describe(name, () => {
     const tx = sector.CreateSector({
       NodeAddr: addrs[7],
       SectorID: 1,
-      Size: 1,
+      Size: 10000,
       Used: 0,
       ProveLevel_: 1,
-      FirstProveHeight: 10000,
+      FirstProveHeight: 0,
       NextProveHeight: 10000,
-      TotalBlockNum: 1,
+      TotalBlockNum: 10000,
       FileNum: 0,
       GroupNum: 1,
-      IsPlots: false,
+      IsPlots: true,
       FileList: []
     });
     await expect(tx).to.not.be.reverted;
   })
 
+  it("query 1", async () => {
+    const res = await node.GetNodeInfoByWalletAddr(addrs[7]);
+    // console.log(res)
+  });
+
   it("cancel", async () => {
     let tx = node.Cancel(addrs[7]);
     // print(tx)
     await expect(tx).to.not.be.reverted;
+
+    let res = await (await tx).wait()
+    // console.log(res)
+  });
+
+  it("query 2", async () => {
+    const res = await node.GetNodeInfoByWalletAddr(addrs[7]);
+    // console.log(res)
   });
 
 });
