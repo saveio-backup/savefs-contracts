@@ -101,7 +101,22 @@ contract Sector is Initializable, ISector, IFsEvent {
         override
         returns (SectorInfo[] memory)
     {
-        return sectorInfos[nodeAddr];
+        SectorInfo[] memory infos = sectorInfos[nodeAddr];
+        uint64 num = 0;
+        for (uint64 i = 0; i < infos.length; i++) {
+            if (infos[i].Size > 0) {
+                num++;
+            }
+        }
+        SectorInfo[] memory res = new SectorInfo[](num);
+        uint64 j = 0;
+        for (uint64 i = 0; i < infos.length; i++) {
+            if (infos[i].Size > 0) {
+                res[j] = infos[i];
+                j++;
+            }
+        }
+        return res;
     }
 
     function DeleteSector(SectorRef memory sectorRef) public virtual override {

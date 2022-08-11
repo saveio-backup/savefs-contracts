@@ -6,10 +6,12 @@ var path = require('path');
 var name = path.basename(__filename);
 
 
+// addrs[7] = "0xF168345D34E76118b2280dBcF905DE98e2905e61"
+// console.log(addrs[7])
+
 describe(name, () => {
 
   it("register", async () => {
-    // console.log(addrs[7])
     let tx = node.Register({
       Pledge: 10000,
       Profit: 10000,
@@ -46,6 +48,7 @@ describe(name, () => {
   it("query 1", async () => {
     const res = await node.GetNodeInfoByWalletAddr(addrs[7]);
     // console.log(res)
+    assert(!res.Volume.eq(0))
   });
 
   it("cancel", async () => {
@@ -60,6 +63,7 @@ describe(name, () => {
   it("query 2", async () => {
     const res = await node.GetNodeInfoByWalletAddr(addrs[7]);
     // console.log(res)
+    assert(res.Volume.eq(0))
   });
 
 });

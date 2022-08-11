@@ -40,7 +40,7 @@ describe(name, () => {
       FirstProveHeight: 1,
       NextProveHeight: 1,
       TotalBlockNum: 1,
-      FileNum: 1,
+      FileNum: 0,
       GroupNum: 1,
       IsPlots: false,
       FileList: []
@@ -53,6 +53,21 @@ describe(name, () => {
     let res = await tx;
     // console.log(res)
     assert(res.length == 1);
+  });
+
+  it("delete sector", async () => {
+    const tx = sector.DeleteSector({
+      NodeAddr: addrs[13],
+      SectorId: "1",
+    });
+    await expect(tx).to.not.be.reverted;
+  });
+
+  it('get 3', async () => {
+    const tx = sector.GetSectorsForNode(addrs[13]);
+    let res = await tx;
+    // console.log(res)
+    assert(res.length == 0);
   });
 
 });
