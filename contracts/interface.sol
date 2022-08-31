@@ -94,6 +94,13 @@ interface IFsEvent {
         TransferState state
     );
 
+    // dns
+    event NotifyNameInfoAdd(
+        address owner,
+        bytes url,
+        NameInfo newer
+    );
+
     // file
     error FileNotExist(bytes);
     error UserspaceInsufficientBalance(uint256 got, uint256 want);

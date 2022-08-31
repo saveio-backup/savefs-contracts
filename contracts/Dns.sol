@@ -19,6 +19,7 @@ contract Dns is Initializable, IFsEvent {
     address admin;
     mapping(bytes => HeaderInfo) headers; // header => HeaderInfo
     mapping(bytes => NameInfo) nameInfos; // header + url => NameInfo
+    mapping(bytes => bool) pluginListKey; // header + url => any
 
     function DnsInit(address _admin) public {
         admin = _admin;
@@ -76,13 +77,27 @@ contract Dns is Initializable, IFsEvent {
         }
         bytes memory key = concat(info.Header, info.URL);
         nameInfos[key] = info;
-
         if (
             req.Type == CUSTOM_HEADER_URL &&
             keccak256(req.Header) == keccak256(DSP_PLUGIN_HEADER)
         ) {
-            // TODO
+            pluginListKey[key] = true;
         }
+        emit NotifyNameInfoAdd(
+            req.NameOwner,
+            GetUrl(info.Header, info.URL),
+            info
+        );
+    }
+
+    function GetUrl(bytes memory header, bytes memory url)
+        public
+        pure
+        returns (bytes memory)
+    {
+        bytes memory a = concat(header, "://");
+        bytes memory b = concat(a, url);
+        return b;
     }
 
     function CreateDefaultUrl(bytes memory name)
