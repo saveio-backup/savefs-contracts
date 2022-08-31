@@ -323,3 +323,18 @@ struct ProveConfig {
 struct SectorConfig {
     uint64 SECTOR_FILE_INFO_GROUP_MAX_LEN;
 }
+
+// dns
+struct HeaderInfo {
+    bytes Header;
+    address HeaderOwner;
+    bytes Desc;
+    uint64 BlockHeight;
+    uint64 TTL;
+}
+
+struct ReqInfo {
+    bytes Header;
+    bytes URL;
+    address Owner;
+}
