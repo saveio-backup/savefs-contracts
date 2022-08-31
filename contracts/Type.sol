@@ -325,11 +325,16 @@ struct SectorConfig {
 }
 
 // dns
+enum NameType {
+    Normal,
+    Plugin
+}
+
 struct HeaderInfo {
     bytes Header;
     address HeaderOwner;
     bytes Desc;
-    uint64 BlockHeight;
+    uint256 BlockHeight;
     uint64 TTL;
 }
 
@@ -337,4 +342,25 @@ struct ReqInfo {
     bytes Header;
     bytes URL;
     address Owner;
+}
+
+struct RequestName {
+    uint64 Type;
+    bytes Header;
+    bytes URL;
+    bytes Name;
+    address NameOwner;
+    bytes Desc;
+    uint64 DesireTTL;
+}
+
+struct NameInfo {
+    uint64 Type;
+    bytes Header;
+    bytes URL;
+    bytes Name;
+    address NameOwner;
+    bytes Desc;
+    uint256 BlockHeight;
+    uint64 TTL;
 }
