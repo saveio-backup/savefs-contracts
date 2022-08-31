@@ -17,7 +17,7 @@ contract Dns is Initializable, IFsEvent {
     bytes DSP_PLUGIN_HEADER = "dsp-plugin";
 
     address admin;
-    mapping(bytes => HeaderInfo) headers; // header => HeaderInfo
+    mapping(bytes => HeaderInfo) headerInfos; // header => HeaderInfo
     mapping(bytes => NameInfo) nameInfos; // header + url => NameInfo
     mapping(bytes => bool) pluginListKey; // header + url => any
 
@@ -29,7 +29,7 @@ contract Dns is Initializable, IFsEvent {
         info.Desc = "reserved dsp protocol";
         info.BlockHeight = 0;
         info.TTL = 0;
-        headers[info.Header] = info;
+        headerInfos[info.Header] = info;
     }
 
     function RegisterName(RequestName memory req) public payable {
@@ -87,6 +87,20 @@ contract Dns is Initializable, IFsEvent {
             req.NameOwner,
             GetUrl(info.Header, info.URL),
             info
+        );
+    }
+
+    function RegisterHeader(RequestHeader memory req) public payable {
+        HeaderInfo memory info;
+        info.Header = req.Header;
+        info.HeaderOwner = req.NameOwner;
+        info.Desc = req.Desc;
+        info.BlockHeight = block.number + 1;
+        info.TTL = 0;
+        headerInfos[req.Header] = info;
+        emit NotifyHeaderAdd(
+            req.NameOwner,
+            req.Header
         );
     }
 

@@ -101,6 +101,11 @@ interface IFsEvent {
         NameInfo newer
     );
 
+    event NotifyHeaderAdd(
+        address owner,
+        bytes header
+    );
+
     // file
     error FileNotExist(bytes);
     error UserspaceInsufficientBalance(uint256 got, uint256 want);

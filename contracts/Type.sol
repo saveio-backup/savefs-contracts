@@ -364,3 +364,10 @@ struct NameInfo {
     uint256 BlockHeight;
     uint64 TTL;
 }
+
+struct RequestHeader{
+    bytes Header;
+    address NameOwner;
+    bytes Desc;
+    uint64 DesireTTL;
+}
