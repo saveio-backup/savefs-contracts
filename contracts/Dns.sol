@@ -20,7 +20,10 @@ contract Dns is Initializable, IFsEvent {
     mapping(bytes => HeaderInfo) headerInfos; // header => HeaderInfo
     mapping(bytes => NameInfo) nameInfos; // header + url => NameInfo
     mapping(bytes => bool) pluginListKey; // header + url => any
+    mapping(string => PeerPoolItem) peerPool; // peerPubKey => PeerPoolItem
+    mapping(address => DNSNodeInfo) dnsNodeInfos; // walletAddr => DNSNodeInfo
 
+    // dns
     function DnsInit(address _admin) public {
         admin = _admin;
         HeaderInfo memory info;
@@ -109,8 +112,14 @@ contract Dns is Initializable, IFsEvent {
         }
         nameInfos[key].NameOwner = info.To;
         nameInfos[key].BlockHeight = block.number + 1;
-        nameInfos[key].TTL = uint64(nameInfo.TTL + nameInfo.BlockHeight - block.number);
-        emit NotifyNameInfoTransfer(info.From, info.To, GetUrl(info.Header, info.URL));
+        nameInfos[key].TTL = uint64(
+            nameInfo.TTL + nameInfo.BlockHeight - block.number
+        );
+        emit NotifyNameInfoTransfer(
+            info.From,
+            info.To,
+            GetUrl(info.Header, info.URL)
+        );
     }
 
     function TransferHeader(TransferInfo memory info) public {
@@ -122,7 +131,9 @@ contract Dns is Initializable, IFsEvent {
         if (headerInfo.TTL + headerInfo.BlockHeight <= block.number) {
             ttl = 0;
         } else {
-            ttl = uint64(headerInfo.TTL + headerInfo.BlockHeight - block.number);
+            ttl = uint64(
+                headerInfo.TTL + headerInfo.BlockHeight - block.number
+            );
         }
         headerInfos[info.Header].Header = info.Header;
         headerInfos[info.Header].HeaderOwner = info.To;
@@ -131,7 +142,7 @@ contract Dns is Initializable, IFsEvent {
         emit NotifyHeaderTransfer(info.From, info.To, info.Header);
     }
 
-    function UpdateName(RequestName memory req) public payable{
+    function UpdateName(RequestName memory req) public payable {
         bytes memory key = concat(req.Header, req.URL);
         NameInfo memory nameInfo = nameInfos[key];
         if (nameInfo.NameOwner != msg.sender) {
@@ -150,7 +161,11 @@ contract Dns is Initializable, IFsEvent {
         return nameInfos[key];
     }
 
-    function GetHeader(ReqInfo memory req) public view returns (HeaderInfo memory) {
+    function GetHeader(ReqInfo memory req)
+        public
+        view
+        returns (HeaderInfo memory)
+    {
         return headerInfos[req.Header];
     }
 
@@ -206,5 +221,60 @@ contract Dns is Initializable, IFsEvent {
 
     function toBytes(bytes32 _data) public pure returns (bytes memory) {
         return abi.encodePacked(_data);
+    }
+
+    // dns node
+    function DNSNodeReg(DNSNodeInfo memory info) public payable {
+        require(info.InitDeposit > 0, "index must > 0");
+        require(msg.value >= info.InitDeposit, "deposit must > 0");
+        PeerPoolItem memory item;
+        item.PeerPubKey = info.PeerPubKey;
+        item.WalletAddress = info.WalletAddr;
+        item.Status = uint8(DNSStatus.RegisterCandidateStatus);
+        item.TotalInitPos = info.InitDeposit;
+        peerPool[info.PeerPubKey] = item;
+        dnsNodeInfos[info.WalletAddr] = info;
+        emit DNSNodeRegister(
+            info.IP,
+            info.Port,
+            info.WalletAddr,
+            info.InitDeposit
+        );
+    }
+
+    function UnRegDNSNode(UnRegisterCandidateParam memory req) public {
+        PeerPoolItem memory item = peerPool[req.PeerPubKey];
+        if (item.Status != uint8(DNSStatus.RegisterCandidateStatus)) {
+            revert("not register");
+        }
+        if (item.WalletAddress != req.Address) {
+            revert("not owner");
+        }
+        payable(req.Address).transfer(item.TotalInitPos);
+        delete peerPool[req.PeerPubKey];
+        delete dnsNodeInfos[req.Address];
+        emit DNSNodeUnReg(req.Address);
+    }
+
+    function ApproveDNSCandidate(string memory peerPubKey) public {
+        PeerPoolItem memory item = peerPool[peerPubKey];
+        if (item.TotalInitPos < 1) {
+            revert("not enough init deposit");
+        }
+        if (item.Status != uint8(DNSStatus.RegisterCandidateStatus)) {
+            revert("not register");
+        }
+        item.Status = uint8(DNSStatus.ConsensusStatus);
+        peerPool[peerPubKey] = item;
+    }
+
+    function RejectDNSCandidate(string memory peerPubKey) public payable {
+        PeerPoolItem memory item = peerPool[peerPubKey];
+        if (item.Status != uint8(DNSStatus.RegisterCandidateStatus)) {
+            revert("not register");
+        }
+        payable(item.WalletAddress).transfer(item.TotalInitPos);
+        delete peerPool[peerPubKey];
+        delete dnsNodeInfos[item.WalletAddress];
     }
 }

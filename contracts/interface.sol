@@ -122,6 +122,17 @@ interface IFsEvent {
         address owner,
         bytes url
     );
+    
+    event DNSNodeRegister(
+        bytes ip,
+        bytes port,
+        address walletAddr,
+        uint64 deposit
+    );
+
+    event DNSNodeUnReg(
+        address walletAddr
+    );
 
     // file
     error FileNotExist(bytes);

@@ -378,3 +378,33 @@ struct TransferInfo {
     address From;
     address To;
 }
+
+// dns
+struct DNSNodeInfo {
+    address WalletAddr;
+    bytes IP;
+    bytes Port;
+    uint64 InitDeposit;
+    string PeerPubKey;
+}
+
+enum DNSStatus {
+    RegisterCandidateStatus,
+	CandidateStatus,
+	ConsensusStatus,
+	QuitConsensusStatus,
+	QuitingStatus,
+	BlackStatus
+}
+
+struct PeerPoolItem {
+    string PeerPubKey;
+    address WalletAddress;
+    uint8 Status;
+    uint64 TotalInitPos;
+}
+
+struct UnRegisterCandidateParam {
+    string PeerPubKey;
+    address Address;
+}
