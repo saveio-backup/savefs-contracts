@@ -277,4 +277,35 @@ contract Dns is Initializable, IFsEvent {
         delete peerPool[peerPubKey];
         delete dnsNodeInfos[item.WalletAddress];
     }
+
+    function QuitNode(QuitNodeParam memory req) public {
+        PeerPoolItem memory item = peerPool[req.PeerPubKey];
+        if (item.WalletAddress != req.Address) {
+            revert("not owner");
+        }
+        if (item.Status != uint8(DNSStatus.ConsensusStatus) && item.Status != uint8(DNSStatus.RegisterCandidateStatus)) {
+            revert("not consensus");
+        }
+        if (item.Status == uint8(DNSStatus.ConsensusStatus)) {
+            item.Status = uint8(DNSStatus.QuitConsensusStatus);
+        } else {
+            item.Status = uint8(DNSStatus.QuitingStatus);
+        }
+        peerPool[req.PeerPubKey] = item;
+        delete dnsNodeInfos[req.Address];
+    }
+
+    function AddInitPos(ChangeInitPosParam memory req) public payable {
+        require(req.Pos > 0, "pos must > 0");
+        require(msg.value >= req.Pos, "deposit must > 0");
+        PeerPoolItem memory item = peerPool[req.PeerPubKey];
+        if (item.WalletAddress != req.Address) {
+            revert("not owner");
+        }
+        if (item.Status != uint8(DNSStatus.ConsensusStatus) && item.Status != uint8(DNSStatus.RegisterCandidateStatus)) {
+            revert("not consensus");
+        }
+        item.TotalInitPos += req.Pos;
+        peerPool[req.PeerPubKey] = item;
+    }
 }

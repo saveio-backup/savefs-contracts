@@ -408,3 +408,14 @@ struct UnRegisterCandidateParam {
     string PeerPubKey;
     address Address;
 }
+
+struct QuitNodeParam {
+    string PeerPubKey;
+    address Address;
+}
+
+struct ChangeInitPosParam {
+    string PeerPubKey;
+    address Address;
+    uint64 Pos;
+}
