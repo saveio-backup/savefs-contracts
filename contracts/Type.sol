@@ -371,3 +371,10 @@ struct RequestHeader{
     bytes Desc;
     uint64 DesireTTL;
 }
+
+struct TransferInfo {
+    bytes Header;
+    bytes URL;
+    address From;
+    address To;
+}

@@ -106,6 +106,23 @@ interface IFsEvent {
         bytes header
     );
 
+    event NotifyNameInfoTransfer(
+        address from,
+        address to,
+        bytes url
+    );
+
+    event NotifyHeaderTransfer(
+        address from,
+        address to,
+        bytes header
+    );
+
+    event NotifyNameInfoChange(
+        address owner,
+        bytes url
+    );
+
     // file
     error FileNotExist(bytes);
     error UserspaceInsufficientBalance(uint256 got, uint256 want);

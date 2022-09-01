@@ -98,10 +98,77 @@ contract Dns is Initializable, IFsEvent {
         info.BlockHeight = block.number + 1;
         info.TTL = 0;
         headerInfos[req.Header] = info;
-        emit NotifyHeaderAdd(
-            req.NameOwner,
-            req.Header
-        );
+        emit NotifyHeaderAdd(req.NameOwner, req.Header);
+    }
+
+    function TransferName(TransferInfo memory info) public {
+        bytes memory key = concat(info.Header, info.URL);
+        NameInfo memory nameInfo = nameInfos[key];
+        if (nameInfo.NameOwner != info.From) {
+            revert("not owner");
+        }
+        nameInfos[key].NameOwner = info.To;
+        nameInfos[key].BlockHeight = block.number + 1;
+        nameInfos[key].TTL = uint64(nameInfo.TTL + nameInfo.BlockHeight - block.number);
+        emit NotifyNameInfoTransfer(info.From, info.To, GetUrl(info.Header, info.URL));
+    }
+
+    function TransferHeader(TransferInfo memory info) public {
+        HeaderInfo memory headerInfo = headerInfos[info.Header];
+        if (headerInfo.HeaderOwner != info.From) {
+            revert("not owner");
+        }
+        uint64 ttl;
+        if (headerInfo.TTL + headerInfo.BlockHeight <= block.number) {
+            ttl = 0;
+        } else {
+            ttl = uint64(headerInfo.TTL + headerInfo.BlockHeight - block.number);
+        }
+        headerInfos[info.Header].Header = info.Header;
+        headerInfos[info.Header].HeaderOwner = info.To;
+        headerInfos[info.Header].BlockHeight = block.number + 1;
+        headerInfos[info.Header].TTL = ttl;
+        emit NotifyHeaderTransfer(info.From, info.To, info.Header);
+    }
+
+    function UpdateName(RequestName memory req) public payable{
+        bytes memory key = concat(req.Header, req.URL);
+        NameInfo memory nameInfo = nameInfos[key];
+        if (nameInfo.NameOwner != msg.sender) {
+            revert("not owner");
+        }
+        nameInfos[key].Type = req.Type;
+        nameInfos[key].Name = req.Name;
+        nameInfos[key].Desc = req.Desc;
+        nameInfos[key].TTL = req.DesireTTL;
+        nameInfos[key].BlockHeight = block.number + 1;
+        emit NotifyNameInfoChange(req.NameOwner, GetUrl(req.Header, req.URL));
+    }
+
+    function GetName(ReqInfo memory req) public view returns (NameInfo memory) {
+        bytes memory key = concat(req.Header, req.URL);
+        return nameInfos[key];
+    }
+
+    function GetHeader(ReqInfo memory req) public view returns (HeaderInfo memory) {
+        return headerInfos[req.Header];
+    }
+
+    function DelDNS(ReqInfo memory req) public payable {
+        bytes memory key = concat(req.Header, req.URL);
+        NameInfo memory nameInfo = nameInfos[key];
+        if (nameInfo.NameOwner != admin) {
+            revert("not admin");
+        }
+        delete nameInfos[key];
+    }
+
+    function DelHeader(ReqInfo memory req) public payable {
+        HeaderInfo memory headerInfo = headerInfos[req.Header];
+        if (headerInfo.HeaderOwner != admin) {
+            revert("not admin");
+        }
+        delete headerInfos[req.Header];
     }
 
     function GetUrl(bytes memory header, bytes memory url)
@@ -140,12 +207,4 @@ contract Dns is Initializable, IFsEvent {
     function toBytes(bytes32 _data) public pure returns (bytes memory) {
         return abi.encodePacked(_data);
     }
-
-    function RegisterHeader() public {}
-
-    function TransferName() public {}
-
-    function TransferHeader() public {}
-
-    function GetName(ReqInfo memory req) public view returns (bytes memory) {}
 }
