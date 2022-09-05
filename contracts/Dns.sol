@@ -7,6 +7,8 @@ import "./type.sol";
 import "./interface.sol";
 
 contract Dns is Initializable, IFsEvent {
+    using PeerPoolMapping for PeerPoolMap;
+
     uint64 SYSTEM;
     uint64 CUSTOM_HEADER;
     uint64 CUSTOM_URL;
@@ -20,7 +22,7 @@ contract Dns is Initializable, IFsEvent {
     mapping(bytes => HeaderInfo) headerInfos; // header => HeaderInfo
     mapping(bytes => NameInfo) nameInfos; // header + url => NameInfo
     mapping(bytes => bool) pluginListKey; // header + url => any
-    mapping(string => PeerPoolItem) peerPool; // peerPubKey => PeerPoolItem
+    PeerPoolMap peerPool; // peerPubKey => PeerPoolItem
     mapping(address => DNSNodeInfo) dnsNodeInfos; // walletAddr => DNSNodeInfo
 
     function initialize() public initializer {
@@ -246,7 +248,7 @@ contract Dns is Initializable, IFsEvent {
         item.WalletAddress = info.WalletAddr;
         item.Status = uint8(DNSStatus.RegisterCandidateStatus);
         item.TotalInitPos = info.InitDeposit;
-        peerPool[info.PeerPubKey] = item;
+        peerPool.insert(info.PeerPubKey, item);
         dnsNodeInfos[info.WalletAddr] = info;
         emit DNSNodeRegister(
             info.IP,
@@ -260,7 +262,7 @@ contract Dns is Initializable, IFsEvent {
         if (req.Address != msg.sender) {
             revert("not owner");
         }
-        PeerPoolItem memory item = peerPool[req.PeerPubKey];
+        PeerPoolItem memory item = peerPool.get(req.PeerPubKey);
         if (item.Status != uint8(DNSStatus.RegisterCandidateStatus)) {
             revert("not register");
         }
@@ -268,13 +270,13 @@ contract Dns is Initializable, IFsEvent {
             revert("not owner");
         }
         payable(req.Address).transfer(item.TotalInitPos);
-        delete peerPool[req.PeerPubKey];
+        peerPool.remove(req.PeerPubKey);
         delete dnsNodeInfos[req.Address];
         emit DNSNodeUnReg(req.Address);
     }
 
     function ApproveDNSCandidate(string memory peerPubKey) public {
-        PeerPoolItem memory item = peerPool[peerPubKey];
+        PeerPoolItem memory item = peerPool.get(peerPubKey);
         if (item.TotalInitPos < 1) {
             revert("not enough init deposit");
         }
@@ -282,16 +284,16 @@ contract Dns is Initializable, IFsEvent {
             revert("not register");
         }
         item.Status = uint8(DNSStatus.ConsensusStatus);
-        peerPool[peerPubKey] = item;
+        peerPool.insert(peerPubKey, item);
     }
 
     function RejectDNSCandidate(string memory peerPubKey) public payable {
-        PeerPoolItem memory item = peerPool[peerPubKey];
+        PeerPoolItem memory item = peerPool.get(peerPubKey);
         if (item.Status != uint8(DNSStatus.RegisterCandidateStatus)) {
             revert("not register");
         }
         payable(item.WalletAddress).transfer(item.TotalInitPos);
-        delete peerPool[peerPubKey];
+        peerPool.remove(peerPubKey);
         delete dnsNodeInfos[item.WalletAddress];
     }
 
@@ -299,7 +301,7 @@ contract Dns is Initializable, IFsEvent {
         if (req.Address != msg.sender) {
             revert("not owner");
         }
-        PeerPoolItem memory item = peerPool[req.PeerPubKey];
+        PeerPoolItem memory item = peerPool.get(req.PeerPubKey);
         if (item.WalletAddress != req.Address) {
             revert("not owner");
         }
@@ -314,7 +316,7 @@ contract Dns is Initializable, IFsEvent {
         } else {
             item.Status = uint8(DNSStatus.QuitingStatus);
         }
-        peerPool[req.PeerPubKey] = item;
+        peerPool.insert(req.PeerPubKey, item);
         delete dnsNodeInfos[req.Address];
     }
 
@@ -324,7 +326,7 @@ contract Dns is Initializable, IFsEvent {
         if (req.Address != msg.sender) {
             revert("not owner");
         }
-        PeerPoolItem memory item = peerPool[req.PeerPubKey];
+        PeerPoolItem memory item = peerPool.get(req.PeerPubKey);
         if (item.WalletAddress != req.Address) {
             revert("not owner");
         }
@@ -335,7 +337,7 @@ contract Dns is Initializable, IFsEvent {
             revert("not consensus");
         }
         item.TotalInitPos += req.Pos;
-        peerPool[req.PeerPubKey] = item;
+        peerPool.insert(req.PeerPubKey, item);
     }
 
     function ReduceInitPos(ChangeInitPosParam memory req) public payable {
@@ -343,7 +345,7 @@ contract Dns is Initializable, IFsEvent {
         if (req.Address != msg.sender) {
             revert("not owner");
         }
-        PeerPoolItem memory item = peerPool[req.PeerPubKey];
+        PeerPoolItem memory item = peerPool.get(req.PeerPubKey);
         if (item.WalletAddress != req.Address) {
             revert("not owner");
         }
@@ -351,12 +353,19 @@ contract Dns is Initializable, IFsEvent {
             revert("not enough init deposit");
         }
         item.TotalInitPos -= req.Pos;
-        peerPool[req.PeerPubKey] = item;
+        peerPool.insert(req.PeerPubKey, item);
     }
 
-    function GetPeerPoolMap() public pure returns (PeerPoolItem[] memory) {
-        PeerPoolItem[] memory items = new PeerPoolItem[](0);
-        // TODO
+    function GetPeerPoolMap() public view returns (PeerPoolItem[] memory) {
+        PeerPoolItem[] memory items = new PeerPoolItem[](peerPool.size);
+        for (
+            uint256 i = peerPool.iterate_start();
+            peerPool.iterate_valid(i);
+            i = peerPool.iterate_next(i)
+        ) {
+            (, PeerPoolItem memory value) = peerPool.iterate_get(i);
+            items[i] = value;
+        }
         return items;
     }
 
@@ -365,7 +374,7 @@ contract Dns is Initializable, IFsEvent {
         view
         returns (PeerPoolItem memory)
     {
-        return peerPool[peerPubKey];
+        return peerPool.get(peerPubKey);
     }
 
     function GetDNSNodeByAddress(address addr)
@@ -402,5 +411,105 @@ contract Dns is Initializable, IFsEvent {
         NameInfo[] memory items = new NameInfo[](0);
         // TODO
         return items;
+    }
+}
+
+// map for peer pool
+struct IndexValue {
+    uint256 keyIndex;
+    PeerPoolItem value;
+}
+struct KeyFlag {
+    string key;
+    bool deleted;
+}
+
+struct PeerPoolMap {
+    mapping(string => IndexValue) data;
+    KeyFlag[] keys;
+    uint256 size;
+}
+
+library PeerPoolMapping {
+    function insert(
+        PeerPoolMap storage self,
+        string memory key,
+        PeerPoolItem memory value
+    ) internal returns (bool replaced) {
+        uint256 keyIndex = self.data[key].keyIndex;
+        self.data[key].value = value;
+        if (keyIndex > 0) return true;
+        else {
+            keyIndex = self.keys.length;
+            self.keys.push();
+            self.data[key].keyIndex = keyIndex + 1;
+            self.keys[keyIndex].key = key;
+            self.size++;
+            return false;
+        }
+    }
+
+    function get(PeerPoolMap storage self, string memory key)
+        internal
+        view
+        returns (PeerPoolItem memory)
+    {
+        return self.data[key].value;
+    }
+
+    function remove(PeerPoolMap storage self, string memory key)
+        internal
+        returns (bool success)
+    {
+        uint256 keyIndex = self.data[key].keyIndex;
+        if (keyIndex == 0) return false;
+        delete self.data[key];
+        self.keys[keyIndex - 1].deleted = true;
+        self.size--;
+    }
+
+    function contains(PeerPoolMap storage self, string memory key)
+        internal
+        view
+        returns (bool)
+    {
+        return self.data[key].keyIndex > 0;
+    }
+
+    function iterate_start(PeerPoolMap storage self)
+        internal
+        view
+        returns (uint256 keyIndex)
+    {
+        uint256 index = iterate_next(self, type(uint256).min);
+        return index - 1;
+    }
+
+    function iterate_valid(PeerPoolMap storage self, uint256 keyIndex)
+        internal
+        view
+        returns (bool)
+    {
+        return keyIndex < self.keys.length;
+    }
+
+    function iterate_next(PeerPoolMap storage self, uint256 keyIndex)
+        internal
+        view
+        returns (uint256 r_keyIndex)
+    {
+        keyIndex++;
+        while (keyIndex < self.keys.length && self.keys[keyIndex].deleted)
+            keyIndex++;
+        return keyIndex;
+    }
+
+    function iterate_get(PeerPoolMap storage self, uint256 keyIndex)
+        internal
+        view
+        returns (string memory key, PeerPoolItem memory value)
+    {
+        key = self.keys[keyIndex].key;
+        value = self.data[key].value;
     }
 }
