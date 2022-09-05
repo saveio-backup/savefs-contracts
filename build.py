@@ -9,7 +9,8 @@ list = [
     "PDP",
     "Prove",
     "Sector",
-    "Space"
+    "Space",
+    "Dns"
 ]
 
 for i in list:
