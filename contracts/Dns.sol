@@ -8,6 +8,8 @@ import "./interface.sol";
 
 contract Dns is Initializable, IFsEvent {
     using PeerPoolMapping for PeerPoolMap;
+    using DNSNodeMapping for DNSNodeMap;
+    using NameInfoMapping for NameInfoMap;
 
     uint64 SYSTEM;
     uint64 CUSTOM_HEADER;
@@ -20,10 +22,10 @@ contract Dns is Initializable, IFsEvent {
 
     address admin;
     mapping(bytes => HeaderInfo) headerInfos; // header => HeaderInfo
-    mapping(bytes => NameInfo) nameInfos; // header + url => NameInfo
+    NameInfoMap nameInfos; // header + url => NameInfo
     mapping(bytes => bool) pluginListKey; // header + url => any
     PeerPoolMap peerPool; // peerPubKey => PeerPoolItem
-    mapping(address => DNSNodeInfo) dnsNodeInfos; // walletAddr => DNSNodeInfo
+    DNSNodeMap dnsNodeInfos; // walletAddr => DNSNodeInfo
 
     function initialize() public initializer {
         SYSTEM = 0x00;
@@ -92,7 +94,7 @@ contract Dns is Initializable, IFsEvent {
             info.TTL = req.DesireTTL;
         }
         bytes memory key = concat(info.Header, info.URL);
-        nameInfos[key] = info;
+        nameInfos.insert(key, info);
         if (
             req.Type == CUSTOM_HEADER_URL &&
             keccak256(req.Header) == keccak256(DSP_PLUGIN_HEADER)
@@ -119,15 +121,16 @@ contract Dns is Initializable, IFsEvent {
 
     function TransferName(TransferInfo memory info) public {
         bytes memory key = concat(info.Header, info.URL);
-        NameInfo memory nameInfo = nameInfos[key];
+        NameInfo memory nameInfo = nameInfos.get(key);
         if (nameInfo.NameOwner != info.From) {
             revert("not owner");
         }
-        nameInfos[key].NameOwner = info.To;
-        nameInfos[key].BlockHeight = block.number + 1;
-        nameInfos[key].TTL = uint64(
+        nameInfo.NameOwner = info.To;
+        nameInfo.BlockHeight = block.number + 1;
+        nameInfo.TTL = uint64(
             nameInfo.TTL + nameInfo.BlockHeight - block.number
         );
+        nameInfos.insert(key, nameInfo);
         emit NotifyNameInfoTransfer(
             info.From,
             info.To,
@@ -157,21 +160,22 @@ contract Dns is Initializable, IFsEvent {
 
     function UpdateName(RequestName memory req) public payable {
         bytes memory key = concat(req.Header, req.URL);
-        NameInfo memory nameInfo = nameInfos[key];
+        NameInfo memory nameInfo = nameInfos.get(key);
         if (nameInfo.NameOwner != msg.sender) {
             revert("not owner");
         }
-        nameInfos[key].Type = req.Type;
-        nameInfos[key].Name = req.Name;
-        nameInfos[key].Desc = req.Desc;
-        nameInfos[key].TTL = req.DesireTTL;
-        nameInfos[key].BlockHeight = block.number + 1;
+        nameInfo.Type = req.Type;
+        nameInfo.Name = req.Name;
+        nameInfo.Desc = req.Desc;
+        nameInfo.TTL = req.DesireTTL;
+        nameInfo.BlockHeight = block.number + 1;
+        nameInfos.insert(key, nameInfo);
         emit NotifyNameInfoChange(req.NameOwner, GetUrl(req.Header, req.URL));
     }
 
     function GetName(ReqInfo memory req) public view returns (NameInfo memory) {
         bytes memory key = concat(req.Header, req.URL);
-        return nameInfos[key];
+        return nameInfos.get(key);
     }
 
     function GetHeader(ReqInfo memory req)
@@ -184,11 +188,11 @@ contract Dns is Initializable, IFsEvent {
 
     function DelDNS(ReqInfo memory req) public payable {
         bytes memory key = concat(req.Header, req.URL);
-        NameInfo memory nameInfo = nameInfos[key];
+        NameInfo memory nameInfo = nameInfos.get(key);
         if (nameInfo.NameOwner != admin) {
             revert("not admin");
         }
-        delete nameInfos[key];
+        nameInfos.remove(key);
     }
 
     function DelHeader(ReqInfo memory req) public payable {
@@ -249,7 +253,7 @@ contract Dns is Initializable, IFsEvent {
         item.Status = uint8(DNSStatus.RegisterCandidateStatus);
         item.TotalInitPos = info.InitDeposit;
         peerPool.insert(info.PeerPubKey, item);
-        dnsNodeInfos[info.WalletAddr] = info;
+        dnsNodeInfos.insert(info.WalletAddr, info);
         emit DNSNodeRegister(
             info.IP,
             info.Port,
@@ -271,7 +275,7 @@ contract Dns is Initializable, IFsEvent {
         }
         payable(req.Address).transfer(item.TotalInitPos);
         peerPool.remove(req.PeerPubKey);
-        delete dnsNodeInfos[req.Address];
+        dnsNodeInfos.remove(req.Address);
         emit DNSNodeUnReg(req.Address);
     }
 
@@ -294,7 +298,7 @@ contract Dns is Initializable, IFsEvent {
         }
         payable(item.WalletAddress).transfer(item.TotalInitPos);
         peerPool.remove(peerPubKey);
-        delete dnsNodeInfos[item.WalletAddress];
+        dnsNodeInfos.remove(item.WalletAddress);
     }
 
     function QuitNode(QuitNodeParam memory req) public {
@@ -317,7 +321,7 @@ contract Dns is Initializable, IFsEvent {
             item.Status = uint8(DNSStatus.QuitingStatus);
         }
         peerPool.insert(req.PeerPubKey, item);
-        delete dnsNodeInfos[req.Address];
+        dnsNodeInfos.remove(req.Address);
     }
 
     function AddInitPos(ChangeInitPosParam memory req) public payable {
@@ -382,34 +386,50 @@ contract Dns is Initializable, IFsEvent {
         view
         returns (DNSNodeInfo memory)
     {
-        return dnsNodeInfos[addr];
+        return dnsNodeInfos.get(addr);
     }
 
-    function GetAllDnsNodes() public pure returns (DNSNodeInfo[] memory) {
-        DNSNodeInfo[] memory items = new DNSNodeInfo[](0);
-        // TODO
+    function GetAllDnsNodes() public view returns (DNSNodeInfo[] memory) {
+        DNSNodeInfo[] memory items = new DNSNodeInfo[](dnsNodeInfos.size);
+        for (
+            uint256 i = dnsNodeInfos.iterate_start();
+            dnsNodeInfos.iterate_valid(i);
+            i = dnsNodeInfos.iterate_next(i)
+        ) {
+            (, DNSNodeInfo memory value) = dnsNodeInfos.iterate_get(i);
+            items[i] = value;
+        }
         return items;
     }
 
     function UpdateDNSNodesInfo(UpdateNodeParam memory info) public {
         require(info.IP.length > 0, "ip must not empty");
         require(info.Port.length > 0, "port must > 0");
-        if (dnsNodeInfos[msg.sender].WalletAddr != msg.sender) {
+        DNSNodeInfo memory nodeInfo = dnsNodeInfos.get(msg.sender);
+        if (nodeInfo.WalletAddr != msg.sender) {
             revert("not register");
         }
-        dnsNodeInfos[msg.sender].IP = info.IP;
-        dnsNodeInfos[msg.sender].Port = info.Port;
+        nodeInfo.IP = info.IP;
+        nodeInfo.Port = info.Port;
+        dnsNodeInfos.insert(msg.sender, nodeInfo);
         emit DNSNodeRegister(
             info.IP,
             info.Port,
             msg.sender,
-            dnsNodeInfos[msg.sender].InitDeposit
+            nodeInfo.InitDeposit
         );
     }
 
-    function GetPluginList() public pure returns (NameInfo[] memory) {
-        NameInfo[] memory items = new NameInfo[](0);
-        // TODO
+    function GetPluginList() public view returns (NameInfo[] memory) {
+        NameInfo[] memory items = new NameInfo[](nameInfos.size);
+        for (
+            uint256 i = nameInfos.iterate_start();
+            nameInfos.iterate_valid(i);
+            i = nameInfos.iterate_next(i)
+        ) {
+            (, NameInfo memory value) = nameInfos.iterate_get(i);
+            items[i] = value;
+        }
         return items;
     }
 }
@@ -423,7 +443,6 @@ struct KeyFlag {
     string key;
     bool deleted;
 }
-
 struct PeerPoolMap {
     mapping(string => IndexValue) data;
     KeyFlag[] keys;
@@ -508,6 +527,204 @@ library PeerPoolMapping {
         internal
         view
         returns (string memory key, PeerPoolItem memory value)
+    {
+        key = self.keys[keyIndex].key;
+        value = self.data[key].value;
+    }
+}
+
+// map for dns node
+struct IndexValue2 {
+    uint256 keyIndex;
+    DNSNodeInfo value;
+}
+struct KeyFlag2 {
+    address key;
+    bool deleted;
+}
+struct DNSNodeMap {
+    mapping(address => IndexValue2) data;
+    KeyFlag2[] keys;
+    uint256 size;
+}
+
+library DNSNodeMapping {
+    function insert(
+        DNSNodeMap storage self,
+        address key,
+        DNSNodeInfo memory value
+    ) internal returns (bool replaced) {
+        uint256 keyIndex = self.data[key].keyIndex;
+        self.data[key].value = value;
+        if (keyIndex > 0) return true;
+        else {
+            keyIndex = self.keys.length;
+            self.keys.push();
+            self.data[key].keyIndex = keyIndex + 1;
+            self.keys[keyIndex].key = key;
+            self.size++;
+            return false;
+        }
+    }
+
+    function get(DNSNodeMap storage self, address key)
+        internal
+        view
+        returns (DNSNodeInfo memory)
+    {
+        return self.data[key].value;
+    }
+
+    function remove(DNSNodeMap storage self, address key)
+        internal
+        returns (bool success)
+    {
+        uint256 keyIndex = self.data[key].keyIndex;
+        if (keyIndex == 0) return false;
+        delete self.data[key];
+        self.keys[keyIndex - 1].deleted = true;
+        self.size--;
+    }
+
+    function contains(DNSNodeMap storage self, address key)
+        internal
+        view
+        returns (bool)
+    {
+        return self.data[key].keyIndex > 0;
+    }
+
+    function iterate_start(DNSNodeMap storage self)
+        internal
+        view
+        returns (uint256 keyIndex)
+    {
+        uint256 index = iterate_next(self, type(uint256).min);
+        return index - 1;
+    }
+
+    function iterate_valid(DNSNodeMap storage self, uint256 keyIndex)
+        internal
+        view
+        returns (bool)
+    {
+        return keyIndex < self.keys.length;
+    }
+
+    function iterate_next(DNSNodeMap storage self, uint256 keyIndex)
+        internal
+        view
+        returns (uint256 r_keyIndex)
+    {
+        keyIndex++;
+        while (keyIndex < self.keys.length && self.keys[keyIndex].deleted)
+            keyIndex++;
+        return keyIndex;
+    }
+
+    function iterate_get(DNSNodeMap storage self, uint256 keyIndex)
+        internal
+        view
+        returns (address key, DNSNodeInfo memory value)
+    {
+        key = self.keys[keyIndex].key;
+        value = self.data[key].value;
+    }
+}
+
+// map for name info
+struct IndexValue3 {
+    uint256 keyIndex;
+    NameInfo value;
+}
+struct KeyFlag3 {
+    bytes key;
+    bool deleted;
+}
+struct NameInfoMap {
+    mapping(bytes => IndexValue3) data;
+    KeyFlag3[] keys;
+    uint256 size;
+}
+
+library NameInfoMapping {
+    function insert(
+        NameInfoMap storage self,
+        bytes memory key,
+        NameInfo memory value
+    ) internal returns (bool replaced) {
+        uint256 keyIndex = self.data[key].keyIndex;
+        self.data[key].value = value;
+        if (keyIndex > 0) return true;
+        else {
+            keyIndex = self.keys.length;
+            self.keys.push();
+            self.data[key].keyIndex = keyIndex + 1;
+            self.keys[keyIndex].key = key;
+            self.size++;
+            return false;
+        }
+    }
+
+    function get(NameInfoMap storage self, bytes memory key)
+        internal
+        view
+        returns (NameInfo memory)
+    {
+        return self.data[key].value;
+    }
+
+    function remove(NameInfoMap storage self, bytes memory key)
+        internal
+        returns (bool success)
+    {
+        uint256 keyIndex = self.data[key].keyIndex;
+        if (keyIndex == 0) return false;
+        delete self.data[key];
+        self.keys[keyIndex - 1].deleted = true;
+        self.size--;
+    }
+
+    function contains(NameInfoMap storage self, bytes memory key)
+        internal
+        view
+        returns (bool)
+    {
+        return self.data[key].keyIndex > 0;
+    }
+
+    function iterate_start(NameInfoMap storage self)
+        internal
+        view
+        returns (uint256 keyIndex)
+    {
+        uint256 index = iterate_next(self, type(uint256).min);
+        return index - 1;
+    }
+
+    function iterate_valid(NameInfoMap storage self, uint256 keyIndex)
+        internal
+        view
+        returns (bool)
+    {
+        return keyIndex < self.keys.length;
+    }
+
+    function iterate_next(NameInfoMap storage self, uint256 keyIndex)
+        internal
+        view
+        returns (uint256 r_keyIndex)
+    {
+        keyIndex++;
+        while (keyIndex < self.keys.length && self.keys[keyIndex].deleted)
+            keyIndex++;
+        return keyIndex;
+    }
+
+    function iterate_get(NameInfoMap storage self, uint256 keyIndex)
+        internal
+        view
+        returns (bytes memory key, NameInfo memory value)
     {
         key = self.keys[keyIndex].key;
         value = self.data[key].value;
