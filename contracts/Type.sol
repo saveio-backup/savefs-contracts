@@ -419,3 +419,9 @@ struct ChangeInitPosParam {
     address Address;
     uint64 Pos;
 }
+
+struct UpdateNodeParam {
+    address WalletAddr;
+    bytes IP;
+    bytes Port;
+}

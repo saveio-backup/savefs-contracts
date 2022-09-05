@@ -7,14 +7,14 @@ import "./type.sol";
 import "./interface.sol";
 
 contract Dns is Initializable, IFsEvent {
-    uint64 SYSTEM = 0x00;
-    uint64 CUSTOM_HEADER = 0x01;
-    uint64 CUSTOM_URL = 0x02;
-    uint64 CUSTOM_HEADER_URL = 0x04;
-    uint64 UPDATE = 0x08;
+    uint64 SYSTEM;
+    uint64 CUSTOM_HEADER;
+    uint64 CUSTOM_URL;
+    uint64 CUSTOM_HEADER_URL;
+    uint64 UPDATE;
 
-    bytes DSP_HEADER = "dsp";
-    bytes DSP_PLUGIN_HEADER = "dsp-plugin";
+    bytes DSP_HEADER;
+    bytes DSP_PLUGIN_HEADER;
 
     address admin;
     mapping(bytes => HeaderInfo) headerInfos; // header => HeaderInfo
@@ -22,6 +22,17 @@ contract Dns is Initializable, IFsEvent {
     mapping(bytes => bool) pluginListKey; // header + url => any
     mapping(string => PeerPoolItem) peerPool; // peerPubKey => PeerPoolItem
     mapping(address => DNSNodeInfo) dnsNodeInfos; // walletAddr => DNSNodeInfo
+
+    function initialize() public initializer {
+        SYSTEM = 0x00;
+        CUSTOM_HEADER = 0x01;
+        CUSTOM_URL = 0x02;
+        CUSTOM_HEADER_URL = 0x04;
+        UPDATE = 0x08;
+
+        DSP_HEADER = "dsp";
+        DSP_PLUGIN_HEADER = "dsp-plugin";
+    }
 
     // dns
     function DnsInit(address _admin) public {
@@ -227,6 +238,9 @@ contract Dns is Initializable, IFsEvent {
     function DNSNodeReg(DNSNodeInfo memory info) public payable {
         require(info.InitDeposit > 0, "index must > 0");
         require(msg.value >= info.InitDeposit, "deposit must > 0");
+        if (info.WalletAddr != msg.sender) {
+            revert("not owner");
+        }
         PeerPoolItem memory item;
         item.PeerPubKey = info.PeerPubKey;
         item.WalletAddress = info.WalletAddr;
@@ -243,6 +257,9 @@ contract Dns is Initializable, IFsEvent {
     }
 
     function UnRegDNSNode(UnRegisterCandidateParam memory req) public {
+        if (req.Address != msg.sender) {
+            revert("not owner");
+        }
         PeerPoolItem memory item = peerPool[req.PeerPubKey];
         if (item.Status != uint8(DNSStatus.RegisterCandidateStatus)) {
             revert("not register");
@@ -279,11 +296,17 @@ contract Dns is Initializable, IFsEvent {
     }
 
     function QuitNode(QuitNodeParam memory req) public {
+        if (req.Address != msg.sender) {
+            revert("not owner");
+        }
         PeerPoolItem memory item = peerPool[req.PeerPubKey];
         if (item.WalletAddress != req.Address) {
             revert("not owner");
         }
-        if (item.Status != uint8(DNSStatus.ConsensusStatus) && item.Status != uint8(DNSStatus.RegisterCandidateStatus)) {
+        if (
+            item.Status != uint8(DNSStatus.ConsensusStatus) &&
+            item.Status != uint8(DNSStatus.RegisterCandidateStatus)
+        ) {
             revert("not consensus");
         }
         if (item.Status == uint8(DNSStatus.ConsensusStatus)) {
@@ -298,14 +321,86 @@ contract Dns is Initializable, IFsEvent {
     function AddInitPos(ChangeInitPosParam memory req) public payable {
         require(req.Pos > 0, "pos must > 0");
         require(msg.value >= req.Pos, "deposit must > 0");
+        if (req.Address != msg.sender) {
+            revert("not owner");
+        }
         PeerPoolItem memory item = peerPool[req.PeerPubKey];
         if (item.WalletAddress != req.Address) {
             revert("not owner");
         }
-        if (item.Status != uint8(DNSStatus.ConsensusStatus) && item.Status != uint8(DNSStatus.RegisterCandidateStatus)) {
+        if (
+            item.Status != uint8(DNSStatus.ConsensusStatus) &&
+            item.Status != uint8(DNSStatus.RegisterCandidateStatus)
+        ) {
             revert("not consensus");
         }
         item.TotalInitPos += req.Pos;
         peerPool[req.PeerPubKey] = item;
+    }
+
+    function ReduceInitPos(ChangeInitPosParam memory req) public payable {
+        require(req.Pos > 0, "pos must > 0");
+        if (req.Address != msg.sender) {
+            revert("not owner");
+        }
+        PeerPoolItem memory item = peerPool[req.PeerPubKey];
+        if (item.WalletAddress != req.Address) {
+            revert("not owner");
+        }
+        if (item.TotalInitPos < req.Pos) {
+            revert("not enough init deposit");
+        }
+        item.TotalInitPos -= req.Pos;
+        peerPool[req.PeerPubKey] = item;
+    }
+
+    function GetPeerPoolMap() public pure returns (PeerPoolItem[] memory) {
+        PeerPoolItem[] memory items = new PeerPoolItem[](0);
+        // TODO
+        return items;
+    }
+
+    function GetPeerPoolItem(string memory peerPubKey)
+        public
+        view
+        returns (PeerPoolItem memory)
+    {
+        return peerPool[peerPubKey];
+    }
+
+    function GetDNSNodeByAddress(address addr)
+        public
+        view
+        returns (DNSNodeInfo memory)
+    {
+        return dnsNodeInfos[addr];
+    }
+
+    function GetAllDnsNodes() public pure returns (DNSNodeInfo[] memory) {
+        DNSNodeInfo[] memory items = new DNSNodeInfo[](0);
+        // TODO
+        return items;
+    }
+
+    function UpdateDNSNodesInfo(UpdateNodeParam memory info) public {
+        require(info.IP.length > 0, "ip must not empty");
+        require(info.Port.length > 0, "port must > 0");
+        if (dnsNodeInfos[msg.sender].WalletAddr != msg.sender) {
+            revert("not register");
+        }
+        dnsNodeInfos[msg.sender].IP = info.IP;
+        dnsNodeInfos[msg.sender].Port = info.Port;
+        emit DNSNodeRegister(
+            info.IP,
+            info.Port,
+            msg.sender,
+            dnsNodeInfos[msg.sender].InitDeposit
+        );
+    }
+
+    function GetPluginList() public pure returns (NameInfo[] memory) {
+        NameInfo[] memory items = new NameInfo[](0);
+        // TODO
+        return items;
     }
 }
