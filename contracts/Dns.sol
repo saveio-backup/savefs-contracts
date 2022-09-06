@@ -229,9 +229,11 @@ contract Dns is Initializable, IFsEvent {
         uint256 b1l = b1.length;
         uint256 b2l = b2.length;
         bytes memory result = new bytes(b1.length + b2.length);
-        assembly {
-            mstore(add(result, b1l), b1)
-            mstore(add(result, b2l), b2)
+        for (uint256 i = 0; i < b1l; i++) {
+            result[i] = b1[i];
+        }
+        for (uint256 i = 0; i < b2l; i++) {
+            result[i + b1l] = b2[i];
         }
         return result;
     }

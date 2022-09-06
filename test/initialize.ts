@@ -193,6 +193,7 @@ export {
   list,
   prove,
   pdp,
+  dns,
   print,
   mine
 };
