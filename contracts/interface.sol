@@ -66,7 +66,7 @@ interface IFsEvent {
         uint256 blockHeight,
         address walletAddr,
         uint64 sectorId,
-        ProveLevel provLevel,
+        ProveLevel proveLevel,
         uint64 size,
         bool isPlots
     );

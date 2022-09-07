@@ -34,6 +34,8 @@ contract Sector is Initializable, ISector, IFsEvent {
             .SECTOR_FILE_INFO_GROUP_MAX_LEN;
     }
 
+
+
     function CreateSector(SectorInfo memory sectorInfo)
         public
         virtual
