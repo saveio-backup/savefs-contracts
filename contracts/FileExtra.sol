@@ -60,6 +60,13 @@ contract FileExtra is IFsEvent {
         return fileSectorRefs[fileHash];
     }
 
+    function AddFileSectorRef(bytes memory fileHash, SectorRef memory sectorRef)
+        public
+        payable
+    {
+        fileSectorRefs[fileHash].push(sectorRef);
+    }
+
     function GetFileList(address _walletAddr)
         public
         view
@@ -382,6 +389,49 @@ contract FileExtra is IFsEvent {
                 fileInfo.FileHash
             );
         }
+    }
+
+    function FileReNew(
+        Setting memory setting,
+        FileReNewInfo memory fileReNewInfo
+    ) public payable {
+        require(
+            GetFileInfo(fileReNewInfo.FileHash).BlockHeight > 0,
+            "file not exist"
+        );
+        require(
+            GetFileInfo(fileReNewInfo.FileHash).StorageType_ ==
+                StorageType.Professional,
+            "file type error"
+        );
+        require(
+            GetFileInfo(fileReNewInfo.FileHash).ExpiredHeight > block.number,
+            "file expired"
+        );
+        FileInfo memory fileInfo = GetFileInfo(fileReNewInfo.FileHash);
+        StorageFee memory totalRenew = CalcFee(
+            setting,
+            fileReNewInfo.ReNewTimes,
+            fileInfo.CopyNum,
+            fileInfo.FileBlockNum * fileInfo.FileBlockSize,
+            fileReNewInfo.ReNewTimes * fileInfo.ProveInterval
+        );
+        uint64 reNewFee = totalRenew.ValidationFee + totalRenew.SpaceFee;
+        if (msg.value < reNewFee) {
+            revert NotEnoughTransfer(msg.value, reNewFee);
+        }
+        fileInfo.ProveTimes += fileReNewInfo.ReNewTimes;
+        fileInfo.Deposit += reNewFee;
+        fileInfo.ExpiredHeight +=
+            fileInfo.ProveInterval *
+            fileReNewInfo.ReNewTimes;
+        UpdateFileInfo(fileInfo);
+    }
+
+    function ChangeFilePrivilege(PriChange memory priChange) public {
+        FileInfo memory fileInfo = GetFileInfo(priChange.fileHash);
+        fileInfo.Privilege = priChange.privilege;
+        UpdateFileInfo(fileInfo);
     }
 
     function DeleteFileFromList(FileInfo memory fileInfo) public {

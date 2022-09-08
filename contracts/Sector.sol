@@ -34,8 +34,6 @@ contract Sector is Initializable, ISector, IFsEvent {
             .SECTOR_FILE_INFO_GROUP_MAX_LEN;
     }
 
-
-
     function CreateSector(SectorInfo memory sectorInfo)
         public
         virtual
@@ -197,22 +195,6 @@ contract Sector is Initializable, ISector, IFsEvent {
             sectorInfo.GroupNum++;
         }
         UpdateSectorInfo(sectorInfo);
-    }
-
-    function AddSectorRefForFileInfo(SectorInfo memory sectorInfo)
-        public
-        payable
-        virtual
-        override
-    {
-        bool r = isSectorRefByFileInfo(
-            sectorInfo.NodeAddr,
-            sectorInfo.SectorID
-        );
-        if (!r) {
-            revert SectorOpError(3);
-        }
-        AddSectorInfo(sectorInfo.NodeAddr, sectorInfo);
     }
 
     function GetSectorTotalSizeForNode(address nodeAddr)
@@ -407,9 +389,11 @@ contract Sector is Initializable, ISector, IFsEvent {
         return groupCreated;
     }
 
-    function isSectorRefByFileInfo(address nodeAddr, uint64 sectorID)
-        private
+    function IsSectorRefByFileInfo(address nodeAddr, uint64 sectorID)
+        public
         view
+        virtual
+        override
         returns (bool)
     {
         SectorInfo[] memory sectors = GetSectorsForNode(nodeAddr);

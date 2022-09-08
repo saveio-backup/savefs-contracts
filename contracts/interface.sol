@@ -274,6 +274,9 @@ interface IFile {
     function UpdateFileList(address walletAddr, bytes[] memory list)
         external
         payable;
+
+    function AddFileSectorRef(bytes memory fileHash, SectorRef memory ref)
+        external payable;
 }
 
 interface IList {
@@ -383,11 +386,12 @@ interface ISector {
         FileInfo memory fileInfo
     ) external payable;
 
-    function AddSectorRefForFileInfo(SectorInfo memory sectorInfo)
-        external
-        payable;
-
     function UpdateSectorInfo(SectorInfo memory sector) external payable;
+
+    function IsSectorRefByFileInfo(address nodeAddr, uint64 sectorID)
+        external 
+        view
+        returns (bool);
 }
 
 interface ISpace {

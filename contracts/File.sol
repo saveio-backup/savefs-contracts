@@ -176,44 +176,8 @@ contract File is Initializable, IFile, IFsEvent {
         virtual
         override
     {
-        // require(
-        //     fileExtra.GetFileInfo(fileReNewInfo.FileHash).BlockHeight > 0,
-        //     "file not exist"
-        // );
-        require(
-            fileExtra.GetFileInfo(fileReNewInfo.FileHash).StorageType_ ==
-                StorageType.Professional,
-            "file type error"
-        );
-        require(
-            fileExtra.GetFileInfo(fileReNewInfo.FileHash).ExpiredHeight >
-                block.number,
-            "file expired"
-        );
-        if (fileExtra.GetFileInfo(fileReNewInfo.FileHash).BlockHeight <= 0) {
-            revert OpError(3);
-        }
         Setting memory setting = config.GetSetting();
-        FileInfo memory fileInfo = fileExtra.GetFileInfo(
-            fileReNewInfo.FileHash
-        );
-        StorageFee memory totalRenew = CalcFee(
-            setting,
-            fileReNewInfo.ReNewTimes,
-            fileInfo.CopyNum,
-            fileInfo.FileBlockNum * fileInfo.FileBlockSize,
-            fileReNewInfo.ReNewTimes * fileInfo.ProveInterval
-        );
-        uint64 reNewFee = totalRenew.ValidationFee + totalRenew.SpaceFee;
-        if (msg.value < reNewFee) {
-            revert NotEnoughTransfer(msg.value, reNewFee);
-        }
-        fileInfo.ProveTimes += fileReNewInfo.ReNewTimes;
-        fileInfo.Deposit += reNewFee;
-        fileInfo.ExpiredHeight +=
-            fileInfo.ProveInterval *
-            fileReNewInfo.ReNewTimes;
-        fileExtra.UpdateFileInfo(fileInfo);
+        fileExtra.FileReNew{value: msg.value}(setting, fileReNewInfo);
     }
 
     function GetFileInfo(bytes memory fileHash)
@@ -442,9 +406,7 @@ contract File is Initializable, IFile, IFsEvent {
         virtual
         override
     {
-        FileInfo memory fileInfo = GetFileInfo(priChange.fileHash);
-        fileInfo.Privilege = priChange.privilege;
-        UpdateFileInfo(fileInfo);
+        fileExtra.ChangeFilePrivilege(priChange);
     }
 
     function ChangeFileOwner(OwnerChange memory ownerChange)
@@ -552,5 +514,14 @@ contract File is Initializable, IFile, IFsEvent {
             fileHashs,
             fileOwner
         );
+    }
+
+    function AddFileSectorRef(bytes memory fileHash, SectorRef memory ref)
+        public
+        payable
+        virtual
+        override
+    {
+        fileExtra.AddFileSectorRef(fileHash, ref);
     }
 }

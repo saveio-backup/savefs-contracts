@@ -153,7 +153,11 @@ contract Prove is Initializable, IProve, IFsEvent {
                 revert FileProveFailed(8);
             }
             sector.AddFileToSector(sectorInfo, fileInfo);
-            sector.AddSectorRefForFileInfo(sectorInfo);
+            SectorRef memory sectorRef = SectorRef({
+                NodeAddr: nodeInfo.WalletAddr,
+                SectorId: fileProve.SectorID
+            });
+            AddSectorRefForFileInfo(fileInfo, sectorRef);
             if (sectorInfo.NextProveHeight == 0) {
                 sectorInfo.NextProveHeight =
                     fileProve.BlockHeight +
@@ -179,6 +183,20 @@ contract Prove is Initializable, IProve, IFsEvent {
             fileInfo.FileHash,
             nodeInfo.WalletAddr
         );
+    }
+
+    function AddSectorRefForFileInfo(
+        FileInfo memory fileInfo,
+        SectorRef memory sectorRef
+    ) public {
+        bool r = sector.IsSectorRefByFileInfo(
+            sectorRef.NodeAddr,
+            sectorRef.SectorId
+        );
+        if (!r) {
+            revert SectorOpError(3);
+        }
+        fs.AddFileSectorRef(fileInfo.FileHash, sectorRef);
     }
 
     function SectorProve(SectorProveParams memory sectorProve)
