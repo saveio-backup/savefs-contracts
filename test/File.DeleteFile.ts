@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { files, addrs, file, node, space, sector } from "./initialize";
+import { files, addrs, file, node, space, sector, print } from "./initialize";
 
 var path = require('path');
 var name = path.basename(__filename);
@@ -62,8 +62,15 @@ describe(name, function () {
 
   it("delete file fail because space used = 0", async () => {
     const tx = file.DeleteFile(files[0]);
+    await expect(tx).to.emit(file, "FsError");
+
+    // let res = await (await tx).wait();
     // await print(tx)
-    await expect(tx).to.be.reverted;
+    // res.events?.forEach((event) => {
+    //   event.args?.forEach((arg) => {
+    //     console.log(arg)
+    //   })
+    // })
   });
 
   it("node register success", async () => {

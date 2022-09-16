@@ -417,9 +417,12 @@ contract File is Initializable, IFile, IFsEvent {
         fileExtra.ChangeFileOwner(ownerChange);
     }
 
-    function deleteFilesInner(FileInfo[] memory files) public {
+    function deleteFilesInner(FileInfo[] memory files)
+        public
+        returns (string memory error)
+    {
         if (files.length == 0) {
-            return;
+            return "no files";
         }
         uint64 refundAmount = 0;
         address fileOwner = files[0].FileOwner;
@@ -427,7 +430,7 @@ contract File is Initializable, IFile, IFsEvent {
         for (uint256 i = 0; i < files.length; i++) {
             FileInfo memory info = files[i];
             if (info.FileOwner != fileOwner) {
-                revert DifferenceFileOwner();
+                return "file owner is different";
             }
             SectorRef[] memory sectorRefs = fileExtra.GetFileSectorRefs(
                 info.FileHash
@@ -460,7 +463,7 @@ contract File is Initializable, IFile, IFsEvent {
                 );
                 uint64 totalProfit = validProfit + storageProfit;
                 if (totalProfit > profit) {
-                    revert InvalidProfit();
+                    return "profit is invalid";
                 }
                 nodeInfo.Profit += totalProfit;
                 node.UpdateNodeInfo(nodeInfo);
@@ -475,7 +478,7 @@ contract File is Initializable, IFile, IFsEvent {
                     us.Remain += info.FileBlockNum * info.FileBlockSize;
                     us.Used -= info.FileBlockNum * info.FileBlockSize;
                 } else {
-                    revert OpError(1);
+                    return "user space is invalid";
                 }
                 space.UpdateUserSpace(info.FileOwner, us);
             }
@@ -484,19 +487,24 @@ contract File is Initializable, IFile, IFsEvent {
         if (refundAmount > 0) {
             payable(fileOwner).transfer(refundAmount);
         }
+        return "";
     }
 
     function DeleteFile(bytes memory fileHash) public virtual override {
         FileInfo memory fileInfo = GetFileInfo(fileHash);
         FileInfo[] memory files = new FileInfo[](1);
         files[0] = fileInfo;
-        deleteFilesInner(files);
-        emit DeleteFileEvent(
-            FsEvent.DELETE_FILE,
-            block.number,
-            fileHash,
-            fileInfo.FileOwner
-        );
+        string memory error = deleteFilesInner(files);
+        if (bytes(error).length > 0) {
+            emit FsError("DeleteFile", error);
+        } else {
+            emit DeleteFileEvent(
+                FsEvent.DELETE_FILE,
+                block.number,
+                fileHash,
+                fileInfo.FileOwner
+            );
+        }
     }
 
     function DeleteFiles(bytes[] memory fileHashs) public virtual override {
@@ -507,13 +515,17 @@ contract File is Initializable, IFile, IFsEvent {
             fileOwner = fileInfo.FileOwner;
             files[i] = fileInfo;
         }
-        deleteFilesInner(files);
-        emit DeleteFilesEvent(
-            FsEvent.DELETE_FILE,
-            block.number,
-            fileHashs,
-            fileOwner
-        );
+        string memory error = deleteFilesInner(files);
+        if (bytes(error).length > 0) {
+            emit FsError("DeleteFiles", error);
+        } else {
+            emit DeleteFilesEvent(
+                FsEvent.DELETE_FILE,
+                block.number,
+                fileHashs,
+                fileOwner
+            );
+        }
     }
 
     function AddFileSectorRef(bytes memory fileHash, SectorRef memory ref)

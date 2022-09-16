@@ -3,6 +3,11 @@ pragma solidity ^0.8.0;
 import "./type.sol";
 
 interface IFsEvent {
+    event FsError(
+        string method,
+        string msg
+    );
+
     // file
     event StoreFileEvent(
         FsEvent eventType,
