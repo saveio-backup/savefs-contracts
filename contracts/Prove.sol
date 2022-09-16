@@ -127,7 +127,7 @@ contract Prove is Initializable, IProve, IFsEvent {
             }
             nodeInfo.RestVol -= fileInfo.FileBlockNum * fileInfo.FileBlockSize;
             node.UpdateNodeInfo(nodeInfo);
-            detail.NodeAddr = nodeInfo.WalletAddr;
+            detail.NodeAddr = nodeInfo.NodeAddr;
             detail.WalletAddr = fileProve.NodeWallet;
             detail.ProveTimes = 1;
             detail.BlockHeight = block.number;
@@ -413,7 +413,7 @@ contract Prove is Initializable, IProve, IFsEvent {
             NodeInfo memory nodeInfo = node.GetNodeInfoByWalletAddr(
                 details[i].WalletAddr
             );
-            details[i].NodeAddr = nodeInfo.WalletAddr;
+            details[i].NodeAddr = nodeInfo.NodeAddr;
         }
         return details;
     }

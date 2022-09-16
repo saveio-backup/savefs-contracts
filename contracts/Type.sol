@@ -171,7 +171,7 @@ struct PocProve {
 }
 
 struct ProveDetail {
-    address NodeAddr;
+    bytes NodeAddr;
     address WalletAddr;
     uint64 ProveTimes;
     uint256 BlockHeight;

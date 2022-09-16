@@ -85,12 +85,12 @@ struct IndexValue {
     ProveDetail value;
 }
 struct KeyFlag {
-    address key;
+    bytes key;
     bool deleted;
 }
 
 struct ProveDetailMap {
-    mapping(address => IndexValue) data;
+    mapping(bytes => IndexValue) data;
     KeyFlag[] keys;
     uint256 size;
 }
@@ -98,7 +98,7 @@ struct ProveDetailMap {
 library IterableMapping {
     function insert(
         ProveDetailMap storage self,
-        address key,
+        bytes memory key,
         ProveDetail memory value
     ) internal returns (bool replaced) {
         uint256 keyIndex = self.data[key].keyIndex;
@@ -114,7 +114,7 @@ library IterableMapping {
         }
     }
 
-    function remove(ProveDetailMap storage self, address key)
+    function remove(ProveDetailMap storage self, bytes memory key)
         internal
         returns (bool success)
     {
@@ -125,7 +125,7 @@ library IterableMapping {
         self.size--;
     }
 
-    function contains(ProveDetailMap storage self, address key)
+    function contains(ProveDetailMap storage self, bytes memory key)
         internal
         view
         returns (bool)
@@ -164,7 +164,7 @@ library IterableMapping {
     function iterate_get(ProveDetailMap storage self, uint256 keyIndex)
         internal
         view
-        returns (address key, ProveDetail memory value)
+        returns (bytes memory key, ProveDetail memory value)
     {
         key = self.keys[keyIndex].key;
         value = self.data[key].value;
