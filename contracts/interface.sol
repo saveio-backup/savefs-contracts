@@ -100,6 +100,11 @@ interface IFsEvent {
     );
 
     // dns
+    event DnsError(
+        string method,
+        string msg
+    );
+
     event NotifyNameInfoAdd(
         address owner,
         bytes url,

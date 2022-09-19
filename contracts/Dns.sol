@@ -162,7 +162,7 @@ contract Dns is Initializable, IFsEvent {
         bytes memory key = concat(req.Header, req.URL);
         NameInfo memory nameInfo = nameInfos.get(key);
         if (nameInfo.NameOwner != msg.sender) {
-            revert("not owner");
+            emit DnsError("UpdateName", "not owner");
         }
         nameInfo.Type = req.Type;
         nameInfo.Name = req.Name;
