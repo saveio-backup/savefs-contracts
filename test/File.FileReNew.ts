@@ -1,5 +1,6 @@
 import { assert, expect } from "chai";
-import { addrs, file } from "./initialize";
+import { exit } from "process";
+import { addrs, file, print } from "./initialize";
 
 var path = require('path');
 var name = path.basename(__filename);
@@ -38,6 +39,7 @@ describe(name, function () {
     }, {
       value: 1000000
     })
+    // print(tx)
     await expect(tx).to.not.be.reverted;
   });
 

@@ -90,75 +90,29 @@ contract File is Initializable, IFile, IFsEvent {
         virtual
         override
     {
-        require(
-            fileExtra.GetFileInfo(fileInfo.FileHash).BlockHeight == 0,
-            "file already exist"
+        FileInfo memory tmpFile = GetFileInfo(fileInfo.FileHash);
+        if (tmpFile.BlockHeight > 0) {
+            emit FsError("StoreFile", "file already exist");
+            revert();
+        }
+        if (fileInfo.ExpiredHeight < block.number) {
+            emit FsError(
+                "StoreFile",
+                "expiredHeight must be greater than current height"
+            );
+            revert();
+        }
+        string memory err = fileExtra.StoreFile{value: msg.value}(
+            fileInfo,
+            config,
+            space,
+            prove,
+            DEFAULT_PROVE_PERIOD
         );
-        require(fileInfo.ExpiredHeight > block.number, "file expired");
-        Setting memory setting = config.GetSetting();
-        if (fileInfo.ProveLevel_ == ProveLevel.HIGH) {
-            fileInfo.ProveInterval = DEFAULT_PROVE_PERIOD;
+        if (bytes(err).length > 0) {
+            emit FsError("StoreFile", err);
+            revert();
         }
-        if (fileInfo.ProveLevel_ == ProveLevel.MEDIUM) {
-            fileInfo.ProveInterval = DEFAULT_PROVE_PERIOD;
-        }
-        if (fileInfo.ProveLevel_ == ProveLevel.LOW) {
-            fileInfo.ProveInterval = DEFAULT_PROVE_PERIOD;
-        }
-        fileInfo.ValidFlag = true;
-        UploadOption memory option;
-        option.ExpiredHeight = fileInfo.ExpiredHeight;
-        option.ProveInterval = fileInfo.ProveInterval;
-        option.CopyNum = fileInfo.CopyNum;
-        option.FileSize = fileInfo.FileBlockSize * fileInfo.FileBlockNum;
-        StorageFee memory uploadFee = CalcDepositFee(
-            option,
-            setting,
-            block.number
-        );
-        fileInfo.Deposit =
-            uploadFee.TxnFee +
-            uploadFee.SpaceFee +
-            uploadFee.ValidationFee;
-        fileInfo.ProveTimes = fileExtra.CalcProveTimesByUploadInfo(
-            option,
-            block.number
-        );
-        if (fileInfo.StorageType_ == StorageType.Normal) {
-            UserSpace memory us = space.GetUserSpace(fileInfo.FileOwner);
-            if (us.Balance < fileInfo.Deposit) {
-                revert UserspaceInsufficientBalance(
-                    us.Balance,
-                    fileInfo.Deposit
-                );
-            }
-            if (us.Remain < fileInfo.FileBlockSize * fileInfo.FileBlockNum) {
-                revert UserspaceInsufficientSpace(
-                    us.Remain,
-                    fileInfo.FileBlockSize
-                );
-            }
-            if (us.ExpireHeight < fileInfo.ExpiredHeight) {
-                revert UserspaceWrongExpiredHeight(
-                    us.ExpireHeight,
-                    fileInfo.ExpiredHeight
-                );
-            }
-            us.Balance -= fileInfo.Deposit;
-            us.Remain -= fileInfo.FileBlockNum * fileInfo.FileBlockSize;
-            us.Used += fileInfo.FileBlockNum * fileInfo.FileBlockSize;
-        } else {
-            require(msg.value >= fileInfo.Deposit, "insufficient deposit");
-            fileInfo.StorageType_ = StorageType.Professional;
-        }
-        fileInfo.ProveBlockNum = setting.MaxProveBlockNum;
-        fileInfo.BlockHeight = block.number;
-        // store file
-        fileExtra.SaveFile(fileInfo);
-        ProveDetailMeta memory meta;
-        meta.CopyNum = fileInfo.CopyNum;
-        meta.ProveDetailNum = 0;
-        prove.UpdateProveDetailMeta(fileInfo.FileHash, meta);
         emit StoreFileEvent(
             FsEvent.STORE_FILE,
             block.number,
@@ -188,9 +142,6 @@ contract File is Initializable, IFile, IFsEvent {
         returns (FileInfo memory)
     {
         FileInfo memory fileInfo = fileExtra.GetFileInfo(fileHash);
-        if (fileInfo.FileHash.length == 0) {
-            revert FileNotExist(fileHash);
-        }
         return fileInfo;
     }
 

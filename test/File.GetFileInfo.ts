@@ -11,7 +11,8 @@ describe(name, function () {
 
   it("get file info fail", async () => {
     const tx = file.GetFileInfo(fileHash);
-    await expect(tx).to.be.reverted;
+    let res = await tx;
+    assert(res.ExpiredHeight.eq(0))
   });
 
   it("store file", async () => {

@@ -3,10 +3,7 @@ pragma solidity ^0.8.0;
 import "./type.sol";
 
 interface IFsEvent {
-    event FsError(
-        string method,
-        string msg
-    );
+    event FsError(string method, string msg);
 
     // file
     event StoreFileEvent(
@@ -95,44 +92,21 @@ interface IFsEvent {
         uint64 count
     );
 
-    event GetUpdateCostEvent(
-        TransferState state
-    );
+    event GetUpdateCostEvent(TransferState state);
 
     // dns
-    event DnsError(
-        string method,
-        string msg
-    );
+    event DnsError(string method, string msg);
 
-    event NotifyNameInfoAdd(
-        address owner,
-        bytes url,
-        NameInfo newer
-    );
+    event NotifyNameInfoAdd(address owner, bytes url, NameInfo newer);
 
-    event NotifyHeaderAdd(
-        address owner,
-        bytes header
-    );
+    event NotifyHeaderAdd(address owner, bytes header);
 
-    event NotifyNameInfoTransfer(
-        address from,
-        address to,
-        bytes url
-    );
+    event NotifyNameInfoTransfer(address from, address to, bytes url);
 
-    event NotifyHeaderTransfer(
-        address from,
-        address to,
-        bytes header
-    );
+    event NotifyHeaderTransfer(address from, address to, bytes header);
 
-    event NotifyNameInfoChange(
-        address owner,
-        bytes url
-    );
-    
+    event NotifyNameInfoChange(address owner, bytes url);
+
     event DNSNodeRegister(
         bytes ip,
         bytes port,
@@ -140,9 +114,7 @@ interface IFsEvent {
         uint64 deposit
     );
 
-    event DNSNodeUnReg(
-        address walletAddr
-    );
+    event DNSNodeUnReg(address walletAddr);
 
     // file
     error FileNotExist(bytes);
@@ -286,7 +258,8 @@ interface IFile {
         payable;
 
     function AddFileSectorRef(bytes memory fileHash, SectorRef memory ref)
-        external payable;
+        external
+        payable;
 }
 
 interface IList {
@@ -399,7 +372,7 @@ interface ISector {
     function UpdateSectorInfo(SectorInfo memory sector) external payable;
 
     function IsSectorRefByFileInfo(address nodeAddr, uint64 sectorID)
-        external 
+        external
         view
         returns (bool);
 }

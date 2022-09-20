@@ -18,6 +18,70 @@ contract FileExtra is IFsEvent {
     mapping(address => bytes[]) candidateFileList; // walletAddr => bytes[]
     mapping(address => bytes[]) unSettledFileList; // walletAddr => bytes[]
 
+    function StoreFile(
+        FileInfo memory fileInfo,
+        IConfig config,
+        ISpace space,
+        IProve prove,
+        uint64 DEFAULT_PROVE_PERIOD
+    ) public payable returns (string memory) {
+        Setting memory setting = config.GetSetting();
+        if (fileInfo.ProveLevel_ == ProveLevel.HIGH) {
+            fileInfo.ProveInterval = DEFAULT_PROVE_PERIOD;
+        }
+        if (fileInfo.ProveLevel_ == ProveLevel.MEDIUM) {
+            fileInfo.ProveInterval = DEFAULT_PROVE_PERIOD;
+        }
+        if (fileInfo.ProveLevel_ == ProveLevel.LOW) {
+            fileInfo.ProveInterval = DEFAULT_PROVE_PERIOD;
+        }
+        fileInfo.ValidFlag = true;
+        UploadOption memory option;
+        option.ExpiredHeight = fileInfo.ExpiredHeight;
+        option.ProveInterval = fileInfo.ProveInterval;
+        option.CopyNum = fileInfo.CopyNum;
+        option.FileSize = fileInfo.FileBlockSize * fileInfo.FileBlockNum;
+        StorageFee memory uploadFee = CalcDepositFee(
+            option,
+            setting,
+            block.number
+        );
+        fileInfo.Deposit =
+            uploadFee.TxnFee +
+            uploadFee.SpaceFee +
+            uploadFee.ValidationFee;
+        fileInfo.ProveTimes = CalcProveTimesByUploadInfo(option, block.number);
+        if (fileInfo.StorageType_ == StorageType.Normal) {
+            UserSpace memory us = space.GetUserSpace(fileInfo.FileOwner);
+            if (us.Balance < fileInfo.Deposit) {
+                return "userspace Insufficient balance";
+            }
+            if (us.Remain < fileInfo.FileBlockSize * fileInfo.FileBlockNum) {
+                return "userspace Insufficient space";
+            }
+            if (us.ExpireHeight < fileInfo.ExpiredHeight) {
+                return "userspace ExpiredHeight is wrong";
+            }
+            us.Balance -= fileInfo.Deposit;
+            us.Remain -= fileInfo.FileBlockNum * fileInfo.FileBlockSize;
+            us.Used += fileInfo.FileBlockNum * fileInfo.FileBlockSize;
+        } else {
+            if (msg.value < fileInfo.Deposit) {
+                return "insufficient deposit";
+            }
+            fileInfo.StorageType_ = StorageType.Professional;
+        }
+        fileInfo.ProveBlockNum = setting.MaxProveBlockNum;
+        fileInfo.BlockHeight = block.number;
+        // store file
+        SaveFile(fileInfo);
+        ProveDetailMeta memory meta;
+        meta.CopyNum = fileInfo.CopyNum;
+        meta.ProveDetailNum = 0;
+        prove.UpdateProveDetailMeta(fileInfo.FileHash, meta);
+        return "";
+    }
+
     function GetFileInfo(bytes memory fileHash)
         public
         view
