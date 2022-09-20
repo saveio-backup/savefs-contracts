@@ -51,7 +51,10 @@ contract Dns is Initializable, IFsEvent {
     }
 
     function RegisterName(RequestName memory req) public payable {
-        require(req.Name.length > 4);
+        if (req.Name.length < 4) {
+            emit DnsError("RegisterName", "name length must >= 4");
+            revert();
+        }
         NameInfo memory info;
         if (req.Type == SYSTEM) {
             info.Type = uint64(NameType.Normal);
@@ -161,8 +164,9 @@ contract Dns is Initializable, IFsEvent {
     function UpdateName(RequestName memory req) public payable {
         bytes memory key = concat(req.Header, req.URL);
         NameInfo memory nameInfo = nameInfos.get(key);
-        if (nameInfo.NameOwner != msg.sender) {
+        if (nameInfo.NameOwner != req.NameOwner) {
             emit DnsError("UpdateName", "not owner");
+            revert();
         }
         nameInfo.Type = req.Type;
         nameInfo.Name = req.Name;
