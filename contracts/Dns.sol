@@ -53,7 +53,7 @@ contract Dns is Initializable, IFsEvent {
     function RegisterName(RequestName memory req) public payable {
         if (req.Name.length < 4) {
             emit DnsError("RegisterName", "name length must >= 4");
-            revert();
+            return;
         }
         NameInfo memory info;
         if (req.Type == SYSTEM) {
@@ -96,7 +96,7 @@ contract Dns is Initializable, IFsEvent {
             info.BlockHeight = block.number + 1;
             info.TTL = req.DesireTTL;
         }
-        bytes memory key = concat(info.Header, info.URL);
+        bytes memory key = concat(req.Header, req.URL);
         nameInfos.insert(key, info);
         if (
             req.Type == CUSTOM_HEADER_URL &&
@@ -164,9 +164,13 @@ contract Dns is Initializable, IFsEvent {
     function UpdateName(RequestName memory req) public payable {
         bytes memory key = concat(req.Header, req.URL);
         NameInfo memory nameInfo = nameInfos.get(key);
+        if (nameInfo.BlockHeight == 0) {
+            emit DnsError("UpdateName", "name not exist");
+            return;
+        }
         if (nameInfo.NameOwner != req.NameOwner) {
             emit DnsError("UpdateName", "not owner");
-            revert();
+            return;
         }
         nameInfo.Type = req.Type;
         nameInfo.Name = req.Name;

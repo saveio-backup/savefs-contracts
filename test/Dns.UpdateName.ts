@@ -42,7 +42,7 @@ describe(name, () => {
        Desc: new TextEncoder().encode("desc"),
        DesireTTL: 123,
     });
-    expect(tx).to.be.reverted;
+    expect(tx).to.not.be.reverted;
   });
 
 });
