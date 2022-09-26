@@ -16,6 +16,159 @@ contract ProveExtra {
     mapping(bytes => ProveDetailMeta) proveDetailMeta; // fileHash => ProveDetailMeta
     mapping(string => PocProve) pocProve; // miner + height => PocProve
 
+    function SettleForFile(
+        INode node,
+        IFile file,
+        FileInfo memory fileInfo,
+        NodeInfo memory nodeInfo,
+        ProveDetail memory detail,
+        ProveDetail[] memory details,
+        Setting memory setting
+    ) public payable returns (string memory) {
+        uint64 profit = calculateProfitForSettle(
+            file,
+            fileInfo,
+            detail,
+            setting
+        );
+        if (fileInfo.Deposit < profit) {
+            return "FileSettleDepositNotEnough";
+        }
+
+        nodeInfo.RestVol += profit;
+        node.UpdateNodeInfo(nodeInfo);
+
+        fileInfo.Deposit -= profit;
+        fileInfo.ValidFlag = false;
+        file.UpdateFileInfo(fileInfo);
+
+        uint64 finishedNodes = 0;
+        for (uint256 i = 0; i < details.length; i++) {
+            if (details[i].Finished) {
+                finishedNodes++;
+            }
+        }
+        if (finishedNodes == 1) {
+            file.CleanupForDeleteFile(fileInfo, false, true);
+        }
+        if (finishedNodes == fileInfo.CopyNum + 1) {
+            if (fileInfo.Deposit > 0) {
+                payable(fileInfo.FileOwner).transfer(fileInfo.Deposit);
+            }
+            file.CleanupForDeleteFile(fileInfo, true, false);
+        } else {
+            file.AddFileToUnSettleList(fileInfo.FileOwner, fileInfo.FileHash);
+        }
+        return "";
+        // TODO
+        // emit ProveFileEvent(
+        //     FsEvent.PROVE_FILE,
+        //     block.number,
+        //     nodeInfo.WalletAddr,
+        //     profit
+        // );
+    }
+
+    function calculateProfitForSettle(
+        IFile file,
+        FileInfo memory fileInfo,
+        ProveDetail memory detail,
+        Setting memory setting
+    ) private view returns (uint64) {
+        StorageFee memory total = file.CalcFee(
+            setting,
+            detail.ProveTimes - 1,
+            0,
+            fileInfo.FileBlockNum * fileInfo.FileBlockSize,
+            uint64(fileInfo.ExpiredHeight - fileInfo.BlockHeight)
+        );
+        return total.TxnFee + total.SpaceFee + total.ValidationFee;
+    }
+
+    function AddSectorRefForFileInfo(
+        ISector sector,
+        IFile file,
+        FileInfo memory fileInfo,
+        SectorRef memory sectorRef
+    ) public returns (string memory) {
+        bool r = sector.IsSectorRefByFileInfo(
+            sectorRef.NodeAddr,
+            sectorRef.SectorId
+        );
+        if (!r) {
+            return "NotSectorRefByFileInfo";
+        }
+        file.AddFileSectorRef(fileInfo.FileHash, sectorRef);
+        return "";
+    }
+
+    function checkProveExpire(uint256 fileExpiredHeight)
+        public
+        view
+        returns (bool)
+    {
+        if (block.number > fileExpiredHeight) {
+            return true;
+        }
+        return false;
+    }
+
+    function checkProve(
+        IPDP pdp,
+        FileProveParams memory fileProve,
+        FileInfo memory fileInfo
+    ) public view returns (bool) {
+        uint256 currBlockHeight = block.number;
+        if (
+            fileProve.BlockHeight > currBlockHeight + fileInfo.ProveInterval ||
+            fileProve.BlockHeight + fileInfo.ProveInterval < currBlockHeight
+        ) {
+            return false;
+        }
+        // TODO deserialize = fileInfo.FileProveParam
+        ProveParam memory proveParam;
+        // TODO params to deserialize  = fileProve.ProveData
+        ProveData memory proveData;
+        // challenge
+        // TODO block head hash
+        bytes memory blockHash;
+        GenChallengeParams memory gParams;
+        gParams.WalletAddr = fileProve.NodeWallet;
+        gParams.HashValue = blockHash;
+        gParams.FileBlockNum = fileInfo.FileBlockNum;
+        gParams.ProveNum = fileInfo.ProveBlockNum;
+        Challenge[] memory challenges = pdp.GenChallenge(gParams);
+        // verify
+        VerifyProofWithMerklePathForFileParams memory vParams;
+        vParams.Version = 0;
+        vParams.Proofs = proveData.Proofs;
+        vParams.FileIds = proveParam.FileID;
+        vParams.Tags = proveData.Tags;
+        vParams.Challenges = challenges;
+        vParams.MerklePath_ = proveData.MerklePath_;
+        vParams.RootHashes = proveParam.RootHash;
+        bool res = pdp.VerifyProofWithMerklePathForFile(vParams);
+        if (!res) {
+            return false;
+        }
+        return true;
+    }
+
+    function getProveDetailListWithNodeAddr(INode node, bytes memory fileHash)
+        public
+        view
+        returns (ProveDetail[] memory)
+    {
+        ProveDetail[] memory details = GetProveDetailList(fileHash);
+        for (uint256 i = 0; i < details.length; i++) {
+            NodeInfo memory nodeInfo = node.GetNodeInfoByWalletAddr(
+                details[i].WalletAddr
+            );
+            details[i].NodeAddr = nodeInfo.NodeAddr;
+        }
+        return details;
+    }
+
     function GetProveDetailList(bytes memory fileHash)
         public
         view

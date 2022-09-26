@@ -43,11 +43,11 @@ contract Prove is Initializable, IProve, IFsEvent {
         virtual
         override
     {
-        Setting memory setting = config.GetSetting();
         FileInfo memory fileInfo = fs.GetFileInfo(fileProve.FileHash);
         if (fileInfo.IsPlotFile) {
             if (fileProve.NodeWallet != fileInfo.FileOwner) {
-                revert FileProveNotFileOwner();
+                emit FsError("FileProve", "FileProveNotFileOwner");
+                return;
             }
         } else {
             bool canProve = false;
@@ -68,25 +68,27 @@ contract Prove is Initializable, IProve, IFsEvent {
                 }
             }
             if (!canProve) {
-                revert FileProveFailed(1);
+                emit FsError("FileProve", "FileProveNotNode");
+                return;
             }
         }
         NodeInfo memory nodeInfo = node.GetNodeInfoByWalletAddr(
             fileProve.NodeWallet
         );
-        ProveDetail[] memory details = getProveDetailListWithNodeAddr(
-            fileInfo.FileHash
-        );
+        ProveDetail[] memory details = proveExtra
+            .getProveDetailListWithNodeAddr(node, fileInfo.FileHash);
         if (fileProve.SectorID != 0 && block.number < fileInfo.ExpiredHeight) {
             for (uint256 i = 0; i < details.length; i++) {
                 if (details[i].WalletAddr == fileProve.NodeWallet) {
-                    revert FileProveFailed(2);
+                    emit FsError("FileProve", "FileProveAlreadyProved");
+                    return;
                 }
             }
         }
-        bool success = checkProve(fileProve, fileInfo);
+        bool success = proveExtra.checkProve(pdp, fileProve, fileInfo);
         if (!success) {
-            revert FileProveFailed(3);
+            emit FsError("FileProve", "FileProveCheckFailed");
+            return;
         }
         bool found = false;
         bool settleFlag = false;
@@ -104,11 +106,13 @@ contract Prove is Initializable, IProve, IFsEvent {
                     settleFlag = true;
                 }
                 if (haveProveTimes > fileInfo.ProveTimes) {
-                    revert FileProveFailed(4);
+                    emit FsError("FileProve", "FileProveTimesExceed");
+                    return;
                 }
-                bool r = checkProveExpire(fileInfo.ExpiredHeight);
+                bool r = proveExtra.checkProveExpire(fileInfo.ExpiredHeight);
                 if (r) {
-                    revert FileProveFailed(5);
+                    emit FsError("FileProve", "FileProveExpired");
+                    return;
                 }
                 detail.ProveTimes++;
                 found = true;
@@ -117,13 +121,15 @@ contract Prove is Initializable, IProve, IFsEvent {
         }
         if (!found) {
             if (details.length == fileInfo.CopyNum + 1) {
-                revert FileProveFailed(6);
+                emit FsError("FileProve", "FileProveCopyNumExceed");
+                return;
             }
             if (
                 nodeInfo.RestVol <
                 fileInfo.FileBlockNum * fileInfo.FileBlockSize
             ) {
-                revert FileProveFailed(7);
+                emit FsError("FileProve", "FileProveNodeVolNotEnough");
+                return;
             }
             nodeInfo.RestVol -= fileInfo.FileBlockNum * fileInfo.FileBlockSize;
             node.UpdateNodeInfo(nodeInfo);
@@ -142,61 +148,71 @@ contract Prove is Initializable, IProve, IFsEvent {
             details = detailsTmp;
         }
         UpdateProveDetailList(fileInfo.FileHash, details);
+        uint64 sectorID = fileProve.SectorID;
+
+        ISector _sector = sector;
+        FileInfo memory _fileInfo = fileInfo;
+        uint256 proveHeight = fileProve.BlockHeight;
+        SectorRef memory sectorRef = SectorRef({
+            NodeAddr: nodeInfo.WalletAddr,
+            SectorId: sectorID
+        });
         if (!found) {
-            SectorInfo memory sectorInfo = sector.GetSectorInfo(
-                SectorRef({
-                    NodeAddr: nodeInfo.WalletAddr,
-                    SectorId: fileProve.SectorID
-                })
-            );
-            if (sectorInfo.IsPlots != fileInfo.IsPlotFile) {
-                revert FileProveFailed(8);
+            SectorInfo memory sectorInfo = _sector.GetSectorInfo(sectorRef);
+            if (sectorInfo.IsPlots != _fileInfo.IsPlotFile) {
+                emit FsError("FileProve", "FileProveSectorTypeNotMatch");
+                return;
             }
-            sector.AddFileToSector(sectorInfo, fileInfo);
-            SectorRef memory sectorRef = SectorRef({
-                NodeAddr: nodeInfo.WalletAddr,
-                SectorId: fileProve.SectorID
-            });
-            AddSectorRefForFileInfo(fileInfo, sectorRef);
+            _sector.AddFileToSector(sectorInfo, _fileInfo);
+            string memory err = proveExtra.AddSectorRefForFileInfo(
+                _sector,
+                fs,
+                _fileInfo,
+                sectorRef
+            );
+            if (bytes(err).length > 0) {
+                emit FsError("FileProve", err);
+                return;
+            }
             if (sectorInfo.NextProveHeight == 0) {
                 sectorInfo.NextProveHeight =
-                    fileProve.BlockHeight +
-                    fileInfo.ProveInterval;
+                    proveHeight +
+                    _fileInfo.ProveInterval;
             }
-            sector.UpdateSectorInfo(sectorInfo);
+            _sector.UpdateSectorInfo(sectorInfo);
         }
+        NodeInfo memory _nodeInfo = nodeInfo;
+        ProveDetail memory _detail = detail;
+        ProveDetail[] memory _details = details;
+        Setting memory _setting = config.GetSetting();
         if (settleFlag) {
-            if (fileProve.SectorID != 0) {
-                SectorInfo memory sectorInfo = sector.GetSectorInfo(
-                    SectorRef({
-                        NodeAddr: nodeInfo.WalletAddr,
-                        SectorId: fileProve.SectorID
-                    })
-                );
-                sector.DeleteFileFromSector(sectorInfo, fileInfo);
+            if (sectorID != 0) {
+                SectorInfo memory sectorInfo = sector.GetSectorInfo(sectorRef);
+                sector.DeleteFileFromSector(sectorInfo, _fileInfo);
             }
-            SettleForFile(fileInfo, nodeInfo, detail, details, setting);
+            string memory err = proveExtra.SettleForFile(
+                node,
+                fs,
+                _fileInfo,
+                _nodeInfo,
+                _detail,
+                _details,
+                _setting
+            );
+            if (
+                keccak256(abi.encodePacked(err)) !=
+                keccak256(abi.encodePacked(""))
+            ) {
+                emit FsError("FileProve", err);
+                return;
+            }
         }
         emit FilePDPSuccessEvent(
             FsEvent.FILE_PDP_SUCCESS,
             block.number,
-            fileInfo.FileHash,
-            nodeInfo.WalletAddr
+            _fileInfo.FileHash,
+            _nodeInfo.WalletAddr
         );
-    }
-
-    function AddSectorRefForFileInfo(
-        FileInfo memory fileInfo,
-        SectorRef memory sectorRef
-    ) public {
-        bool r = sector.IsSectorRefByFileInfo(
-            sectorRef.NodeAddr,
-            sectorRef.SectorId
-        );
-        if (!r) {
-            revert SectorOpError(3);
-        }
-        fs.AddFileSectorRef(fileInfo.FileHash, sectorRef);
     }
 
     function SectorProve(SectorProveParams memory sectorProve)
@@ -219,11 +235,6 @@ contract Prove is Initializable, IProve, IFsEvent {
             revert SectorProveFailed(1);
         }
         if (sectorProve.ChallengeHeight != sectorInfo.NextProveHeight) {
-            console.log(
-                "ChallengeHeight error:",
-                sectorProve.ChallengeHeight,
-                sectorInfo.NextProveHeight
-            );
             revert SectorProveFailed(2);
         }
         bool r = checkSectorProve(sectorProve, sectorInfo);
@@ -285,50 +296,6 @@ contract Prove is Initializable, IProve, IFsEvent {
         ProveDetailMeta memory details
     ) public payable virtual override {
         proveExtra.UpdateProveDetailMeta(fileHash, details);
-    }
-
-    function SettleForFile(
-        FileInfo memory fileInfo,
-        NodeInfo memory nodeInfo,
-        ProveDetail memory detail,
-        ProveDetail[] memory details,
-        Setting memory setting
-    ) public payable {
-        uint64 profit = calculateProfitForSettle(fileInfo, detail, setting);
-        if (fileInfo.Deposit < profit) {
-            revert FileProveFailed(9);
-        }
-
-        nodeInfo.RestVol += profit;
-        node.UpdateNodeInfo(nodeInfo);
-
-        fileInfo.Deposit -= profit;
-        fileInfo.ValidFlag = false;
-        fs.UpdateFileInfo(fileInfo);
-
-        uint64 finishedNodes = 0;
-        for (uint256 i = 0; i < details.length; i++) {
-            if (details[i].Finished) {
-                finishedNodes++;
-            }
-        }
-        if (finishedNodes == 1) {
-            fs.CleanupForDeleteFile(fileInfo, false, true);
-        }
-        if (finishedNodes == fileInfo.CopyNum + 1) {
-            if (fileInfo.Deposit > 0) {
-                payable(fileInfo.FileOwner).transfer(fileInfo.Deposit);
-            }
-            fs.CleanupForDeleteFile(fileInfo, true, false);
-        } else {
-            fs.AddFileToUnSettleList(fileInfo.FileOwner, fileInfo.FileHash);
-        }
-        emit ProveFileEvent(
-            FsEvent.PROVE_FILE,
-            block.number,
-            nodeInfo.WalletAddr,
-            profit
-        );
     }
 
     function punishForSector(
@@ -408,80 +375,7 @@ contract Prove is Initializable, IProve, IFsEvent {
         view
         returns (ProveDetail[] memory)
     {
-        ProveDetail[] memory details = GetProveDetailList(fileHash);
-        for (uint256 i = 0; i < details.length; i++) {
-            NodeInfo memory nodeInfo = node.GetNodeInfoByWalletAddr(
-                details[i].WalletAddr
-            );
-            details[i].NodeAddr = nodeInfo.NodeAddr;
-        }
-        return details;
-    }
-
-    function checkProve(
-        FileProveParams memory fileProve,
-        FileInfo memory fileInfo
-    ) private view returns (bool) {
-        uint256 currBlockHeight = block.number;
-        if (
-            fileProve.BlockHeight > currBlockHeight + fileInfo.ProveInterval ||
-            fileProve.BlockHeight + fileInfo.ProveInterval < currBlockHeight
-        ) {
-            return false;
-        }
-        // TODO deserialize = fileInfo.FileProveParam
-        ProveParam memory proveParam;
-        // TODO params to deserialize  = fileProve.ProveData
-        ProveData memory proveData;
-        // challenge
-        // TODO block head hash
-        bytes memory blockHash;
-        GenChallengeParams memory gParams;
-        gParams.WalletAddr = fileProve.NodeWallet;
-        gParams.HashValue = blockHash;
-        gParams.FileBlockNum = fileInfo.FileBlockNum;
-        gParams.ProveNum = fileInfo.ProveBlockNum;
-        Challenge[] memory challenges = pdp.GenChallenge(gParams);
-        // verify
-        VerifyProofWithMerklePathForFileParams memory vParams;
-        vParams.Version = 0;
-        vParams.Proofs = proveData.Proofs;
-        vParams.FileIds = proveParam.FileID;
-        vParams.Tags = proveData.Tags;
-        vParams.Challenges = challenges;
-        vParams.MerklePath_ = proveData.MerklePath_;
-        vParams.RootHashes = proveParam.RootHash;
-        bool res = pdp.VerifyProofWithMerklePathForFile(vParams);
-        if (!res) {
-            return false;
-        }
-        return true;
-    }
-
-    function checkProveExpire(uint256 fileExpiredHeight)
-        private
-        view
-        returns (bool)
-    {
-        if (block.number > fileExpiredHeight) {
-            return true;
-        }
-        return false;
-    }
-
-    function calculateProfitForSettle(
-        FileInfo memory fileInfo,
-        ProveDetail memory detail,
-        Setting memory setting
-    ) private view returns (uint64) {
-        StorageFee memory total = fs.CalcFee(
-            setting,
-            detail.ProveTimes - 1,
-            0,
-            fileInfo.FileBlockNum * fileInfo.FileBlockSize,
-            uint64(fileInfo.ExpiredHeight - fileInfo.BlockHeight)
-        );
-        return total.TxnFee + total.SpaceFee + total.ValidationFee;
+        return proveExtra.getProveDetailListWithNodeAddr(node, fileHash);
     }
 
     function checkSectorProve(
@@ -595,15 +489,27 @@ contract Prove is Initializable, IProve, IFsEvent {
             if (!found) {
                 return false;
             }
-            UpdateProveDetailList(fileInfo.FileHash, details);
+            SectorInfo memory _sectorInfo = sectorInfo;
+            FileInfo memory _fileInfo = fileInfo;
+            NodeInfo memory _nodeInfo = nodeInfo;
+            Setting memory _setting = setting;
+            UpdateProveDetailList(_fileInfo.FileHash, details);
             if (settleFlag) {
-                SettleForFile(fileInfo, nodeInfo, detail, details, setting);
-                sector.DeleteFileFromSector(sectorInfo, fileInfo);
+                proveExtra.SettleForFile(
+                    node,
+                    fs,
+                    _fileInfo,
+                    _nodeInfo,
+                    detail,
+                    details,
+                    _setting
+                );
+                sector.DeleteFileFromSector(_sectorInfo, _fileInfo);
                 emit DeleteFileEvent(
                     FsEvent.DELETE_FILE,
                     block.number,
-                    fileInfo.FileHash,
-                    nodeInfo.WalletAddr
+                    _fileInfo.FileHash,
+                    _nodeInfo.WalletAddr
                 );
             }
         }
