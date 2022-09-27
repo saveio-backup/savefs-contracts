@@ -93,14 +93,14 @@ contract File is Initializable, IFile, IFsEvent {
         FileInfo memory tmpFile = GetFileInfo(fileInfo.FileHash);
         if (tmpFile.BlockHeight > 0) {
             emit FsError("StoreFile", "file already exist");
-            revert();
+            return;
         }
         if (fileInfo.ExpiredHeight < block.number) {
             emit FsError(
                 "StoreFile",
                 "expiredHeight must be greater than current height"
             );
-            revert();
+            return;
         }
         string memory err = fileExtra.StoreFile{value: msg.value}(
             fileInfo,
@@ -111,7 +111,7 @@ contract File is Initializable, IFile, IFsEvent {
         );
         if (bytes(err).length > 0) {
             emit FsError("StoreFile", err);
-            revert();
+            return;
         }
         emit StoreFileEvent(
             FsEvent.STORE_FILE,
