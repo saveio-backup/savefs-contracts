@@ -115,39 +115,6 @@ interface IFsEvent {
     );
 
     event DNSNodeUnReg(address walletAddr);
-
-    // file
-    error FileNotExist(bytes);
-    error UserspaceInsufficientBalance(uint256 got, uint256 want);
-    error UserspaceInsufficientSpace(uint256 got, uint256 want);
-    error UserspaceWrongExpiredHeight(uint256 got, uint256 want);
-    error NotEnoughTransfer(uint256 got, uint256 want);
-    error DifferenceFileOwner();
-    error InvalidProfit();
-    error OpError(uint64);
-
-    // node
-    error NotEnoughPledge(uint256 got, uint256 want);
-    error ZeroProfit();
-
-    // prove
-    error FileProveNotFileOwner();
-    error FileProveFailed(uint64);
-    error SectorProveFailed(uint64);
-    error NodeSectorProvedInTimeError();
-
-    // sector
-    error NotEnoughVolume(uint64 got, uint64 want);
-    error NotEmptySector(uint64 got, uint64 want);
-    error NotEnoughSpace();
-    error SectorOpError(uint64);
-
-    // space
-    error ParamsError();
-    error FirstUserSpaceOperationError();
-    error UserspaceChangeError(uint64);
-    error UserspaceDeleteError();
-    error InsufficientFunds();
 }
 
 interface IConfig {

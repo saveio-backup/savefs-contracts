@@ -99,10 +99,6 @@ contract FileExtra is IFsEvent {
         FileInfo[] memory _fileInfos = new FileInfo[](_fileList.length);
         for (uint256 i = 0; i < _fileList.length; i++) {
             bytes memory fileHash = _fileList[i];
-            FileInfo memory fileInfo = fileInfos[fileHash];
-            if (fileInfo.FileHash.length == 0) {
-                revert FileNotExist(fileHash);
-            }
             _fileInfos[i] = fileInfos[fileHash];
         }
         return _fileInfos;
@@ -458,7 +454,7 @@ contract FileExtra is IFsEvent {
     function FileReNew(
         Setting memory setting,
         FileReNewInfo memory fileReNewInfo
-    ) public payable {
+    ) public payable returns (string memory) {
         require(
             GetFileInfo(fileReNewInfo.FileHash).BlockHeight > 0,
             "file not exist"
@@ -482,7 +478,7 @@ contract FileExtra is IFsEvent {
         );
         uint64 reNewFee = totalRenew.ValidationFee + totalRenew.SpaceFee;
         if (msg.value < reNewFee) {
-            revert NotEnoughTransfer(msg.value, reNewFee);
+            return "not enough money";
         }
         fileInfo.ProveTimes += fileReNewInfo.ReNewTimes;
         fileInfo.Deposit += reNewFee;

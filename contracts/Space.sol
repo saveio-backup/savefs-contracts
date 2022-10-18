@@ -53,7 +53,11 @@ contract Space is Initializable, ISpace, IFsEvent {
         override
         returns (TransferState memory)
     {
-        ChangeReturn memory ret = getUserspaceChange(params);
+        (ChangeReturn memory ret, string memory err) = getUserspaceChange(params);
+        if (bytes(err).length > 0) {
+            emit FsError("GetUpdateCost", err);
+            return ret.state;
+        }
         emit GetUpdateCostEvent(ret.state);
         return ret.state;
     }
@@ -64,18 +68,18 @@ contract Space is Initializable, ISpace, IFsEvent {
         virtual
         override
     {
-        ChangeReturn memory ret = getUserspaceChange(params);
+        (ChangeReturn memory ret, string memory err) = getUserspaceChange(params);
+        if (bytes(err).length > 0) {
+            emit FsError("ManageUserSpace", err);
+            return;
+        }
         if (ret.state.Value > 0) {
             if (ret.state.From == address(this)) {
                 payable(ret.state.To).transfer(ret.state.Value);
             } else {
                 if (msg.value < ret.state.Value) {
-                    console.log(
-                        "InsufficientFunds",
-                        msg.value,
-                        ret.state.Value
-                    );
-                    revert InsufficientFunds();
+                    emit FsError("ManageUserSpace", "Insufficient funds");
+                    return;
                 }
             }
         }
@@ -112,7 +116,11 @@ contract Space is Initializable, ISpace, IFsEvent {
             _userSpace.ExpireHeight > 0 &&
             _userSpace.ExpireHeight <= block.number
         ) {
-            deleteExpiredUserSpace(_userSpace, walletAddr);
+            string memory err =  deleteExpiredUserSpace(_userSpace, walletAddr);
+            if (bytes(err).length > 0) {
+                emit FsError("DeleteUserSpace", err);
+                return;
+            }
         }
     }
 
@@ -154,21 +162,21 @@ contract Space is Initializable, ISpace, IFsEvent {
     function getUserSpaceOperationsFromParams(UserSpaceParams memory params)
         private
         pure
-        returns (uint64)
+        returns (uint64, string memory)
     {
         bool r1 = isValidUserSpaceOperation(params.Size);
         if (!r1) {
-            revert ParamsError();
+            return (0, "Invalid size operation");
         }
         bool r2 = isValidUserSpaceOperation(params.BlockCount);
         if (!r2) {
-            revert ParamsError();
+            return (0, "Invalid block count operation");
         }
         uint64 n = combineUserSpaceTypes(
             params.Size.Type,
             params.BlockCount.Type
         );
-        return n;
+        return (n, "");
     }
 
     function isRevokeUserSpace(UserSpaceParams memory params)
@@ -207,7 +215,12 @@ contract Space is Initializable, ISpace, IFsEvent {
         if (params.BlockCount.Value <= 0) {
             return false;
         }
-        uint64 n = getUserSpaceOperationsFromParams(params);
+        (uint64 n, string memory err) = getUserSpaceOperationsFromParams(
+            params
+        );
+        if (bytes(err).length > 0) {
+            return false;
+        }
         if (n == uint64(UserSpaceType.None)) {
             return false;
         }
@@ -237,7 +250,12 @@ contract Space is Initializable, ISpace, IFsEvent {
         Setting memory setting,
         UserSpaceParams memory params
     ) private pure returns (bool) {
-        uint64 ops = getUserSpaceOperationsFromParams(params);
+        (uint64 ops, string memory err) = getUserSpaceOperationsFromParams(
+            params
+        );
+        if (bytes(err).length > 0) {
+            return false;
+        }
         if (ops != UserspaceOps_Add_Add) {
             return false;
         }
@@ -519,7 +537,13 @@ contract Space is Initializable, ISpace, IFsEvent {
         uint64 transferOut;
 
         bytes[] memory fileList = fs.GetFileList(params.userSpaceParams.Owner);
-        uint64 ops = getUserSpaceOperationsFromParams(params.userSpaceParams);
+        (uint64 ops, string memory err) = getUserSpaceOperationsFromParams(
+            params.userSpaceParams
+        );
+        if (bytes(err).length > 0) {
+            ret.success = false;
+            return ret;
+        }
         if (
             ops == UserspaceOps_Add_Add ||
             ops == UserspaceOps_Add_None ||
@@ -622,13 +646,13 @@ contract Space is Initializable, ISpace, IFsEvent {
     function getUserspaceChange(UserSpaceParams memory params)
         public
         payable
-        returns (ChangeReturn memory)
+        returns (ChangeReturn memory, string memory)
     {
         ChangeReturn memory ret;
         Setting memory setting = config.GetSetting();
         bool checkRes = checkUserSpaceParams(params);
         if (!checkRes) {
-            revert UserspaceChangeError(1);
+            return (ret, "invalid userspace params");
         }
         UserSpace memory oldUserSpace = GetUserSpace(params.Owner);
         bool userSpaceExisted = oldUserSpace.Used != 0 &&
@@ -642,7 +666,7 @@ contract Space is Initializable, ISpace, IFsEvent {
         if (!userSpaceExisted || oldUserSpace.ExpireHeight == block.number) {
             bool b = checkForFirstUserSpaceOperation(setting, params);
             if (!b) {
-                revert UserspaceChangeError(2);
+                return (ret, "invalid first userspace operation");
             }
         }
         ProcessParams memory processParams;
@@ -655,18 +679,18 @@ contract Space is Initializable, ISpace, IFsEvent {
         ret.newUserSpace = processRet.newUserSpace;
         ret.state = processRet.state;
         ret.updatedFiles = processRet.updatedFiles;
-        return ret;
+        return (ret, "");
     }
 
     function deleteExpiredUserSpace(
         UserSpace memory _userSpace,
         address walletAddr
-    ) private {
+    ) private returns(string memory) {
         Setting memory setting = config.GetSetting();
         if (
             setting.DefaultProvePeriod + _userSpace.ExpireHeight > block.number
         ) {
-            revert UserspaceDeleteError();
+            return "not expired";
         }
         bytes[] memory deletedFiles;
         uint64 amount;

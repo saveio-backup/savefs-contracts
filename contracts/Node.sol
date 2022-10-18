@@ -54,7 +54,8 @@ contract Node is Initializable, INode, IFsEvent {
     {
         uint64 pledge = CalculateNodePledge(nodeInfo);
         if (msg.value < pledge) {
-            revert NotEnoughPledge(msg.value, pledge);
+            emit FsError("Register", "Insufficient pledge");
+            return;
         }
         nodeInfo.Pledge = pledge;
         nodeInfo.Profit = 0;
@@ -200,7 +201,8 @@ contract Node is Initializable, INode, IFsEvent {
             payable(nodeInfo.WalletAddr).transfer(nodeInfo.Profit);
             nodeInfo.Profit = 0;
         } else {
-            revert ZeroProfit();
+            emit FsError("WithDrawProfit", "Zero profit");
+            return;
         }
         nodesInfo[walletAddr] = nodeInfo;
     }

@@ -131,7 +131,11 @@ contract File is Initializable, IFile, IFsEvent {
         override
     {
         Setting memory setting = config.GetSetting();
-        fileExtra.FileReNew{value: msg.value}(setting, fileReNewInfo);
+        string memory err = fileExtra.FileReNew{value: msg.value}(setting, fileReNewInfo);
+        if (bytes(err).length > 0) {
+            emit FsError("FileReNew", err);
+            return;
+        }
     }
 
     function GetFileInfo(bytes memory fileHash)

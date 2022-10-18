@@ -232,19 +232,23 @@ contract Prove is Initializable, IProve, IFsEvent {
         );
         Setting memory setting = config.GetSetting();
         if (block.number < sectorInfo.NextProveHeight) {
-            revert SectorProveFailed(1);
+            emit FsError("SectorProve", "SectorProveNotExpired");
+            return;
         }
         if (sectorProve.ChallengeHeight != sectorInfo.NextProveHeight) {
-            revert SectorProveFailed(2);
+            emit FsError("SectorProve", "SectorProveChallengeHeightNotMatch");
+            return;
         }
         bool r = checkSectorProve(sectorProve, sectorInfo);
         if (!r) {
             punishForSector(sectorInfo, nodeInfo, setting, 1);
-            revert SectorProveFailed(3);
+            emit FsError("SectorProve", "SectorProveCheckFailed");
+            return;
         }
         bool p = profitSplitForSector(sectorInfo, nodeInfo, setting);
         if (!p) {
-            revert SectorProveFailed(5);
+            emit FsError("SectorProve", "SectorProveProfitSplitFailed");
+            return;
         }
         if (sectorInfo.FirstProveHeight == 0) {
             sectorInfo.FirstProveHeight = block.number;
@@ -252,7 +256,8 @@ contract Prove is Initializable, IProve, IFsEvent {
         sectorInfo.NextProveHeight = block.number + setting.DefaultProvePeriod;
         sector.UpdateSectorInfo(sectorInfo);
         if (!sectorInfo.IsPlots) {
-            revert SectorProveFailed(4);
+            emit FsError("SectorProve", "SectorProveNotPlot");
+            return;
         }
         // poc prove
         PocProve memory _pocProve = proveExtra.getPocProve(
@@ -333,21 +338,34 @@ contract Prove is Initializable, IProve, IFsEvent {
         uint64 sectorID = sectorRef.SectorId;
         NodeInfo memory nodeInfo = node.GetNodeInfoByWalletAddr(nodeAddr);
         if (nodeInfo.ServiceTime < block.timestamp) {
-            revert NodeSectorProvedInTimeError();
+            emit FsError("CheckNodeSectorProvedInTime", "NodeServiceTimeNotMatch");
+            return;
         }
         if (sectorID == 0) {
-            revert NodeSectorProvedInTimeError();
+            emit FsError(
+                "CheckNodeSectorProvedInTime",
+                "NodeSectorProvedInTimeError"
+            );
+            return;
         }
         SectorInfo memory sectorInfo = sector.GetSectorInfo(sectorRef);
         if (sectorInfo.FileNum == 0) {
-            revert NodeSectorProvedInTimeError();
+            emit FsError(
+                "CheckNodeSectorProvedInTime",
+                "NodeSectorProvedInTimeError"
+            );
+            return;
         }
         Setting memory setting = config.GetSettingWithProveLevel(
             sectorInfo.ProveLevel_
         );
         uint256 height = block.number;
         if (sectorInfo.NextProveHeight + setting.DefaultProvePeriod < height) {
-            revert NodeSectorProvedInTimeError();
+            emit FsError(
+                "CheckNodeSectorProvedInTime",
+                "NodeSectorProvedInTimeError"
+            );
+            return;
         }
         uint256 lastHeight = GetLastPunishmentHeightForNode(nodeAddr, sectorID);
         uint64 times = calMissingSectorProveTimes(
@@ -357,7 +375,11 @@ contract Prove is Initializable, IProve, IFsEvent {
             height
         );
         if (times == 0) {
-            revert NodeSectorProvedInTimeError();
+            emit FsError(
+                "CheckNodeSectorProvedInTime",
+                "NodeSectorProvedInTimeError"
+            );
+            return;
         }
         punishForSector(sectorInfo, nodeInfo, setting, times);
     }

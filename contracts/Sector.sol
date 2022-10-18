@@ -59,10 +59,8 @@ contract Sector is Initializable, ISector, IFsEvent {
         );
         uint64 totalSize = GetSectorTotalSizeForNode(sectorInfo.NodeAddr);
         if (sectorInfo.Size + totalSize > nodeInfo.Volume) {
-            revert NotEnoughVolume(
-                nodeInfo.Volume,
-                sectorInfo.Size + totalSize
-            );
+            emit FsError("CreateSector", "Insufficient volume");
+            return;
         }
         sectorInfos[sectorInfo.NodeAddr].push(sectorInfo);
         emit CreateSectorEvent(
@@ -122,7 +120,8 @@ contract Sector is Initializable, ISector, IFsEvent {
     function DeleteSector(SectorRef memory sectorRef) public virtual override {
         SectorInfo memory sectorInfo = GetSectorInfo(sectorRef);
         if (sectorInfo.FileNum > 0) {
-            revert NotEmptySector(0, sectorInfo.FileNum);
+            emit FsError("DeleteSector", "NotEmptySector");
+            return;
         }
         deleteSector(sectorRef.NodeAddr, sectorRef.SectorId);
         emit DeleteSectorEvent(
@@ -178,7 +177,8 @@ contract Sector is Initializable, ISector, IFsEvent {
             sectorInfo.Used + fileInfo.FileBlockNum * fileInfo.FileBlockSize >
             sectorInfo.Size
         ) {
-            revert NotEnoughSpace();
+            emit FsError("AddFileToSector", "NotEnoughSpace");
+            return;
         }
         bool groupCreated = addSectorFileInfo(
             sectorInfo.NodeAddr,
