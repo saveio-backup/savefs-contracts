@@ -452,6 +452,7 @@ contract File is Initializable, IFile, IFsEvent {
         string memory error = deleteFilesInner(files);
         if (bytes(error).length > 0) {
             emit FsError("DeleteFile", error);
+            return;
         } else {
             emit DeleteFileEvent(
                 FsEvent.DELETE_FILE,
@@ -473,6 +474,7 @@ contract File is Initializable, IFile, IFsEvent {
         string memory error = deleteFilesInner(files);
         if (bytes(error).length > 0) {
             emit FsError("DeleteFiles", error);
+            return;
         } else {
             emit DeleteFilesEvent(
                 FsEvent.DELETE_FILE,

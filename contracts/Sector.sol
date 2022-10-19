@@ -39,21 +39,29 @@ contract Sector is Initializable, ISector, IFsEvent {
         virtual
         override
     {
-        require(sectorInfo.SectorID > 0, "sectorId is wrong");
-        require(sectorInfo.Size > 0, "sector size is wrong");
-        require(
-            node.IsNodeRegisted(sectorInfo.NodeAddr),
-            "node not registered"
-        );
-        require(
+        if (sectorInfo.SectorID == 0) {
+            emit FsError("CreateSector", "SectorID is 0");
+            return;
+        }
+        if (sectorInfo.Size == 0) {
+            emit FsError("CreateSector", "Size is 0");
+            return;
+        }
+        if (!node.IsNodeRegisted(sectorInfo.NodeAddr)) {
+            emit FsError("CreateSector", "Node not registered");
+            return;
+        }
+        if (
             GetSectorInfo(
                 SectorRef({
                     SectorId: sectorInfo.SectorID,
                     NodeAddr: sectorInfo.NodeAddr
                 })
-            ).Size == 0,
-            "sector already exists"
-        );
+            ).Size != 0
+        ) {
+            emit FsError("CreateSector", "Sector already exists");
+            return;
+        }
         NodeInfo memory nodeInfo = node.GetNodeInfoByWalletAddr(
             sectorInfo.NodeAddr
         );
@@ -81,7 +89,6 @@ contract Sector is Initializable, ISector, IFsEvent {
         override
         returns (SectorInfo memory)
     {
-        require(sectorRef.SectorId > 0, "sectorId must be greater than 0");
         SectorInfo[] memory sectorInfo = sectorInfos[sectorRef.NodeAddr];
         for (uint64 i = 0; i < sectorInfo.length; i++) {
             if (sectorInfo[i].SectorID == sectorRef.SectorId) {

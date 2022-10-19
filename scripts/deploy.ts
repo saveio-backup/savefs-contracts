@@ -89,16 +89,16 @@ async function main() {
   console.log("------------golang----------")
   console.log(
     `
-var ConfigAddress = ethCommon.HexToAddress("${config.address}");
-var NodeAddress = ethCommon.HexToAddress("${node.address}");
-var SectorAddress = ethCommon.HexToAddress("${sector.address}");
-var SpaceAddress = ethCommon.HexToAddress("${space.address}");
-var FileAddress = ethCommon.HexToAddress("${file.address}");
-var FileExtraAddress = ethCommon.HexToAddress("${fileExtra.address}");
-var ListAddress = ethCommon.HexToAddress("${list.address}");
-var ProveAddress = ethCommon.HexToAddress("${prove.address}");
-var ProveExtraAddress = ethCommon.HexToAddress("${proveExtra.address}");
-var PDPAddress = ethCommon.HexToAddress("${pdp.address}");
+var ConfigAddress = ethCommon.HexToAddress("${config.address}")
+var NodeAddress = ethCommon.HexToAddress("${node.address}")
+var SectorAddress = ethCommon.HexToAddress("${sector.address}")
+var SpaceAddress = ethCommon.HexToAddress("${space.address}")
+var FileAddress = ethCommon.HexToAddress("${file.address}")
+var FileExtraAddress = ethCommon.HexToAddress("${fileExtra.address}")
+var ListAddress = ethCommon.HexToAddress("${list.address}")
+var ProveAddress = ethCommon.HexToAddress("${prove.address}")
+var ProveExtraAddress = ethCommon.HexToAddress("${proveExtra.address}")
+var PDPAddress = ethCommon.HexToAddress("${pdp.address}")
     `
   )
 }
