@@ -13,8 +13,8 @@ describe(name, () => {
       Volume: 1000 * 1000,
       RestVol: 3,
       ServiceTime: 4,
-      WalletAddr: addrs[26],
-      NodeAddr: addrs[26],
+      WalletAddr: addrs[72],
+      NodeAddr: addrs[72],
     }, {
       value: 1000000
     });
@@ -22,8 +22,8 @@ describe(name, () => {
   });
 
   it("withdraw", async () => {
-    const res = node.WithDrawProfit(addrs[26]);
-    expect(res).to.be.reverted; // profit is 0
+    const tx = node.WithDrawProfit(addrs[72]);
+    expect(tx).to.be.reverted; // profit is 0
   });
 
   it("update", async () => {
@@ -33,8 +33,8 @@ describe(name, () => {
       Volume: 1000 * 1000,
       RestVol: 3,
       ServiceTime: 4,
-      WalletAddr: addrs[26],
-      NodeAddr: addrs[26],
+      WalletAddr: addrs[72],
+      NodeAddr: addrs[72],
     }, {
       value: 1000000
     });
@@ -42,8 +42,8 @@ describe(name, () => {
   });
 
   it("withdraw 2", async () => {
-    const res = node.WithDrawProfit(addrs[26]);
-    expect(res).to.not.be.reverted; // profit is not 0
+    const tx = node.WithDrawProfit(addrs[72]);
+    expect(tx).to.not.be.reverted; // profit is not 0
   });
 
 });

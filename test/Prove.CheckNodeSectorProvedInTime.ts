@@ -1,4 +1,4 @@
-import { expect } from "chai";
+import assert from "assert";
 import { addrs, prove } from "./initialize";
 
 var path = require('path');
@@ -7,11 +7,14 @@ var name = path.basename(__filename);
 describe(name, function () {
 
   it("check time", async () => {
-    const res = prove.CheckNodeSectorProvedInTime({
+    const tx = prove.CheckNodeSectorProvedInTime({
       NodeAddr: addrs[24],
       SectorId: 1
     });
-    expect(res).to.be.reverted;
+    let res = await (await tx).wait();
+    if (res.events?.length == 1) {
+      assert(res.events[0].event == "FsError");
+    }
   });
 
 });

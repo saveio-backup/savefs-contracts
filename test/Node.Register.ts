@@ -17,7 +17,10 @@ describe(name, () => {
       NodeAddr: addrs[0],
     });
     // print(tx)
-    await expect(tx).to.be.reverted;
+    let res = await (await tx).wait();
+    if (res.events?.length == 1) {
+      assert(res.events[0].event == "FsError");
+    }
   });
 
   it("node register success", async () => {

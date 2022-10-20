@@ -1,3 +1,4 @@
+import assert from "assert";
 import { expect } from "chai";
 import { addrs, file, node, prove, sector } from "./initialize";
 
@@ -90,6 +91,13 @@ describe(name, function () {
     });
     // await print(tx)
     await expect(tx).to.not.be.reverted;
+  });
+
+  it('get sector info', async () => {
+    const tx = sector.GetSectorsForNode(addrs[49]);
+    let res = await tx;
+    // console.log(res)
+    assert(res.length == 1);
   });
 
 });

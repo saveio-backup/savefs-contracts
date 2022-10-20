@@ -6,7 +6,7 @@ var name = path.basename(__filename);
 
 describe(name, function () {
 
-  it("get 0", async () => {
+  it("get list 0", async () => {
     const tx = prove.GetProveDetailList(addrs[17]);
     let res = await tx;
     // console.log(res)
@@ -99,11 +99,11 @@ describe(name, function () {
     await expect(tx).to.not.be.reverted;
   });
   
-  it("get larger than 0", async () => {
+  it("get list 1", async () => {
     const tx = prove.GetProveDetailList([3, 2, 1, 4, 7, 8]);
     let res = await tx;
     // console.log(res)
-    assert(res.length > 0)
+    assert(res.length == 1)
   });
 
 });
