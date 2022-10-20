@@ -117,7 +117,15 @@ contract Sector is Initializable, ISector, IFsEvent {
         uint64 j = 0;
         for (uint64 i = 0; i < infos.length; i++) {
             if (infos[i].Size > 0) {
-                res[j] = infos[i];
+                SectorInfo memory s = infos[i];
+                SectorFileInfoGroup memory g  = getSectorFileInfoGroup(nodeAddr, s.SectorID, s.GroupNum);
+                SectorFileInfo[] memory l = sectorFileInfoFileList[g.GroupId];
+                bytes[] memory hashes = new bytes[](l.length);
+                for (uint64 k = 0; k < l.length; k++) {
+                    hashes[k] = l[k].FileHash;
+                }
+                s.FileList = hashes;
+                res[j] = s;
                 j++;
             }
         }

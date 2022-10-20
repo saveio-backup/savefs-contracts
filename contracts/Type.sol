@@ -21,9 +21,10 @@ enum ProveLevel {
 }
 
 enum StorageType {
-    Normal,
+    Normal, 
     Professional
 }
+// Normal = userspace, Professional = sector
 
 enum UserSpaceType {
     None,

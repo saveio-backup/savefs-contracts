@@ -131,7 +131,10 @@ contract File is Initializable, IFile, IFsEvent {
         override
     {
         Setting memory setting = config.GetSetting();
-        string memory err = fileExtra.FileReNew{value: msg.value}(setting, fileReNewInfo);
+        string memory err = fileExtra.FileReNew{value: msg.value}(
+            setting,
+            fileReNewInfo
+        );
         if (bytes(err).length > 0) {
             emit FsError("FileReNew", err);
             return;
@@ -374,6 +377,7 @@ contract File is Initializable, IFile, IFsEvent {
 
     function deleteFilesInner(FileInfo[] memory files)
         public
+        payable
         returns (string memory error)
     {
         if (files.length == 0) {
@@ -384,6 +388,9 @@ contract File is Initializable, IFile, IFsEvent {
         Setting memory setting = config.GetSetting();
         for (uint256 i = 0; i < files.length; i++) {
             FileInfo memory info = files[i];
+            if (info.FileHash.length == 0) {
+                continue;
+            }
             if (info.FileOwner != fileOwner) {
                 return "file owner is different";
             }
@@ -425,8 +432,6 @@ contract File is Initializable, IFile, IFsEvent {
                 profit -= totalProfit;
             }
             if (info.StorageType_ == StorageType.Normal) {
-                refundAmount += profit;
-            } else if (info.StorageType_ == StorageType.Professional) {
                 UserSpace memory us = space.GetUserSpace(info.FileOwner);
                 if (us.Used >= info.FileBlockNum * info.FileBlockSize) {
                     us.Balance += profit;
@@ -437,10 +442,19 @@ contract File is Initializable, IFile, IFsEvent {
                 }
                 space.UpdateUserSpace(info.FileOwner, us);
             }
+            if (info.StorageType_ == StorageType.Professional) {
+                refundAmount += profit;
+            }
             CleanupForDeleteFile(info, true, true);
         }
         if (refundAmount > 0) {
-            payable(fileOwner).transfer(refundAmount);
+            if (msg.value < refundAmount) {
+                return "refund amount is invalid";
+            }
+            bool res = payable(fileOwner).send(refundAmount);
+            if (!res) {
+                return "refund failed";
+            }
         }
         return "";
     }
