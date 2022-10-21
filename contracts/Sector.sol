@@ -269,9 +269,6 @@ contract Sector is Initializable, ISector, IFsEvent {
         if (fileList.length == 0) {
             return (0, false);
         }
-        if (keccak256(group.MinFileHash) != keccak256(fileHash)) {
-            return (0, false);
-        }
         for (uint64 i = 0; i < fileList.length; i++) {
             if (keccak256(fileList[i].FileHash) == keccak256(fileHash)) {
                 return (i, true);
@@ -286,7 +283,7 @@ contract Sector is Initializable, ISector, IFsEvent {
         bytes memory fileHash
     ) private returns (bool) {
         uint64 groupNum = getSectorFileInfoGroupNum(nodeAddr, sectorId);
-        for (uint64 i = 0; i < groupNum; i++) {
+        for (uint64 i = 1; i <= groupNum; i++) {
             SectorFileInfoGroup memory group = getSectorFileInfoGroup(
                 nodeAddr,
                 sectorId,
