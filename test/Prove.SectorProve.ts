@@ -36,9 +36,7 @@ describe(name, function () {
       FileNum: 1,
       GroupNum: 1,
       IsPlots: true,
-      FileList: [
-        [6, 6, 6, 60]
-      ]
+      FileList: []
     });
     await expect(tx).to.not.be.reverted;
   });

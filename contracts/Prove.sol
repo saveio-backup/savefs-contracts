@@ -164,6 +164,13 @@ contract Prove is Initializable, IProve, IFsEvent {
                 return;
             }
             _sector.AddFileToSector(sectorInfo, _fileInfo);
+            // add file to sector changed the sector groupnum
+            // so requery sector info
+            sectorInfo = _sector.GetSectorInfo(sectorRef);
+            if (sectorInfo.IsPlots != _fileInfo.IsPlotFile) {
+                emit FsError("FileProve", "FileProveSectorTypeNotMatch");
+                return;
+            }
             string memory err = proveExtra.AddSectorRefForFileInfo(
                 _sector,
                 fs,

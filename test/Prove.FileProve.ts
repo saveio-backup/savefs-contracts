@@ -28,14 +28,14 @@ describe(name, function () {
     const tx = sector.CreateSector({
       NodeAddr: addrs[49],
       SectorID: 1,
-      Size: 1,
+      Size: 100,
       Used: 0,
       ProveLevel_: 1,
       FirstProveHeight: 1,
-      NextProveHeight: 1,
-      TotalBlockNum: 1,
-      FileNum: 1,
-      GroupNum: 1,
+      NextProveHeight: 200,
+      TotalBlockNum: 0,
+      FileNum: 0,
+      GroupNum: 0,
       IsPlots: true,
       FileList: []
     });
@@ -96,7 +96,7 @@ describe(name, function () {
   it('get sector info', async () => {
     const tx = sector.GetSectorsForNode(addrs[49]);
     let res = await tx;
-    // console.log(res)
+    console.log(res)
     assert(res.length == 1);
   });
 
