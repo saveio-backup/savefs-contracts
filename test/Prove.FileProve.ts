@@ -96,8 +96,25 @@ describe(name, function () {
   it('get sector info', async () => {
     const tx = sector.GetSectorsForNode(addrs[49]);
     let res = await tx;
-    console.log(res)
+    // console.log(res)
     assert(res.length == 1);
+    assert(res[0].FileList.length == 1);
+  });
+
+  it("delete files", async () => {
+    const tx = file.DeleteFiles([
+      [3, 2, 1]
+    ]);
+    // await print(tx)
+    await expect(tx).to.not.be.reverted;
+  });
+
+  it('get sector info 2', async () => {
+    const tx = sector.GetSectorsForNode(addrs[49]);
+    let res = await tx;
+    // console.log(res)
+    assert(res.length == 1);
+    assert(res[0].FileList.length == 0);
   });
 
 });

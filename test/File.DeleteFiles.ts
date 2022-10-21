@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { files, addrs, file, node, space, sector } from "./initialize";
+import { files, addrs, file, node, space, sector, prove } from "./initialize";
 
 var path = require('path');
 var name = path.basename(__filename);
@@ -72,6 +72,19 @@ describe(name, function () {
     }, {
       value: 1000000
     })
+    // await print(tx)
+    await expect(tx).to.not.be.reverted;
+  });
+
+  it("file prove", async () => {
+    const tx = prove.FileProve({
+      FileHash: files[2],
+      ProveData: [],
+      BlockHeight: 123,
+      NodeWallet: addrs[68],
+      Profit: 1,
+      SectorID: 1
+    });
     // await print(tx)
     await expect(tx).to.not.be.reverted;
   });
