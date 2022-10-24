@@ -101,6 +101,22 @@ var ProveExtraAddress = ethCommon.HexToAddress("${proveExtra.address}")
 var PDPAddress = ethCommon.HexToAddress("${pdp.address}")
     `
   )
+
+  console.log("------------javascript----------")
+  console.log(
+    `
+let configAddress = "${config.address}"
+let nodeAddress = "${node.address}"
+let sectorAddress = "${sector.address}"
+let spaceAddress = "${space.address}"
+let fileAddress = "${file.address}"
+let fileExtraAddress = "${fileExtra.address}"
+let listAddress = "${list.address}"
+let proveAddress = "${prove.address}"
+let proveExtraAddress = "${proveExtra.address}"
+let pdpAddress = "${pdp.address}"
+    `
+  )
 }
 
 main().catch((error) => {
