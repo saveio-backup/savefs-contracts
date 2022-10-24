@@ -288,7 +288,12 @@ contract File is Initializable, IFile, IFsEvent {
         return (deletedFiles, amount, success);
     }
 
-    function DeleteUnsettledFiles(address walletAddr) public virtual override {
+    function DeleteUnsettledFiles(address walletAddr)
+        public
+        payable
+        virtual
+        override
+    {
         bytes[] memory unsettledList = GetUnSettledFileList(walletAddr);
         StorageType[] memory sType = new StorageType[](2);
         sType[0] = StorageType.Normal;
@@ -459,7 +464,7 @@ contract File is Initializable, IFile, IFsEvent {
         return "";
     }
 
-    function DeleteFile(bytes memory fileHash) public virtual override {
+    function DeleteFile(bytes memory fileHash) public payable virtual override {
         FileInfo memory fileInfo = GetFileInfo(fileHash);
         FileInfo[] memory files = new FileInfo[](1);
         files[0] = fileInfo;
@@ -477,7 +482,12 @@ contract File is Initializable, IFile, IFsEvent {
         }
     }
 
-    function DeleteFiles(bytes[] memory fileHashs) public virtual override {
+    function DeleteFiles(bytes[] memory fileHashs)
+        public
+        payable
+        virtual
+        override
+    {
         address fileOwner;
         FileInfo[] memory files = new FileInfo[](fileHashs.length);
         for (uint256 i = 0; i < fileHashs.length; i++) {

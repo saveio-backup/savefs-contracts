@@ -135,11 +135,11 @@ interface IFile {
 
     function ChangeFilePrivilege(PriChange memory priChange) external;
 
-    function DeleteFile(bytes memory fileHash) external;
+    function DeleteFile(bytes memory fileHash) external payable;
 
-    function DeleteFiles(bytes[] memory fileHashs) external;
+    function DeleteFiles(bytes[] memory fileHashs) external payable;
 
-    function DeleteUnsettledFiles(address walletAddr) external;
+    function DeleteUnsettledFiles(address walletAddr) external payable;
 
     function GetFileInfo(bytes memory fileHash)
         external
