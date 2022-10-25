@@ -1,3 +1,4 @@
+import assert from "assert";
 import { expect } from "chai";
 import { addrs, node } from "./initialize";
 
@@ -23,7 +24,11 @@ describe(name, () => {
 
   it("withdraw", async () => {
     const tx = node.WithDrawProfit(addrs[72]);
-    expect(tx).to.be.reverted; // profit is 0
+    let res = await (await tx).wait();
+    // profit is 0
+    if (res.events?.length == 1) {
+      assert(res.events[0].event == "FsError");
+    }
   });
 
   it("update", async () => {

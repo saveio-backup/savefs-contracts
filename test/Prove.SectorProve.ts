@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { addrs, file, node, prove, sector } from "./initialize";
+import { addrs, file, node, prove, sector, print } from "./initialize";
 
 var path = require('path');
 var name = path.basename(__filename);
@@ -100,7 +100,6 @@ describe(name, function () {
       ChallengeHeight: 10,
       ProveData: []
     });
-    // await print(tx)
     await expect(tx).to.not.be.reverted;
   });
 

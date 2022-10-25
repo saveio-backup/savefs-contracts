@@ -65,6 +65,11 @@ const config: HardhatUserConfig = {
       url: "http://localhost:8545",
       accounts:["644fe9176025b45f853f27592b3f6038a61ee063018deff9c94ffa8552635d12"],
     },
+    dev: {
+      url: "http://117.50.17.39:8545",
+      accounts:["0d35001e2d02e10ccda71a538919229894eb34108ce2cc60f850429395e4d213"],
+    },
+    
   },
   gasReporter: {
     enabled: process.env.REPORT_GAS !== undefined,

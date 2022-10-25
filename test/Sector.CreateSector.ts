@@ -1,4 +1,4 @@
-import { expect } from "chai";
+import { assert, expect } from "chai";
 import { addrs, node, sector } from "./initialize";
 
 var path = require('path');
@@ -20,7 +20,7 @@ describe(name, () => {
         value: 1000000
       }
     );
-    await expect(tx).to.not.be.reverted;
+    expect(tx).to.not.be.reverted;
   });
 
   it("create sector", async () => {
@@ -38,7 +38,7 @@ describe(name, () => {
       IsPlots: false,
       FileList: []
     });
-    await expect(tx).to.not.be.reverted;
+    expect(tx).to.not.be.reverted;
   });
 
   it("create sector", async () => {
@@ -56,7 +56,11 @@ describe(name, () => {
       IsPlots: false,
       FileList: []
     });
-    expect(tx).to.be.reverted; // sector.Size > node.Volume
+    // sector.Size > node.Volume
+    let res = await (await tx).wait();
+    if (res.events?.length == 1) {
+      assert(res.events[0].event == "FsError");
+    }
   });
 
 });

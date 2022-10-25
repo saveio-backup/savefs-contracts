@@ -237,6 +237,10 @@ contract Prove is Initializable, IProve, IFsEvent {
                 NodeAddr: sectorProve.NodeAddr
             })
         );
+        if (sectorInfo.SectorID == 0) {
+            emit FsError("SectorProve", "SectorProveSectorNotExist");
+            return;
+        }
         Setting memory setting = config.GetSetting();
         if (block.number < sectorInfo.NextProveHeight) {
             emit FsError("SectorProve", "SectorProveNotExpired");
@@ -489,7 +493,7 @@ contract Prove is Initializable, IProve, IFsEvent {
         NodeInfo memory nodeInfo,
         Setting memory setting
     ) public payable returns (bool) {
-        for (uint256 i = 0; i < sectorInfo.FileNum; i++) {
+        for (uint256 i = 0; i < sectorInfo.FileList.length; i++) {
             bytes memory fileHash = sectorInfo.FileList[i];
             FileInfo memory fileInfo = fs.GetFileInfo(fileHash);
             ProveDetail[] memory details = GetProveDetailList(

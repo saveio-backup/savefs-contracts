@@ -1,4 +1,4 @@
-import { expect } from "chai";
+import { assert, expect } from "chai";
 import {
   addrs, space, print
 } from "./initialize";
@@ -22,7 +22,10 @@ describe(name, () => {
       }
     });
     // await print(tx);
-    await expect(tx).to.be.reverted;
+    let res = await (await tx).wait();
+    if (res.events?.length == 1) {
+      assert(res.events[0].event == "FsError");
+    }
   });
 
   it("space 1-1", async () => {
@@ -57,7 +60,10 @@ describe(name, () => {
       }
     });
     // await print(tx);
-    await expect(tx).to.be.reverted;
+    let res = await (await tx).wait();
+    if (res.events?.length == 1) {
+      assert(res.events[0].event == "FsError");
+    }
   });
 
   let value = 0;

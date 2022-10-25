@@ -63,7 +63,10 @@ describe(name, () => {
       IsPlots: false,
       FileList: []
     });
-    await expect(tx).to.be.reverted;
+    let res = await (await tx).wait();
+    if (res.events?.length == 1) {
+      assert(res.events[0].event == "FsError");
+    }
   });
 
   it('get 2', async () => {
