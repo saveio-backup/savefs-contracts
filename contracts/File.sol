@@ -453,9 +453,6 @@ contract File is Initializable, IFile, IFsEvent {
             CleanupForDeleteFile(info, true, true);
         }
         if (refundAmount > 0) {
-            if (msg.value < refundAmount) {
-                return "refund amount is invalid";
-            }
             bool res = payable(fileOwner).send(refundAmount);
             if (!res) {
                 return "refund failed";

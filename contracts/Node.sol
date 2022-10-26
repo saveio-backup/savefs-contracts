@@ -13,21 +13,6 @@ contract Node is Initializable, INode, IFsEvent {
     mapping(address => NodeInfo) nodesInfo; // walletAddr => NodeInfo
     address[] nodeList; // nodeAddr list
 
-    modifier VolumeRequire(NodeInfo memory nodeInfo, Setting memory setting) {
-        require(nodeInfo.Volume >= setting.MinVolume, "Volume is too small");
-        _;
-    }
-
-    modifier NodeRegisted(address walletAddr) {
-        require(nodesInfo[walletAddr].Volume != 0, "Node not registered");
-        _;
-    }
-
-    modifier NodeNotRegisted(address walletAddr) {
-        require(nodesInfo[walletAddr].Volume == 0, "Node already registered");
-        _;
-    }
-
     function initialize(IConfig _config, ISector _sector) public initializer {
         config = _config;
         sector = _sector;
@@ -49,9 +34,16 @@ contract Node is Initializable, INode, IFsEvent {
         payable
         virtual
         override
-        VolumeRequire(nodeInfo, config.GetSetting())
-        NodeNotRegisted(nodeInfo.WalletAddr)
     {
+        Setting memory setting = config.GetSetting();
+        if (nodeInfo.Volume < setting.MinVolume) {
+            emit FsError("Register", "Volume is too small");
+            return;
+        }
+        if (nodesInfo[nodeInfo.WalletAddr].Volume != 0) {
+            emit FsError("Register", "Node already registered");
+            return;
+        }
         uint64 pledge = CalculateNodePledge(nodeInfo);
         if (msg.value < pledge) {
             emit FsError("Register", "Insufficient pledge");
@@ -88,13 +80,20 @@ contract Node is Initializable, INode, IFsEvent {
         payable
         virtual
         override
-        VolumeRequire(nodeInfo, config.GetSetting())
-        NodeRegisted(nodeInfo.WalletAddr)
     {
         require(
             nodesInfo[nodeInfo.WalletAddr].WalletAddr == nodeInfo.WalletAddr,
             "Node walletAddr changed"
         );
+        Setting memory setting = config.GetSetting();
+        if (nodeInfo.Volume < setting.MinVolume) {
+            emit FsError("NodeUpdate", "Volume is too small");
+            return;
+        }
+        if (nodesInfo[nodeInfo.WalletAddr].Volume == 0) {
+            emit FsError("NodeUpdate", "Node not registered");
+            return;
+        }
         NodeInfo memory oldNode = nodesInfo[nodeInfo.WalletAddr];
         uint64 newPledge = CalculateNodePledge(nodeInfo);
         uint64 oldPledge = oldNode.Pledge;
@@ -121,12 +120,11 @@ contract Node is Initializable, INode, IFsEvent {
         nodesInfo[nodeInfo.WalletAddr] = nodeInfo;
     }
 
-    function Cancel(address walletAddr)
-        public
-        virtual
-        override
-        NodeRegisted(walletAddr)
-    {
+    function Cancel(address walletAddr) public virtual override {
+        if (nodesInfo[walletAddr].Volume == 0) {
+            emit FsError("Cancel", "Node not registered");
+            return;
+        }
         NodeInfo memory nodeInfo = nodesInfo[walletAddr];
         if (nodeInfo.Pledge > 0) {
             payable(nodeInfo.WalletAddr).transfer(
@@ -190,12 +188,11 @@ contract Node is Initializable, INode, IFsEvent {
         return node;
     }
 
-    function WithDrawProfit(address walletAddr)
-        public
-        virtual
-        override
-        NodeRegisted(walletAddr)
-    {
+    function WithDrawProfit(address walletAddr) public virtual override {
+        if (nodesInfo[walletAddr].Volume == 0) {
+            emit FsError("WithDrawProfit", "Node not registered");
+            return;
+        }
         NodeInfo memory nodeInfo = nodesInfo[walletAddr];
         if (nodeInfo.Profit > 0) {
             payable(nodeInfo.WalletAddr).transfer(nodeInfo.Profit);
