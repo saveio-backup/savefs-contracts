@@ -7,6 +7,10 @@ async function main() {
   let res = await test.deployed();
   console.log("Test deployed to:", test.address);
 
+  const tx = test.Get();
+  let res2 = await tx;
+  console.log(res2)
+
 }
 
 main().catch((error) => {
