@@ -48,18 +48,175 @@ contract Space is Initializable, ISpace, IFsEvent {
 
     function GetUpdateCost(UserSpaceParams memory params)
         public
-        payable
+        view
         virtual
         override
         returns (TransferState memory)
     {
-        (ChangeReturn memory ret, string memory err) = getUserspaceChange(params);
-        if (bytes(err).length > 0) {
-            emit FsError("GetUpdateCost", err);
-            return ret.state;
+        TransferState memory state;
+        Setting memory setting = config.GetSetting();
+        bool res = checkUserSpaceParams(params);
+        if (!res) {
+            return state;
         }
-        emit GetUpdateCostEvent(ret.state);
-        return ret.state;
+        UserSpace memory oldSpace = userSpace[params.Owner];
+        if (
+            oldSpace.ExpireHeight != 0 && oldSpace.ExpireHeight <= block.number
+        ) {
+            processExpiredUserSpace(oldSpace, block.number);
+        }
+        if (
+            oldSpace.ExpireHeight == 0 && oldSpace.ExpireHeight == block.number
+        ) {
+            bool r = checkForFirstUserSpaceOperation(setting, params);
+            if (!r) {
+                return state;
+            }
+        }
+        (
+            UserSpace memory newSpace,
+            TransferState memory reState
+        ) = newProcessForUserSpaceOperations(params, oldSpace, setting);
+        return reState;
+    }
+
+    function newProcessForUserSpaceOperations(
+        UserSpaceParams memory params,
+        UserSpace memory oldSpace,
+        Setting memory setting
+    ) internal view returns (UserSpace memory, TransferState memory) {
+        UserSpace memory newSpace;
+        TransferState memory state;
+        uint64 transferIn;
+        uint64 transferOut;
+        (uint64 ops, string memory err) = getUserSpaceOperationsFromParams(
+            params
+        );
+        if (bytes(err).length > 0) {
+            return (newSpace, state);
+        }
+        if (
+            ops == UserspaceOps_Add_Add ||
+            ops == UserspaceOps_Add_None ||
+            ops == UserspaceOps_None_Add
+        ) {
+            (newSpace, transferIn, err) = newFsAddUserSpace(
+                oldSpace,
+                params.Size.Value,
+                params.BlockCount.Value,
+                block.number,
+                setting
+            );
+            if (bytes(err).length > 0) {
+                return (newSpace, state);
+            }
+        }
+        if (
+            ops == UserspaceOps_Revoke_Revoke ||
+            ops == UserspaceOps_None_Revoke ||
+            ops == UserspaceOps_Revoke_None
+        ) {
+            return (newSpace, state);
+        }
+        if (ops == UserspaceOps_Add_Revoke || ops == UserspaceOps_Revoke_Add) {
+            return (newSpace, state);
+        }
+        if (transferIn > transferOut) {
+            state.Value = transferIn - transferOut;
+            state.From = params.WalletAddr;
+            state.To = address(0);
+        } else {
+            state.Value = transferOut - transferIn;
+            state.From = address(0);
+            state.To = params.WalletAddr;
+        }
+        return (newSpace, state);
+    }
+
+    function newFsAddUserSpace(
+        UserSpace memory oldSpace,
+        uint64 size,
+        uint64 blockCount,
+        uint256 blockHeight,
+        Setting memory setting
+    )
+        internal
+        view
+        returns (
+            UserSpace memory,
+            uint64,
+            string memory
+        )
+    {
+        TransferState memory state;
+        uint64 transferIn;
+        if (oldSpace.ExpireHeight == 0) {
+            (
+                UserSpace memory newSpace,
+                uint64 deposit
+            ) = newCalcDepositFeeForUserSpace(
+                    oldSpace,
+                    size,
+                    blockCount,
+                    setting,
+                    blockHeight
+                );
+            return (newSpace, newSpace.Balance, "");
+        } else {
+            (
+                UserSpace memory newSpace,
+                uint64 deposit
+            ) = newCalcDepositFeeForUserSpace(
+                    oldSpace,
+                    size,
+                    blockCount,
+                    setting,
+                    blockHeight
+                );
+            return (newSpace, deposit, "");
+        }
+    }
+
+    function newCalcDepositFeeForUserSpace(
+        UserSpace memory oldSpace,
+        uint64 size,
+        uint64 blockCount,
+        Setting memory setting,
+        uint256 blockHeight
+    ) internal pure returns (UserSpace memory, uint64) {
+        uint64 fee;
+        StorageFee memory storageFee = newCalcFee(
+            SpaceOp.AddSpace,
+            oldSpace,
+            setting,
+            setting.DefaultCopyNum,
+            size,
+            blockCount,
+            blockHeight
+        );
+        fee =
+            storageFee.TxnFee +
+            storageFee.SpaceFee +
+            storageFee.ValidationFee;
+        oldSpace.Remain += size;
+        oldSpace.ExpireHeight += blockCount;
+        oldSpace.Balance += fee;
+        return (oldSpace, fee);
+    }
+
+    function newCalcFee(
+        SpaceOp op,
+        UserSpace memory oldSpace,
+        Setting memory setting,
+        uint64 copyNum,
+        uint64 size,
+        uint64 blockCount,
+        uint256 blockHeight
+    ) internal pure returns (StorageFee memory) {
+        StorageFee memory fee;
+        UploadOption memory option;
+        // TODO
+        return fee;
     }
 
     function ManageUserSpace(UserSpaceParams memory params)
@@ -68,7 +225,9 @@ contract Space is Initializable, ISpace, IFsEvent {
         virtual
         override
     {
-        (ChangeReturn memory ret, string memory err) = getUserspaceChange(params);
+        (ChangeReturn memory ret, string memory err) = getUserspaceChange(
+            params
+        );
         if (bytes(err).length > 0) {
             emit FsError("ManageUserSpace", err);
             return;
@@ -116,7 +275,7 @@ contract Space is Initializable, ISpace, IFsEvent {
             _userSpace.ExpireHeight > 0 &&
             _userSpace.ExpireHeight <= block.number
         ) {
-            string memory err =  deleteExpiredUserSpace(_userSpace, walletAddr);
+            string memory err = deleteExpiredUserSpace(_userSpace, walletAddr);
             if (bytes(err).length > 0) {
                 emit FsError("DeleteUserSpace", err);
                 return;
@@ -685,7 +844,7 @@ contract Space is Initializable, ISpace, IFsEvent {
     function deleteExpiredUserSpace(
         UserSpace memory _userSpace,
         address walletAddr
-    ) private returns(string memory) {
+    ) private returns (string memory) {
         Setting memory setting = config.GetSetting();
         if (
             setting.DefaultProvePeriod + _userSpace.ExpireHeight > block.number

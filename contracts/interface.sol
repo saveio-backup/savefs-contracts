@@ -349,7 +349,7 @@ interface ISpace {
 
     function GetUpdateCost(UserSpaceParams memory params)
         external
-        payable
+        view
         returns (TransferState memory);
 
     function GetUserSpace(address walletAddr)

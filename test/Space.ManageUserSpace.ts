@@ -83,20 +83,7 @@ describe(name, () => {
     expect(tx).not.to.be.reverted;
 
     let res = await tx;
-    let wait = await res.wait();
-    if (wait.events) {
-      if (wait.events.length > 0) {
-        let event = wait.events[0];
-        if (event.args) {
-          if (event.args.length > 0) {
-            let arg = event.args[0];
-            value = arg.Value;
-            // console.log(arg)
-            expect(arg.Value).not.to.be.eq(0);
-          }
-        }
-      }
-    }
+    value = res.Value.toNumber();
   });
 
   it("space 1-1", async () => {

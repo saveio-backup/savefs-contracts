@@ -22,21 +22,7 @@ describe(name, () => {
     expect(tx).not.to.be.reverted;
 
     let res = await tx;
-    // console.log(res)
-
-    let wait = await res.wait();
-    if (wait.events){
-      if (wait.events.length > 0) {
-        let event = wait.events[0];
-        if (event.args) {
-          if (event.args.length > 0) {
-            let arg = event.args[0];
-            // console.log(arg)
-            expect(arg.Value).not.to.be.eq(0);
-          }
-        }
-      }
-    }
+    console.log(res)
   });
   
 });

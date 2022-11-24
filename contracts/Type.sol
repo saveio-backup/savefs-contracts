@@ -32,6 +32,12 @@ enum UserSpaceType {
     Revoke
 }
 
+enum SpaceOp {
+    AddSpace,
+	ReduceSpace,
+	CashSpace
+}
+
 enum WhiteListOpType {
     ADD,
     DEL,
