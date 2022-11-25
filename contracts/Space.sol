@@ -209,30 +209,159 @@ contract Space is Initializable, ISpace, IFsEvent {
         UserSpace memory oldSpace,
         Setting memory setting,
         uint64 copyNum,
-        uint64 size,
-        uint64 blockCount,
-        uint256 blockHeight
+        uint64 addSize,
+        uint64 addHeight,
+        uint256 currentHeight
     ) internal pure returns (StorageFee memory) {
+        UserSpace memory _userSpace = oldSpace;
+        
         StorageFee memory fee;
-        UploadOption memory option;
-        option.FileSize = oldSpace.Used + oldSpace.Remain;
-        option.ProveInterval = setting.DefaultProvePeriod;
-        option.ExpiredHeight = oldSpace.ExpireHeight;
-        option.CopyNum = setting.DefaultCopyNum;
+        UploadOption memory uploadInfo;
+        uploadInfo.FileSize = _userSpace.Used + _userSpace.Remain;
+        uploadInfo.ProveInterval = setting.DefaultProvePeriod;
+        uploadInfo.ExpiredHeight = _userSpace.ExpireHeight;
+        uploadInfo.CopyNum = setting.DefaultCopyNum;
 
+        uint64 proveTime;
         if (op == SpaceOp.AddSpace) {
-            // TODO
+            if (addHeight <= 0) {
+                if (addSize <= 0) {
+                    addSize = 1;
+                }
+                proveTime = newCalcProveTimesByUploadInfo(
+                    uploadInfo,
+                    uint64(_userSpace.ExpireHeight - currentHeight)
+                );
+                fee.ValidationFee = calcValidFee(
+                    setting,
+                    proveTime,
+                    copyNum,
+                    addSize
+                );
+                fee.SpaceFee = calcStorageFee(
+                    setting,
+                    copyNum,
+                    addSize,
+                    uint64(_userSpace.ExpireHeight - currentHeight)
+                );
+                return fee;
+            }
+            if (addSize <= 0) {
+                if (addSize <= 0) {
+                    addSize = 1;
+                }
+                proveTime = newCalcProveTimesByUploadInfo(
+                    uploadInfo,
+                    addHeight
+                );
+                fee.ValidationFee = calcValidFee(
+                    setting,
+                    proveTime,
+                    copyNum,
+                    _userSpace.Remain + _userSpace.Used
+                );
+                fee.SpaceFee = calcStorageFee(
+                    setting,
+                    copyNum,
+                    _userSpace.Remain + _userSpace.Used,
+                    addHeight
+                );
+                return fee;
+            }
+            if (addSize <= 0) {
+                addSize = 1;
+            }
+            //currentHeight to expireHeight
+            proveTime = newCalcProveTimesByUploadInfo(
+                uploadInfo,
+                uint64(_userSpace.ExpireHeight - currentHeight)
+            );
+            uint64 validationFee1 = calcValidFee(
+                setting,
+                proveTime,
+                copyNum,
+                addSize
+            );
+            uint64 spaceFee1 = calcStorageFee(
+                setting,
+                copyNum,
+                addSize,
+                uint64(_userSpace.ExpireHeight - currentHeight)
+            );
+            //2.new expireHeight to expireHeight
+            proveTime = newCalcProveTimesByUploadInfo(uploadInfo, addHeight);
+            uint64 validationFee2 = calcValidFee(
+                setting,
+                proveTime,
+                copyNum,
+                _userSpace.Used + _userSpace.Remain + addSize
+            );
+            uint64 spaceFee2 = calcStorageFee(
+                setting,
+                copyNum,
+                _userSpace.Used + _userSpace.Remain + addSize,
+                addHeight
+            );
+            fee.ValidationFee = validationFee1 + validationFee2;
+            fee.SpaceFee = spaceFee1 + spaceFee2;
+            return fee;
         }
         if (op == SpaceOp.CashSpace) {
-            uint64 proveTime = newCalcProveTimesByUploadInfo(
-                option,
-                oldSpace.Remain
+            proveTime = newCalcProveTimesByUploadInfo(
+                uploadInfo,
+                _userSpace.Remain
             );
         }
         if (op == SpaceOp.ReduceSpace) {
             return fee;
         }
         return fee;
+    }
+
+    function calcValidFee(
+        Setting memory setting,
+        uint64 proveTime,
+        uint64 copyNum,
+        uint64 fileSize
+    ) public pure returns (uint64) {
+        return
+            (copyNum + 1) *
+            calcValidFeeForOneNode(setting, proveTime, fileSize);
+    }
+
+    function calcValidFeeForOneNode(
+        Setting memory setting,
+        uint64 proveTime,
+        uint64 fileSize
+    ) public pure returns (uint64) {
+        return proveTime * calcSingleValidFeeForFile(setting, fileSize);
+    }
+
+    function calcSingleValidFeeForFile(Setting memory setting, uint64 fileSize)
+        public
+        pure
+        returns (uint64)
+    {
+        return (setting.GasForChallenge * fileSize) / 1024000;
+    }
+
+    function calcStorageFee(
+        Setting memory setting,
+        uint64 copyNum,
+        uint64 fileSize,
+        uint64 duration
+    ) public pure returns (uint64) {
+        return
+            (copyNum + 1) *
+            calcStorageFeeForOneNode(setting, fileSize, duration);
+    }
+
+    function calcStorageFeeForOneNode(
+        Setting memory setting,
+        uint64 fileSize,
+        uint64 duration
+    ) public pure returns (uint64) {
+        return (setting.GasPerGBPerBlock * fileSize * duration) / 1024000;
     }
 
     function newCalcProveTimesByUploadInfo(
