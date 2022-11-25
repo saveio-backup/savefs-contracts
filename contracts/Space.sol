@@ -215,8 +215,60 @@ contract Space is Initializable, ISpace, IFsEvent {
     ) internal pure returns (StorageFee memory) {
         StorageFee memory fee;
         UploadOption memory option;
-        // TODO
+        option.FileSize = oldSpace.Used + oldSpace.Remain;
+        option.ProveInterval = setting.DefaultProvePeriod;
+        option.ExpiredHeight = oldSpace.ExpireHeight;
+        option.CopyNum = setting.DefaultCopyNum;
+
+        if (op == SpaceOp.AddSpace) {
+            // TODO
+        }
+        if (op == SpaceOp.CashSpace) {
+            uint64 proveTime = newCalcProveTimesByUploadInfo(
+                option,
+                oldSpace.Remain
+            );
+        }
+        if (op == SpaceOp.ReduceSpace) {
+            return fee;
+        }
         return fee;
+    }
+
+    function newCalcProveTimesByUploadInfo(
+        UploadOption memory option,
+        uint64 addHeight
+    ) internal pure returns (uint64) {
+        if (option.ProveInterval == 0) {
+            if (option.ProveLevel == 0) {
+                option.ProveLevel = uint64(ProveLevel.HIGH);
+            }
+            option.ProveInterval = GetProveIntervalByProveLevel(
+                ProveLevel(option.ProveLevel)
+            );
+        }
+        return addHeight / option.ProveInterval + 1;
+    }
+
+    function GetProveIntervalByProveLevel(ProveLevel level)
+        internal
+        pure
+        returns (uint64)
+    {
+        uint64 DEFAULT_PROVE_PERIOD = (3600 * 24) / 5;
+        uint64 PROVE_PERIOD_HIGH = DEFAULT_PROVE_PERIOD;
+        uint64 PROVE_PERIOD_MEDIUM = 2 * DEFAULT_PROVE_PERIOD;
+        uint64 PROVE_PERIOD_LOW = 8 * DEFAULT_PROVE_PERIOD;
+        if (level == ProveLevel.LOW) {
+            return PROVE_PERIOD_LOW;
+        }
+        if (level == ProveLevel.MEDIUM) {
+            return PROVE_PERIOD_MEDIUM;
+        }
+        if (level == ProveLevel.HIGH) {
+            return PROVE_PERIOD_HIGH;
+        }
+        return PROVE_PERIOD_HIGH;
     }
 
     function ManageUserSpace(UserSpaceParams memory params)
