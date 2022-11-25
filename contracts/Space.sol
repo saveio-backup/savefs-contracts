@@ -73,11 +73,8 @@ contract Space is Initializable, ISpace, IFsEvent {
                 return state;
             }
         }
-        (
-            UserSpace memory newSpace,
-            TransferState memory reState
-        ) = newProcessForUserSpaceOperations(params, oldSpace, setting);
-        return reState;
+        (, state) = newProcessForUserSpaceOperations(params, oldSpace, setting);
+        return state;
     }
 
     function newProcessForUserSpaceOperations(
@@ -141,38 +138,32 @@ contract Space is Initializable, ISpace, IFsEvent {
         Setting memory setting
     )
         internal
-        view
+        pure
         returns (
             UserSpace memory,
             uint64,
             string memory
         )
     {
-        TransferState memory state;
-        uint64 transferIn;
+        UserSpace memory newSpace;
+        uint64 deposit;
         if (oldSpace.ExpireHeight == 0) {
-            (
-                UserSpace memory newSpace,
-                uint64 deposit
-            ) = newCalcDepositFeeForUserSpace(
-                    oldSpace,
-                    size,
-                    blockCount,
-                    setting,
-                    blockHeight
-                );
+            (newSpace, ) = newCalcDepositFeeForUserSpace(
+                oldSpace,
+                size,
+                blockCount,
+                setting,
+                blockHeight
+            );
             return (newSpace, newSpace.Balance, "");
         } else {
-            (
-                UserSpace memory newSpace,
-                uint64 deposit
-            ) = newCalcDepositFeeForUserSpace(
-                    oldSpace,
-                    size,
-                    blockCount,
-                    setting,
-                    blockHeight
-                );
+            (newSpace, deposit) = newCalcDepositFeeForUserSpace(
+                oldSpace,
+                size,
+                blockCount,
+                setting,
+                blockHeight
+            );
             return (newSpace, deposit, "");
         }
     }
@@ -214,7 +205,7 @@ contract Space is Initializable, ISpace, IFsEvent {
         uint256 currentHeight
     ) internal pure returns (StorageFee memory) {
         UserSpace memory _userSpace = oldSpace;
-        
+
         StorageFee memory fee;
         UploadOption memory uploadInfo;
         uploadInfo.FileSize = _userSpace.Used + _userSpace.Remain;
@@ -222,7 +213,7 @@ contract Space is Initializable, ISpace, IFsEvent {
         uploadInfo.ExpiredHeight = _userSpace.ExpireHeight;
         uploadInfo.CopyNum = setting.DefaultCopyNum;
 
-        uint64 proveTime;
+        uint256 proveTime;
         if (op == SpaceOp.AddSpace) {
             if (addHeight <= 0) {
                 if (addSize <= 0) {
@@ -230,7 +221,7 @@ contract Space is Initializable, ISpace, IFsEvent {
                 }
                 proveTime = newCalcProveTimesByUploadInfo(
                     uploadInfo,
-                    uint64(_userSpace.ExpireHeight - currentHeight)
+                    _userSpace.ExpireHeight - currentHeight
                 );
                 fee.ValidationFee = calcValidFee(
                     setting,
@@ -242,7 +233,7 @@ contract Space is Initializable, ISpace, IFsEvent {
                     setting,
                     copyNum,
                     addSize,
-                    uint64(_userSpace.ExpireHeight - currentHeight)
+                    _userSpace.ExpireHeight - currentHeight
                 );
                 return fee;
             }
@@ -272,10 +263,11 @@ contract Space is Initializable, ISpace, IFsEvent {
                 addSize = 1;
             }
             //currentHeight to expireHeight
-            proveTime = newCalcProveTimesByUploadInfo(
-                uploadInfo,
-                uint64(_userSpace.ExpireHeight - currentHeight)
-            );
+            uint256 _addHeight;
+            if (_userSpace.ExpireHeight > currentHeight) {
+                _addHeight = _userSpace.ExpireHeight - currentHeight;
+            }
+            proveTime = newCalcProveTimesByUploadInfo(uploadInfo, _addHeight);
             uint64 validationFee1 = calcValidFee(
                 setting,
                 proveTime,
@@ -286,7 +278,7 @@ contract Space is Initializable, ISpace, IFsEvent {
                 setting,
                 copyNum,
                 addSize,
-                uint64(_userSpace.ExpireHeight - currentHeight)
+                _addHeight
             );
             //2.new expireHeight to expireHeight
             proveTime = newCalcProveTimesByUploadInfo(uploadInfo, addHeight);
@@ -320,7 +312,7 @@ contract Space is Initializable, ISpace, IFsEvent {
 
     function calcValidFee(
         Setting memory setting,
-        uint64 proveTime,
+        uint256 proveTime,
         uint64 copyNum,
         uint64 fileSize
     ) public pure returns (uint64) {
@@ -331,10 +323,10 @@ contract Space is Initializable, ISpace, IFsEvent {
 
     function calcValidFeeForOneNode(
         Setting memory setting,
-        uint64 proveTime,
+        uint256 proveTime,
         uint64 fileSize
     ) public pure returns (uint64) {
-        return proveTime * calcSingleValidFeeForFile(setting, fileSize);
+        return uint64(proveTime) * calcSingleValidFeeForFile(setting, fileSize);
     }
 
     function calcSingleValidFeeForFile(Setting memory setting, uint64 fileSize)
@@ -349,7 +341,7 @@ contract Space is Initializable, ISpace, IFsEvent {
         Setting memory setting,
         uint64 copyNum,
         uint64 fileSize,
-        uint64 duration
+        uint256 duration
     ) public pure returns (uint64) {
         return
             (copyNum + 1) *
@@ -359,15 +351,17 @@ contract Space is Initializable, ISpace, IFsEvent {
     function calcStorageFeeForOneNode(
         Setting memory setting,
         uint64 fileSize,
-        uint64 duration
+        uint256 duration
     ) public pure returns (uint64) {
-        return (setting.GasPerGBPerBlock * fileSize * duration) / 1024000;
+        return
+            (setting.GasPerGBPerBlock * fileSize * uint64(duration)) / 1024000;
     }
 
     function newCalcProveTimesByUploadInfo(
         UploadOption memory option,
-        uint64 addHeight
-    ) internal pure returns (uint64) {
+        uint256 addHeight
+    ) internal pure returns (uint256) {
+        uint256 proveTime = 0;
         if (option.ProveInterval == 0) {
             if (option.ProveLevel == 0) {
                 option.ProveLevel = uint64(ProveLevel.HIGH);
@@ -376,7 +370,8 @@ contract Space is Initializable, ISpace, IFsEvent {
                 ProveLevel(option.ProveLevel)
             );
         }
-        return addHeight / option.ProveInterval + 1;
+        proveTime = addHeight / option.ProveInterval + 1;
+        return proveTime;
     }
 
     function GetProveIntervalByProveLevel(ProveLevel level)
