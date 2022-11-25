@@ -1,4 +1,5 @@
 import { expect } from "chai";
+import { assert } from "console";
 import { addrs, space } from "./initialize";
 
 var path = require('path');
@@ -22,7 +23,8 @@ describe(name, () => {
     expect(tx).not.to.be.reverted;
 
     let res = await tx;
-    console.log(res)
+    // console.log(res)
+    assert(res.Value.gt(0));
   });
   
 });
