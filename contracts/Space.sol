@@ -310,6 +310,7 @@ contract Space is Initializable, ISpace, IFsEvent {
         return fee;
     }
 
+    // repeat start
     function calcValidFee(
         Setting memory setting,
         uint256 proveTime,
@@ -356,6 +357,7 @@ contract Space is Initializable, ISpace, IFsEvent {
         return
             (setting.GasPerGBPerBlock * fileSize * uint64(duration)) / 1024000;
     }
+    // repeat end
 
     function newCalcProveTimesByUploadInfo(
         UploadOption memory option,
@@ -1052,5 +1054,6 @@ contract Space is Initializable, ISpace, IFsEvent {
             }
         }
         fs.UpdateFileList(walletAddr, unsettledList);
+        return "";
     }
 }

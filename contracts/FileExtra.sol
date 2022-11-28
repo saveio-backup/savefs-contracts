@@ -455,20 +455,16 @@ contract FileExtra is IFsEvent {
         Setting memory setting,
         FileReNewInfo memory fileReNewInfo
     ) public payable returns (string memory) {
-        require(
-            GetFileInfo(fileReNewInfo.FileHash).BlockHeight > 0,
-            "file not exist"
-        );
-        require(
-            GetFileInfo(fileReNewInfo.FileHash).StorageType_ ==
-                StorageType.Professional,
-            "file type error"
-        );
-        require(
-            GetFileInfo(fileReNewInfo.FileHash).ExpiredHeight > block.number,
-            "file expired"
-        );
         FileInfo memory fileInfo = GetFileInfo(fileReNewInfo.FileHash);
+        if (fileInfo.BlockHeight <= 0) {
+            return "file not exist";
+        }
+        if (fileInfo.StorageType_ != StorageType.Professional) {
+            return "file type error";
+        }
+        if (fileInfo.ExpiredHeight <= block.number) {
+            return "file expired";
+        }
         StorageFee memory totalRenew = CalcFee(
             setting,
             fileReNewInfo.ReNewTimes,
@@ -486,6 +482,7 @@ contract FileExtra is IFsEvent {
             fileInfo.ProveInterval *
             fileReNewInfo.ReNewTimes;
         UpdateFileInfo(fileInfo);
+        return "";
     }
 
     function ChangeFilePrivilege(PriChange memory priChange) public {
