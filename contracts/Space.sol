@@ -357,6 +357,7 @@ contract Space is Initializable, ISpace, IFsEvent {
         return
             (setting.GasPerGBPerBlock * fileSize * uint64(duration)) / 1024000;
     }
+
     // repeat end
 
     function newCalcProveTimesByUploadInfo(
