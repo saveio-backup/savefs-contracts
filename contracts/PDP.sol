@@ -16,10 +16,91 @@ contract PDP is Initializable, IPDP, IFsEvent {
         override
         returns (Challenge[] memory)
     {
-        // TODO
-        console.log(gParams.WalletAddr);
-        Challenge[] memory challenges;
+        bytes memory blockHashArray = gParams.HashValue;
+        bytes memory plant = abi.encodePacked(
+            gParams.WalletAddr,
+            blockHashArray
+        );
+        bytes32 hash = sha256(plant);
+
+        bytes memory tmpHash = new bytes(36);
+        for (uint32 i = 0; i < 32; i++) {
+            tmpHash[i] = hash[i];
+        }
+        for (uint32 i = 0; i < 4; i++) {
+            tmpHash[i + 32] = hash[i];
+        }
+
+        uint64 blockNumPerPart;
+        uint64 blockNumLastPart;
+        uint64 blockNumOfPart;
+
+        if (gParams.FileBlockNum <= 3) {
+            blockNumPerPart = 1;
+            blockNumLastPart = 1;
+            blockNumOfPart = 1;
+            gParams.ProveNum = gParams.FileBlockNum;
+        } else {
+            if (
+                gParams.FileBlockNum > 3 &&
+                gParams.FileBlockNum < gParams.ProveNum
+            ) {
+                gParams.ProveNum = 3;
+            }
+            blockNumPerPart = gParams.FileBlockNum / gParams.ProveNum;
+            blockNumLastPart =
+                blockNumPerPart +
+                (gParams.FileBlockNum % gParams.ProveNum);
+            blockNumOfPart = blockNumPerPart;
+        }
+
+        Challenge[] memory challenges = new Challenge[](gParams.ProveNum);
+        bytes32 blockHash = hash;
+        uint32 hashIndex = 0;
+        for (uint32 i = 1; i <= gParams.ProveNum; i++) {
+            if (i == gParams.ProveNum) {
+                blockNumOfPart = blockNumLastPart;
+            }
+
+            bytes memory tmp = new bytes(4);
+            for (uint32 j = 0; j < 4; j++) {
+                tmp[j] = tmpHash[hashIndex + j];
+            }
+            uint32 rd = uint32(bytesToUint(tmp));
+            challenges[i - 1].Index = uint32(
+                ((rd + 1) % blockNumOfPart) + (i - 1) * blockNumPerPart
+            );
+            challenges[i - 1].Rand = uint8(blockHash[hashIndex]) + 1;
+
+            hashIndex++;
+            hashIndex = hashIndex % 32;
+        }
+
         return challenges;
+    }
+
+    function bytesToUint(bytes memory b) public pure returns (uint256) {
+        uint256 number;
+        for (uint256 i = 0; i < b.length; i++) {
+            number = number + uint8(b[i]) * (2**(8 * (b.length - (i + 1))));
+        }
+        return number;
+    }
+
+    function genChallengeKey(GenChallengeParams memory gParams)
+        public
+        pure
+        returns (string memory)
+    {
+        string memory key = string(
+            abi.encodePacked(
+                gParams.WalletAddr,
+                gParams.HashValue,
+                gParams.FileBlockNum,
+                gParams.ProveNum
+            )
+        );
+        return key;
     }
 
     function PrepareForPdpVerification(
