@@ -61,15 +61,18 @@ const config: HardhatUserConfig = {
       url: "http://localhost:9545",
       accounts:["ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"],
     },
-    eth: {
+    localeth: {
       url: "http://localhost:8545",
       accounts:["644fe9176025b45f853f27592b3f6038a61ee063018deff9c94ffa8552635d12"],
     },
-    dev: {
-      url: "http://117.50.17.39:38545",
-      accounts:["b6e21cc1e3a9e2892bdeb82943eab2e0194a460c0878edca67584c3ac7f8ce66"],
+    deveth: {
+      url: "http://152.32.217.181:32272",
+      accounts:["ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"],
     },
-    
+    devop: {
+      url: "http://106.75.76.46:33373",
+      accounts:["6587ae678cf4fc9a33000cdbf9f35226b71dcc6a4684a31203241f9bcfd55d27"],
+    },
   },
   gasReporter: {
     enabled: process.env.REPORT_GAS !== undefined,
