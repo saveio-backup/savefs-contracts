@@ -244,7 +244,8 @@ struct GenChallengeParams {
     uint64 ProveNum;
 }
 
-struct VerifyProofWithMerklePathForFileParams {
+// VerifyProofWithMerklePathForFileParams
+struct ProofParams {
     uint64 Version;
     bytes Proofs;
     bytes[] FileIds;
@@ -252,6 +253,12 @@ struct VerifyProofWithMerklePathForFileParams {
     Challenge[] Challenges;
     MerklePath[] MerklePath_;
     bytes RootHashes;
+}
+
+struct ProofsRecord {
+    ProofParams Proof;
+    bool State;
+    uint LastUpdateHeight;
 }
 
 struct VerifyPlotDataParams {

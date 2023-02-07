@@ -436,7 +436,7 @@ contract Prove is Initializable, IProve, IFsEvent {
             return false;
         }
         // verify
-        VerifyProofWithMerklePathForFileParams memory vParams;
+        ProofParams memory vParams;
         vParams.Version = 0;
         vParams.Proofs = sectorProveData.Proofs;
         vParams.FileIds = pReturns.FileIDs;

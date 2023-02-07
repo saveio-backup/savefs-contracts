@@ -7,6 +7,10 @@ import "./type.sol";
 import "./interface.sol";
 
 contract PDP is Initializable, IPDP, IFsEvent {
+
+    using IterableMapping for ProofsPool;
+    ProofsPool proofsPool;
+
     function initialize() public initializer {}
 
     function GenChallenge(GenChallengeParams memory gParams)
@@ -114,7 +118,7 @@ contract PDP is Initializable, IPDP, IFsEvent {
     }
 
     function VerifyProofWithMerklePathForFile(
-        VerifyProofWithMerklePathForFileParams memory vParams
+        ProofParams memory vParams
     ) public view virtual override returns (bool) {
         // TODO
         console.log(vParams.Version);
@@ -131,5 +135,95 @@ contract PDP is Initializable, IPDP, IFsEvent {
         // TODO
         console.log(vParams.Index);
         return true;
+    }
+}
+
+// map
+struct IndexValue {
+    uint256 keyIndex;
+    ProofsRecord value;
+}
+struct KeyFlag {
+    bytes key;
+    bool deleted;
+}
+struct ProofsPool {
+    mapping(bytes => IndexValue) data;
+    KeyFlag[] keys;
+    uint256 size;
+}
+library IterableMapping {
+    function insert(
+        ProofsPool storage self,
+        bytes memory key,
+        ProofsRecord memory value
+    ) internal returns (bool replaced) {
+        uint256 keyIndex = self.data[key].keyIndex;
+        self.data[key].value = value;
+        if (keyIndex > 0) return true;
+        else {
+            keyIndex = self.keys.length;
+            self.keys.push();
+            self.data[key].keyIndex = keyIndex + 1;
+            self.keys[keyIndex].key = key;
+            self.size++;
+            return false;
+        }
+    }
+
+    function remove(ProofsPool storage self, bytes memory key)
+        internal
+        returns (bool success)
+    {
+        uint256 keyIndex = self.data[key].keyIndex;
+        if (keyIndex == 0) return false;
+        delete self.data[key];
+        self.keys[keyIndex - 1].deleted = true;
+        self.size--;
+    }
+
+    function contains(ProofsPool storage self, bytes memory key)
+        internal
+        view
+        returns (bool)
+    {
+        return self.data[key].keyIndex > 0;
+    }
+
+    function iterate_start(ProofsPool storage self)
+        internal
+        view
+        returns (uint256 keyIndex)
+    {
+        uint256 index = iterate_next(self, type(uint256).min);
+        return index - 1;
+    }
+
+    function iterate_valid(ProofsPool storage self, uint256 keyIndex)
+        internal
+        view
+        returns (bool)
+    {
+        return keyIndex < self.keys.length;
+    }
+
+    function iterate_next(ProofsPool storage self, uint256 keyIndex)
+        internal
+        view
+        returns (uint256 r_keyIndex)
+    {
+        keyIndex++;
+        while (keyIndex < self.keys.length && self.keys[keyIndex].deleted)
+            keyIndex++;
+        return keyIndex;
+    }
+
+    function iterate_get(ProofsPool storage self, uint256 keyIndex)
+        internal
+        view
+        returns (bytes memory key, ProofsRecord memory value)
+    {
+        key = self.keys[keyIndex].key;
+        value = self.data[key].value;
     }
 }

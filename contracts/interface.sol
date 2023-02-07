@@ -276,7 +276,7 @@ interface IPDP {
         returns (Challenge[] memory);
 
     function VerifyProofWithMerklePathForFile(
-        VerifyProofWithMerklePathForFileParams memory vParams
+        ProofParams memory vParams
     ) external view returns (bool);
 
     function PrepareForPdpVerification(

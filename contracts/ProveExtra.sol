@@ -139,7 +139,7 @@ contract ProveExtra {
         gParams.ProveNum = fileInfo.ProveBlockNum;
         Challenge[] memory challenges = pdp.GenChallenge(gParams);
         // verify
-        VerifyProofWithMerklePathForFileParams memory vParams;
+        ProofParams memory vParams;
         vParams.Version = 0;
         vParams.Proofs = proveData.Proofs;
         vParams.FileIds = proveParam.FileID;
