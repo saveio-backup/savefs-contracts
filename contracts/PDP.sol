@@ -7,7 +7,6 @@ import "./type.sol";
 import "./interface.sol";
 
 contract PDP is Initializable, IPDP, IFsEvent {
-
     using IterableMapping for ProofsPool;
     ProofsPool proofsPool;
 
@@ -117,9 +116,13 @@ contract PDP is Initializable, IPDP, IFsEvent {
         return pReturns;
     }
 
-    function VerifyProofWithMerklePathForFile(
-        ProofParams memory vParams
-    ) public view virtual override returns (bool) {
+    function VerifyProofWithMerklePathForFile(ProofParams memory vParams)
+        public
+        view
+        virtual
+        override
+        returns (bool)
+    {
         // TODO
         console.log(vParams.Version);
         return true;
@@ -135,6 +138,51 @@ contract PDP is Initializable, IPDP, IFsEvent {
         // TODO
         console.log(vParams.Index);
         return true;
+    }
+
+    function GetKeyByProofParams(ProofParams memory vParams)
+        public
+        pure
+        returns (bytes memory)
+    {
+        bytes memory ids;
+        for (uint32 i = 0; i < vParams.FileIds.length; i++) {
+            ids = abi.encodePacked(ids, vParams.FileIds[i]);
+        }
+        bytes memory tags;
+        for (uint32 i = 0; i < vParams.Tags.length; i++) {
+            tags = abi.encodePacked(tags, vParams.Tags[i]);
+        }
+        bytes memory challenges;
+        for (uint32 i = 0; i < vParams.Challenges.length; i++) {
+            challenges = abi.encodePacked(
+                challenges,
+                vParams.Challenges[i].Index,
+                vParams.Challenges[i].Rand
+            );
+        }
+        bytes memory merklePath;
+        for (uint32 i = 0; i < vParams.MerklePath_.length; i++) {
+            merklePath = abi.encodePacked(
+                merklePath,
+                vParams.MerklePath_[i].PathLen
+            );
+        }
+        string memory keyStr = string(
+            abi.encodePacked(
+                vParams.Version,
+                vParams.Proofs,
+                ids,
+                tags,
+                challenges,
+                merklePath,
+                vParams.RootHashes
+            )
+        );
+        bytes memory keyBytes = bytes(keyStr);
+        bytes32 key32 = keccak256(keyBytes);
+        bytes memory key = abi.encodePacked(key32);
+        return key;
     }
 }
 
@@ -152,6 +200,7 @@ struct ProofsPool {
     KeyFlag[] keys;
     uint256 size;
 }
+
 library IterableMapping {
     function insert(
         ProofsPool storage self,
