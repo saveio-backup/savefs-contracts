@@ -116,6 +116,27 @@ contract PDP is Initializable, IPDP, IFsEvent {
         return pReturns;
     }
 
+    function VerifyProof(ProofRecord memory vParams)
+        public
+        payable
+        virtual
+        override
+    {
+        ProofRecord memory pr;
+        pr.Proof.Version = vParams.Proof.Version;
+        pr.Proof.Proofs = vParams.Proof.Proofs;
+        pr.Proof.FileIds = vParams.Proof.FileIds;
+        pr.Proof.Tags = vParams.Proof.Tags;
+        // TODO
+        // pr.Proof.Challenges = vParams.Proof.Challenges;
+        // pr.Proof.MerklePath_ = vParams.Proof.MerklePath_;
+        pr.Proof.RootHashes = vParams.Proof.RootHashes;
+        pr.State = vParams.State;
+        pr.LastUpdateHeight = block.number;
+        bytes memory key = GetKeyByProofParams(vParams.Proof);
+        proofsPool.insert(key, pr);
+    }
+
     function VerifyProofWithMerklePathForFile(ProofParams memory vParams)
         public
         view
@@ -124,8 +145,10 @@ contract PDP is Initializable, IPDP, IFsEvent {
         returns (bool)
     {
         // TODO
-        console.log(vParams.Version);
         return true;
+        bytes memory key = GetKeyByProofParams(vParams);
+        ProofRecord memory pr = proofsPool.data[key].value;
+        return pr.State;
     }
 
     function VerifyPlotData(VerifyPlotDataParams memory vParams)
@@ -153,21 +176,22 @@ contract PDP is Initializable, IPDP, IFsEvent {
         for (uint32 i = 0; i < vParams.Tags.length; i++) {
             tags = abi.encodePacked(tags, vParams.Tags[i]);
         }
+        // TODO
         bytes memory challenges;
-        for (uint32 i = 0; i < vParams.Challenges.length; i++) {
-            challenges = abi.encodePacked(
-                challenges,
-                vParams.Challenges[i].Index,
-                vParams.Challenges[i].Rand
-            );
-        }
+        // for (uint32 i = 0; i < vParams.Challenges.length; i++) {
+        //     challenges = abi.encodePacked(
+        //         challenges,
+        //         vParams.Challenges[i].Index,
+        //         vParams.Challenges[i].Rand
+        //     );
+        // }
         bytes memory merklePath;
-        for (uint32 i = 0; i < vParams.MerklePath_.length; i++) {
-            merklePath = abi.encodePacked(
-                merklePath,
-                vParams.MerklePath_[i].PathLen
-            );
-        }
+        // for (uint32 i = 0; i < vParams.MerklePath_.length; i++) {
+        //     merklePath = abi.encodePacked(
+        //         merklePath,
+        //         vParams.MerklePath_[i].PathLen
+        //     );
+        // }
         string memory keyStr = string(
             abi.encodePacked(
                 vParams.Version,
@@ -189,7 +213,7 @@ contract PDP is Initializable, IPDP, IFsEvent {
 // map
 struct IndexValue {
     uint256 keyIndex;
-    ProofsRecord value;
+    ProofRecord value;
 }
 struct KeyFlag {
     bytes key;
@@ -205,7 +229,7 @@ library IterableMapping {
     function insert(
         ProofsPool storage self,
         bytes memory key,
-        ProofsRecord memory value
+        ProofRecord memory value
     ) internal returns (bool replaced) {
         uint256 keyIndex = self.data[key].keyIndex;
         self.data[key].value = value;
@@ -270,7 +294,7 @@ library IterableMapping {
     function iterate_get(ProofsPool storage self, uint256 keyIndex)
         internal
         view
-        returns (bytes memory key, ProofsRecord memory value)
+        returns (bytes memory key, ProofRecord memory value)
     {
         key = self.keys[keyIndex].key;
         value = self.data[key].value;

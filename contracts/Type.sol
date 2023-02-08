@@ -250,12 +250,13 @@ struct ProofParams {
     bytes Proofs;
     bytes[] FileIds;
     bytes[] Tags;
-    Challenge[] Challenges;
-    MerklePath[] MerklePath_;
+    // TODO unsupported array
+    // Challenge[] Challenges;
+    // MerklePath[] MerklePath_;
     bytes RootHashes;
 }
 
-struct ProofsRecord {
+struct ProofRecord {
     ProofParams Proof;
     bool State;
     uint LastUpdateHeight;
