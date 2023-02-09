@@ -7,8 +7,11 @@ import "./type.sol";
 import "./interface.sol";
 
 contract PDP is Initializable, IPDP, IFsEvent {
-    using IterableMapping for ProofsPool;
+    using ProofsMapping for ProofsPool;
+    using ChallengeMapping for ChallengePool;
+
     ProofsPool proofsPool;
+    mapping(bytes => ChallengePool) challengeMap; // key => map(chKey => Challenge)
 
     function initialize() public initializer {}
 
@@ -116,12 +119,11 @@ contract PDP is Initializable, IPDP, IFsEvent {
         return pReturns;
     }
 
-    function VerifyProof(ProofRecord memory vParams)
-        public
-        payable
-        virtual
-        override
-    {
+    function VerifyProof(
+        ProofRecord memory vParams,
+        Challenge[] memory chgs,
+        MerklePath[] memory mps
+    ) public payable virtual override {
         ProofRecord memory pr;
         pr.Proof.Version = vParams.Proof.Version;
         pr.Proof.Proofs = vParams.Proof.Proofs;
@@ -133,7 +135,12 @@ contract PDP is Initializable, IPDP, IFsEvent {
         pr.Proof.RootHashes = vParams.Proof.RootHashes;
         pr.State = vParams.State;
         pr.LastUpdateHeight = block.number;
-        bytes memory key = GetKeyByProofParams(vParams.Proof);
+        bytes memory key = GetKeyByProofParams(vParams.Proof, chgs, mps);
+        for (uint32 i = 0; i < chgs.length; i++) {
+            bytes memory chKey = GetChallengeKey(chgs[i]);
+            ChallengePool storage chMap = challengeMap[key];
+            chMap.insert(chKey, chgs[i]);
+        }
         proofsPool.insert(key, pr);
     }
 
@@ -146,9 +153,9 @@ contract PDP is Initializable, IPDP, IFsEvent {
     {
         // TODO
         return true;
-        bytes memory key = GetKeyByProofParams(vParams);
-        ProofRecord memory pr = proofsPool.data[key].value;
-        return pr.State;
+        // bytes memory key = GetKeyByProofParams(vParams);
+        // ProofRecord memory pr = proofsPool.data[key].value;
+        // return pr.State;
     }
 
     function VerifyPlotData(VerifyPlotDataParams memory vParams)
@@ -163,11 +170,16 @@ contract PDP is Initializable, IPDP, IFsEvent {
         return true;
     }
 
-    function GetKeyByProofParams(ProofParams memory vParams)
-        public
-        pure
-        returns (bytes memory)
-    {
+    function GetChallengeKey(Challenge memory chg) public pure returns (bytes memory) {
+        bytes memory key = abi.encodePacked(chg.Index, chg.Rand);
+        return key;
+    }
+
+    function GetKeyByProofParams(
+        ProofParams memory vParams,
+        Challenge[] memory chgs,
+        MerklePath[] memory mps
+    ) public pure returns (bytes memory) {
         bytes memory ids;
         for (uint32 i = 0; i < vParams.FileIds.length; i++) {
             ids = abi.encodePacked(ids, vParams.FileIds[i]);
@@ -176,22 +188,18 @@ contract PDP is Initializable, IPDP, IFsEvent {
         for (uint32 i = 0; i < vParams.Tags.length; i++) {
             tags = abi.encodePacked(tags, vParams.Tags[i]);
         }
-        // TODO
         bytes memory challenges;
-        // for (uint32 i = 0; i < vParams.Challenges.length; i++) {
-        //     challenges = abi.encodePacked(
-        //         challenges,
-        //         vParams.Challenges[i].Index,
-        //         vParams.Challenges[i].Rand
-        //     );
-        // }
+        for (uint32 i = 0; i < chgs.length; i++) {
+            challenges = abi.encodePacked(
+                challenges,
+                chgs[i].Index,
+                chgs[i].Rand
+            );
+        }
         bytes memory merklePath;
-        // for (uint32 i = 0; i < vParams.MerklePath_.length; i++) {
-        //     merklePath = abi.encodePacked(
-        //         merklePath,
-        //         vParams.MerklePath_[i].PathLen
-        //     );
-        // }
+        for (uint32 i = 0; i < mps.length; i++) {
+            merklePath = abi.encodePacked(merklePath, mps[i].PathLen);
+        }
         string memory keyStr = string(
             abi.encodePacked(
                 vParams.Version,
@@ -225,7 +233,7 @@ struct ProofsPool {
     uint256 size;
 }
 
-library IterableMapping {
+library ProofsMapping {
     function insert(
         ProofsPool storage self,
         bytes memory key,
@@ -295,6 +303,97 @@ library IterableMapping {
         internal
         view
         returns (bytes memory key, ProofRecord memory value)
+    {
+        key = self.keys[keyIndex].key;
+        value = self.data[key].value;
+    }
+}
+
+// challenge map
+struct IndexValueCH {
+    uint256 keyIndex;
+    Challenge value;
+}
+struct KeyFlagCh {
+    bytes key;
+    bool deleted;
+}
+struct ChallengePool {
+    mapping(bytes => IndexValueCH) data;
+    KeyFlagCh[] keys;
+    uint256 size;
+}
+
+library ChallengeMapping {
+    function insert(
+        ChallengePool storage self,
+        bytes memory key,
+        Challenge memory value
+    ) internal returns (bool replaced) {
+        uint256 keyIndex = self.data[key].keyIndex;
+        self.data[key].value = value;
+        if (keyIndex > 0) return true;
+        else {
+            keyIndex = self.keys.length;
+            self.keys.push();
+            self.data[key].keyIndex = keyIndex + 1;
+            self.keys[keyIndex].key = key;
+            self.size++;
+            return false;
+        }
+    }
+
+    function remove(ChallengePool storage self, bytes memory key)
+        internal
+        returns (bool success)
+    {
+        uint256 keyIndex = self.data[key].keyIndex;
+        if (keyIndex == 0) return false;
+        delete self.data[key];
+        self.keys[keyIndex - 1].deleted = true;
+        self.size--;
+    }
+
+    function contains(ChallengePool storage self, bytes memory key)
+        internal
+        view
+        returns (bool)
+    {
+        return self.data[key].keyIndex > 0;
+    }
+
+    function iterate_start(ChallengePool storage self)
+        internal
+        view
+        returns (uint256 keyIndex)
+    {
+        uint256 index = iterate_next(self, type(uint256).min);
+        return index - 1;
+    }
+
+    function iterate_valid(ChallengePool storage self, uint256 keyIndex)
+        internal
+        view
+        returns (bool)
+    {
+        return keyIndex < self.keys.length;
+    }
+
+    function iterate_next(ChallengePool storage self, uint256 keyIndex)
+        internal
+        view
+        returns (uint256 r_keyIndex)
+    {
+        keyIndex++;
+        while (keyIndex < self.keys.length && self.keys[keyIndex].deleted)
+            keyIndex++;
+        return keyIndex;
+    }
+
+    function iterate_get(ChallengePool storage self, uint256 keyIndex)
+        internal
+        view
+        returns (bytes memory key, Challenge memory value)
     {
         key = self.keys[keyIndex].key;
         value = self.data[key].value;
