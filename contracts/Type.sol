@@ -21,7 +21,7 @@ enum ProveLevel {
 }
 
 enum StorageType {
-    Normal, 
+    Normal,
     Professional
 }
 // Normal = userspace, Professional = sector
@@ -34,8 +34,8 @@ enum UserSpaceType {
 
 enum SpaceOp {
     AddSpace,
-	ReduceSpace,
-	CashSpace
+    ReduceSpace,
+    CashSpace
 }
 
 enum WhiteListOpType {
@@ -245,21 +245,20 @@ struct GenChallengeParams {
 }
 
 // VerifyProofWithMerklePathForFileParams
+// Challenge[] Challenges;
+// MerklePath[] MerklePath_;
 struct ProofParams {
     uint64 Version;
     bytes Proofs;
     bytes[] FileIds;
     bytes[] Tags;
-    // TODO unsupported array
-    // Challenge[] Challenges;
-    // MerklePath[] MerklePath_;
     bytes RootHashes;
 }
 
 struct ProofRecord {
     ProofParams Proof;
     bool State;
-    uint LastUpdateHeight;
+    uint256 LastUpdateHeight;
 }
 
 struct VerifyPlotDataParams {
@@ -380,7 +379,7 @@ struct NameInfo {
     uint64 TTL;
 }
 
-struct RequestHeader{
+struct RequestHeader {
     bytes Header;
     address NameOwner;
     bytes Desc;
@@ -405,11 +404,11 @@ struct DNSNodeInfo {
 
 enum DNSStatus {
     RegisterCandidateStatus,
-	CandidateStatus,
-	ConsensusStatus,
-	QuitConsensusStatus,
-	QuitingStatus,
-	BlackStatus
+    CandidateStatus,
+    ConsensusStatus,
+    QuitConsensusStatus,
+    QuitingStatus,
+    BlackStatus
 }
 
 struct PeerPoolItem {

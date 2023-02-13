@@ -441,11 +441,8 @@ contract Prove is Initializable, IProve, IFsEvent {
         vParams.Proofs = sectorProveData.Proofs;
         vParams.FileIds = pReturns.FileIDs;
         vParams.Tags = pReturns.Tags;
-        // TODO
-        // vParams.Challenges = pReturns.UpdatedChal;
-        // vParams.MerklePath_ = pReturns.Path;
         vParams.RootHashes = pReturns.RootHashes;
-        bool res = pdp.VerifyProofWithMerklePathForFile(vParams);
+        bool res = pdp.VerifyProofWithMerklePathForFile(vParams, pReturns.UpdatedChal, pReturns.Path);
         if (!res) {
             return false;
         }

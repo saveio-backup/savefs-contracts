@@ -144,11 +144,12 @@ contract ProveExtra {
         vParams.Proofs = proveData.Proofs;
         vParams.FileIds = proveParam.FileID;
         vParams.Tags = proveData.Tags;
-        // TODO
-        // vParams.Challenges = challenges;
-        // vParams.MerklePath_ = proveData.MerklePath_;
         vParams.RootHashes = proveParam.RootHash;
-        bool res = pdp.VerifyProofWithMerklePathForFile(vParams);
+        bool res = pdp.VerifyProofWithMerklePathForFile(
+            vParams,
+            challenges,
+            proveData.MerklePath_
+        );
         if (!res) {
             return false;
         }
