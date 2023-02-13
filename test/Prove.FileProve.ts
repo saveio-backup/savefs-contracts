@@ -1,6 +1,6 @@
 import assert from "assert";
 import { expect } from "chai";
-import { addrs, file, node, prove, sector } from "./initialize";
+import { addrs, file, node, prove, sector, pdp } from "./initialize";
 
 var path = require('path');
 var name = path.basename(__filename);

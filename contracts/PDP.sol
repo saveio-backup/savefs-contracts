@@ -170,8 +170,6 @@ contract PDP is Initializable, IPDP, IFsEvent {
         Challenge[] memory chgs,
         MerklePath[] memory mp
     ) public view virtual override returns (bool) {
-        // TODO
-        return true;
         bytes memory key = GetKeyByProofParams(vParams, chgs, mp);
         ProofRecord memory pr = proofsPool.data[key].value;
         return pr.State;
