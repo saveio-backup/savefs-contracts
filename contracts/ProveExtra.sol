@@ -146,9 +146,7 @@ contract ProveExtra {
         vParams.Tags = proveData.Tags;
         vParams.RootHashes = proveParam.RootHash;
         bool res = pdp.VerifyProofWithMerklePathForFile(
-            vParams,
-            challenges,
-            proveData.MerklePath_
+            vParams
         );
         // TODO return true because now can't deserialize prove data
         return true;

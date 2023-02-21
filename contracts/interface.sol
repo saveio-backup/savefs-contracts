@@ -281,11 +281,21 @@ interface IPDP {
         MerklePath[] memory mps
     ) external payable;
 
-    function VerifyProofWithMerklePathForFile(
-        ProofParams memory vParams,
+    function SubmitVerifyProofRequest(
+        ProofRecord memory vParams,
         Challenge[] memory chgs,
-        MerklePath[] memory mp
-    ) external view returns (bool);
+        MerklePath[] memory mps
+    ) external payable;
+
+    function GetUnVerifyProofList()
+        external
+        view
+        returns (ProofRecordWithParams[] memory);
+
+    function VerifyProofWithMerklePathForFile(ProofParams memory vParams)
+        external
+        view
+        returns (bool);
 
     function PrepareForPdpVerification(
         PrepareForPdpVerificationParams memory pParams

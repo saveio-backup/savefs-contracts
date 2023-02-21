@@ -15,12 +15,7 @@ describe(name, () => {
         FileIds: [[1], [5], [88]],
         Tags: [[1]],
         RootHashes: [1],
-      },
-      [{ Index: 1, Rand: 1 }],
-      [{
-        PathLen: 1,
-        Path: [{ Layer: 1, Index: 1, Hash: [1] }],
-      }],
+      }
     )
     let res = await tx;
     // console.log(res)
@@ -58,12 +53,7 @@ describe(name, () => {
         FileIds: [[1]],
         Tags: [[1]],
         RootHashes: [1],
-      },
-      [{ Index: 1, Rand: 1 }],
-      [{
-        PathLen: 1,
-        Path: [{ Layer: 1, Index: 1, Hash: [1] }],
-      }],
+      }
     )
     let res = await tx;
     // console.log(res)

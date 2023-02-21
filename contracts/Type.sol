@@ -261,6 +261,12 @@ struct ProofRecord {
     uint256 LastUpdateHeight;
 }
 
+struct ProofRecordWithParams {
+    ProofParams proof;
+    Challenge[] challenge;
+    MerklePath[] merklePath;
+}
+
 struct VerifyPlotDataParams {
     PlotInfo PlotInfo_;
     bytes PlotData;

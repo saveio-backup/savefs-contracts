@@ -442,7 +442,7 @@ contract Prove is Initializable, IProve, IFsEvent {
         vParams.FileIds = pReturns.FileIDs;
         vParams.Tags = pReturns.Tags;
         vParams.RootHashes = pReturns.RootHashes;
-        bool res = pdp.VerifyProofWithMerklePathForFile(vParams, pReturns.UpdatedChal, pReturns.Path);
+        bool res = pdp.VerifyProofWithMerklePathForFile(vParams);
         if (!res) {
             return false;
         }
