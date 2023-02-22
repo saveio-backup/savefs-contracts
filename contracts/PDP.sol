@@ -180,6 +180,7 @@ contract PDP is Initializable, IPDP, IFsEvent {
         bytes memory key = GetKeyByProofParams(vParams.Proof);
         SaveChallenge(key, chgs);
         SaveMerklePath(key, mp);
+        vParams.State = false;
         proofsPool.insert(key, vParams);
     }
 
@@ -190,8 +191,19 @@ contract PDP is Initializable, IPDP, IFsEvent {
         override
         returns (ProofRecordWithParams[] memory)
     {
+        uint256 count = 0;
+        for (
+            uint256 i = proofsPool.iterate_start();
+            proofsPool.iterate_valid(i);
+            i = proofsPool.iterate_next(i)
+        ) {
+            (, ProofRecord memory pr) = proofsPool.iterate_get(i);
+            if (!pr.State) {
+                count++;
+            }
+        }
         ProofRecordWithParams[] memory prList = new ProofRecordWithParams[](
-            proofsPool.keys.length
+            count
         );
         ProofParams memory vParams;
         Challenge[] memory chgs;
@@ -201,8 +213,11 @@ contract PDP is Initializable, IPDP, IFsEvent {
             proofsPool.iterate_valid(i);
             i = proofsPool.iterate_next(i)
         ) {
-            (, ProofRecord memory value) = proofsPool.iterate_get(i);
-            vParams = value.Proof;
+            (, ProofRecord memory pr) = proofsPool.iterate_get(i);
+            if (pr.State) {
+                continue;
+            }
+            vParams = pr.Proof;
             bytes memory key = GetKeyByProofParams(vParams);
             chgs = GetChallengeList(key);
             mp = GetMerklePathList(key);
