@@ -27,6 +27,10 @@ describe(name, () => {
       }],
     )
     await expect(tx).to.not.be.reverted;
+    let res = await (await tx).wait();
+    if (res.events?.length == 1) {
+      assert(res.events[0].event == "PDPVerifyEvent");
+    }
   });
 
 });

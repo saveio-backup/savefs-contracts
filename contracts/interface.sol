@@ -94,6 +94,11 @@ interface IFsEvent {
 
     event GetUpdateCostEvent(TransferState state);
 
+    // pdp
+    event PDPVerifyEvent(
+        FsEvent eventType
+    );
+
     // dns
     event DnsError(string method, string msg);
 
@@ -115,6 +120,7 @@ interface IFsEvent {
     );
 
     event DNSNodeUnReg(address walletAddr);
+
 }
 
 interface IConfig {

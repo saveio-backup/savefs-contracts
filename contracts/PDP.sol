@@ -182,6 +182,7 @@ contract PDP is Initializable, IPDP, IFsEvent {
         SaveMerklePath(key, mp);
         vParams.State = false;
         proofsPool.insert(key, vParams);
+        emit PDPVerifyEvent(FsEvent.PROOF_REQUEST);
     }
 
     function GetUnVerifyProofList()

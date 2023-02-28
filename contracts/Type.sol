@@ -11,7 +11,8 @@ enum FsEvent {
     PROVE_FILE,
     FILE_PDP_SUCCESS,
     CREATE_SECTOR,
-    DELETE_SECTOR
+    DELETE_SECTOR,
+    PROOF_REQUEST
 }
 
 enum ProveLevel {
