@@ -20,8 +20,8 @@ describe(name, () => {
         Proof: {
           Version: 1,
           Proofs: [1],
-          FileIds: [[1]],
-          Tags: [[1]],
+          FileIds: [1],
+          Tags: [1],
           RootHashes: [1]
         },
         State: true,
@@ -50,8 +50,8 @@ describe(name, () => {
         Proof: {
           Version: 1,
           Proofs: [1],
-          FileIds: [[1]],
-          Tags: [[1]],
+          FileIds: [1],
+          Tags: [1],
           RootHashes: [1]
         },
         State: true,

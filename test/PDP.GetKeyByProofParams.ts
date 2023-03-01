@@ -11,8 +11,8 @@ describe(name, () => {
         let tx = pdp.GetKeyByProofParams({
             Version: 1,
             Proofs: [1],
-            FileIds: [[1]],
-            Tags: [[1]],
+            FileIds: [1],
+            Tags: [1],
             RootHashes: [1],
         })
         let res = await tx;
@@ -24,8 +24,8 @@ describe(name, () => {
         let tx = pdp.GetKeyByProofParams({
             Version: 1,
             Proofs: [1],
-            FileIds: [[2]],
-            Tags: [[1]],
+            FileIds: [2],
+            Tags: [1],
             RootHashes: [1],
         })
         let res = await tx;
