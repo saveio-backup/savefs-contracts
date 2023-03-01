@@ -217,7 +217,7 @@ struct SectorProveData {
     uint64 ProveFileNum;
     uint64 BlockNum;
     bytes Proofs;
-    bytes Tags;
+    bytes[] Tags;
     MerklePath[] MerklePath_;
     bytes PlotData;
 }
@@ -230,7 +230,7 @@ struct PrepareForPdpVerificationParams {
 
 struct PdpVerificationReturns {
     bytes FileIDs;
-    bytes Tags;
+    bytes[] Tags;
     Challenge[] UpdatedChal;
     MerklePath[] Path;
     bytes RootHashes;
@@ -252,7 +252,7 @@ struct ProofParams {
     uint64 Version;
     bytes Proofs;
     bytes FileIds;
-    bytes Tags;
+    bytes[] Tags;
     bytes RootHashes;
 }
 
@@ -282,7 +282,7 @@ struct ProveParam {
 struct ProveData {
     bytes Proofs;
     uint64 BlockNum;
-    bytes Tags;
+    bytes[] Tags;
     MerklePath[] MerklePath_;
 }
 
