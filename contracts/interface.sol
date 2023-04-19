@@ -288,7 +288,7 @@ interface IPDP {
     ) external payable;
 
     function SubmitVerifyProofRequest(
-        ProofRecord memory vParams,
+        ProofParams memory vParams,
         Challenge[] memory chgs,
         MerklePath[] memory mps
     ) external payable;

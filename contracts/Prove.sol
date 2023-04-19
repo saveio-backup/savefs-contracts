@@ -250,10 +250,14 @@ contract Prove is Initializable, IProve, IFsEvent {
             emit FsError("SectorProve", "SectorProveChallengeHeightNotMatch");
             return;
         }
-        bool r = checkSectorProve(sectorProve, sectorInfo);
-        if (!r) {
-            punishForSector(sectorInfo, nodeInfo, setting, 1);
-            emit FsError("SectorProve", "SectorProveCheckFailed");
+        string memory err = checkSectorProve(sectorProve, sectorInfo);
+        if (bytes(err).length > 0) {
+            string memory err2 = punishForSector(sectorInfo, nodeInfo, setting, 1);
+            if (bytes(err2).length > 0) {
+                emit FsError("SectorProve", err2);
+                return;
+            }
+            emit FsError("SectorProve", err);
             return;
         }
         bool p = profitSplitForSector(sectorInfo, nodeInfo, setting);
@@ -267,7 +271,7 @@ contract Prove is Initializable, IProve, IFsEvent {
         sectorInfo.NextProveHeight = block.number + setting.DefaultProvePeriod;
         sector.UpdateSectorInfo(sectorInfo);
         if (!sectorInfo.IsPlots) {
-            emit FsError("SectorProve", "SectorProveNotPlot");
+            // return with no error
             return;
         }
         // poc prove
@@ -319,7 +323,7 @@ contract Prove is Initializable, IProve, IFsEvent {
         NodeInfo memory nodeInfo,
         Setting memory setting,
         uint64 times
-    ) public payable {
+    ) public payable returns (string memory) {
         uint64 amount = times *
             calPunishmentForOneSectorProve(setting, sectorInfo);
         if (nodeInfo.Pledge >= amount) {
@@ -329,7 +333,9 @@ contract Prove is Initializable, IProve, IFsEvent {
             amount = nodeInfo.Pledge;
         }
         if (amount > 0) {
-            require(msg.value >= amount, "PunishForSector failed");
+            if (msg.value < amount) {
+                return "PunishForSector failed";
+            }
             node.UpdateNodeInfo(nodeInfo);
         }
         SetLastPunishmentHeightForNode(
@@ -337,6 +343,7 @@ contract Prove is Initializable, IProve, IFsEvent {
             sectorInfo.SectorID,
             block.number
         );
+        return "";
     }
 
     function CheckNodeSectorProvedInTime(SectorRef memory sectorRef)
@@ -414,7 +421,7 @@ contract Prove is Initializable, IProve, IFsEvent {
     function checkSectorProve(
         SectorProveParams memory sectorProve,
         SectorInfo memory sectorInfo
-    ) public view returns (bool) {
+    ) public payable returns (string memory) {
         // TODO block head hash
         bytes memory blockHash;
         GenChallengeParams memory gParams;
@@ -428,12 +435,11 @@ contract Prove is Initializable, IProve, IFsEvent {
         SectorProveData memory sectorProveData;
         PrepareForPdpVerificationParams memory pParams;
         pParams.SectorInfo_ = sectorInfo;
-        // pParams.Challenges = challenges;
         pParams.ProveData = sectorProveData;
         PdpVerificationReturns memory pReturns;
         pReturns = pdp.PrepareForPdpVerification(pParams);
         if (!pReturns.Success) {
-            return false;
+            return "checkSectorProve PrepareForPdpVerification failed";
         }
         // verify
         ProofParams memory vParams;
@@ -442,17 +448,14 @@ contract Prove is Initializable, IProve, IFsEvent {
         vParams.FileIds = pReturns.FileIDs;
         vParams.Tags = pReturns.Tags;
         vParams.RootHashes = pReturns.RootHashes;
-        bool res = pdp.VerifyProofWithMerklePathForFile(vParams);
-        if (!res) {
-            return false;
-        }
+        // submit a verify request rather than verify directly
+        pdp.SubmitVerifyProofRequest(vParams, challenges, sectorProveData.MerklePath_);
         if (sectorInfo.IsPlots) {
             if (
                 !pReturns.FileInfo_.IsPlotFile ||
                 pReturns.FileInfo_.PlotInfo_.Nonces == 0
             ) {
-                // TODO
-                // return false;
+                return "checkSectorProve VerifyPlotData failed";
             }
             VerifyPlotDataParams memory vpParams;
             vpParams.PlotInfo_ = pReturns.FileInfo_.PlotInfo_;
@@ -462,10 +465,10 @@ contract Prove is Initializable, IProve, IFsEvent {
             }
             bool res2 = pdp.VerifyPlotData(vpParams);
             if (!res2) {
-                return false;
+                return "checkSectorProve VerifyPlotData failed";
             }
         }
-        return true;
+        return "";
     }
 
     function calcSingleValidFeeForFile(Setting memory setting, uint64 fileSize)

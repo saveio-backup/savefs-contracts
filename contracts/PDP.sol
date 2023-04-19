@@ -173,15 +173,16 @@ contract PDP is Initializable, IPDP, IFsEvent {
     }
 
     function SubmitVerifyProofRequest(
-        ProofRecord memory vParams,
+        ProofParams memory vParams,
         Challenge[] memory chgs,
         MerklePath[] memory mp
     ) public payable virtual override {
-        bytes memory key = GetKeyByProofParams(vParams.Proof);
+        bytes memory key = GetKeyByProofParams(vParams);
         SaveChallenge(key, chgs);
         SaveMerklePath(key, mp);
-        vParams.State = false;
-        proofsPool.insert(key, vParams);
+        ProofRecord memory pr;
+        pr.State = false;
+        proofsPool.insert(key, pr);
         emit PDPVerifyEvent(FsEvent.PROOF_REQUEST);
     }
 
