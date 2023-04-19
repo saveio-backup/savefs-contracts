@@ -1,5 +1,28 @@
 # SaveFS Contract Solidity Version
 
+## Usage
+
+### Deploy contract
+
+```
+./hardhat.sh run deploy/fs.ts  --network eth
+./hardhat.sh run deploy/dns.ts  --network eth
+```
+
+### Upgrade contract
+
+```
+./hardhat.sh run deploy/upgrade-fs.ts  --network eth
+./hardhat.sh run deploy/upgrade-dns.ts  --network eth
+```
+
+### Build golang code
+
+```
+python build.py
+```
+Output in ./build/go
+
 ## Test Coverage
 
 ```
