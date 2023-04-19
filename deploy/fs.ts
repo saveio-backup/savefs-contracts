@@ -1,5 +1,21 @@
 import { ethers, upgrades } from "hardhat";
 
+function writeToFile(fileName: string, data: any) {
+  const fs = require('fs');
+  fs.writeFile(fileName, data, (err: any) => {
+    if (err) {
+      console.error(err);
+      return;
+    };
+    console.log("File has been created");
+  });
+}
+
+function getNetworkName() {
+  const network = require('hardhat').network.name;
+  return network;
+}
+
 async function main() {
 
   const Config = await ethers.getContractFactory("Config");
@@ -86,8 +102,9 @@ async function main() {
   );
   console.log("Initialize finished");
 
-  console.log("------------golang----------")
-  console.log(
+  let log = ''
+  log += "------------golang----------"
+  log +=
     `
 var ConfigAddress = ethCommon.HexToAddress("${config.address}")
 var NodeAddress = ethCommon.HexToAddress("${node.address}")
@@ -100,10 +117,9 @@ var ProveAddress = ethCommon.HexToAddress("${prove.address}")
 var ProveExtraAddress = ethCommon.HexToAddress("${proveExtra.address}")
 var PDPAddress = ethCommon.HexToAddress("${pdp.address}")
     `
-  )
 
-  console.log("------------javascript----------")
-  console.log(
+  log += "------------javascript----------"
+  log +=
     `
 let configAddress = "${config.address}"
 let nodeAddress = "${node.address}"
@@ -116,7 +132,11 @@ let proveAddress = "${prove.address}"
 let proveExtraAddress = "${proveExtra.address}"
 let pdpAddress = "${pdp.address}"
     `
-  )
+
+  console.log(log)
+
+  let network = getNetworkName()
+  writeToFile(`./deploy/.address-${network}.txt`, log)
 }
 
 main().catch((error) => {
