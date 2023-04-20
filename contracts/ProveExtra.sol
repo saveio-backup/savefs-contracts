@@ -156,6 +156,61 @@ contract ProveExtra {
         return true;
     }
 
+    function checkSectorProve(
+        IPDP pdp,
+        uint64 proveNum,
+        SectorProveParams memory sectorProve,
+        SectorInfo memory sectorInfo
+    ) public payable returns (string memory) {
+        // TODO block head hash
+        bytes memory blockHash;
+        GenChallengeParams memory gParams;
+        gParams.WalletAddr = sectorProve.NodeAddr;
+        gParams.HashValue = blockHash;
+        gParams.FileBlockNum = sectorInfo.TotalBlockNum;
+        gParams.ProveNum = proveNum;
+        Challenge[] memory challenges = pdp.GenChallenge(gParams);
+        // pre
+        // TODO decentralized sector prove data
+        SectorProveData memory sectorProveData;
+        PrepareForPdpVerificationParams memory pParams;
+        pParams.SectorInfo_ = sectorInfo;
+        pParams.ProveData = sectorProveData;
+        PdpVerificationReturns memory pReturns;
+        pReturns = pdp.PrepareForPdpVerification(pParams);
+        if (!pReturns.Success) {
+            return "checkSectorProve PrepareForPdpVerification failed";
+        }
+        // verify
+        ProofParams memory vParams;
+        vParams.Version = 0;
+        vParams.Proofs = sectorProveData.Proofs;
+        vParams.FileIds = pReturns.FileIDs;
+        vParams.Tags = pReturns.Tags;
+        vParams.RootHashes = pReturns.RootHashes;
+        // submit a verify request rather than verify directly
+        pdp.SubmitVerifyProofRequest(vParams, challenges, sectorProveData.MerklePath_);
+        if (sectorInfo.IsPlots) {
+            if (
+                !pReturns.FileInfo_.IsPlotFile ||
+                pReturns.FileInfo_.PlotInfo_.Nonces == 0
+            ) {
+                return "checkSectorProve VerifyPlotData failed";
+            }
+            VerifyPlotDataParams memory vpParams;
+            vpParams.PlotInfo_ = pReturns.FileInfo_.PlotInfo_;
+            vpParams.PlotData = sectorProveData.PlotData;
+            if (challenges.length > 0) {
+                vpParams.Index = uint64(challenges[0].Index);
+            }
+            bool res2 = pdp.VerifyPlotData(vpParams);
+            if (!res2) {
+                return "checkSectorProve VerifyPlotData failed";
+            }
+        }
+        return "";
+    }
+
     function getProveDetailListWithNodeAddr(INode node, bytes memory fileHash)
         public
         view

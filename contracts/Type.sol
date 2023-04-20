@@ -305,7 +305,7 @@ struct WhiteListParams {
 
 struct FileProveParams {
     bytes FileHash;
-    bytes ProveData;
+    ProveData ProveData_;
     uint256 BlockHeight;
     address NodeWallet;
     uint64 Profit;
@@ -316,7 +316,7 @@ struct SectorProveParams {
     address NodeAddr;
     uint64 SectorID;
     uint64 ChallengeHeight;
-    bytes ProveData;
+    ProveData ProveData_;
 }
 
 struct UserSpaceOperation {

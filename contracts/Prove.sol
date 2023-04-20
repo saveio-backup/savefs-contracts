@@ -37,12 +37,9 @@ contract Prove is Initializable, IProve, IFsEvent {
         proveExtra = _proveExtra;
     }
 
-    function FileProve(FileProveParams memory fileProve)
-        public
-        payable
-        virtual
-        override
-    {
+    function FileProve(
+        FileProveParams memory fileProve
+    ) public payable virtual override {
         FileInfo memory fileInfo = fs.GetFileInfo(fileProve.FileHash);
         if (fileInfo.IsPlotFile) {
             if (fileProve.NodeWallet != fileInfo.FileOwner) {
@@ -222,12 +219,9 @@ contract Prove is Initializable, IProve, IFsEvent {
         );
     }
 
-    function SectorProve(SectorProveParams memory sectorProve)
-        public
-        payable
-        virtual
-        override
-    {
+    function SectorProve(
+        SectorProveParams memory sectorProve
+    ) public payable virtual override {
         NodeInfo memory nodeInfo = node.GetNodeInfoByWalletAddr(
             sectorProve.NodeAddr
         );
@@ -250,9 +244,19 @@ contract Prove is Initializable, IProve, IFsEvent {
             emit FsError("SectorProve", "SectorProveChallengeHeightNotMatch");
             return;
         }
-        string memory err = checkSectorProve(sectorProve, sectorInfo);
+        string memory err = proveExtra.checkSectorProve(
+            pdp,
+            SECTOR_PROVE_BLOCK_NUM,
+            sectorProve,
+            sectorInfo
+        );
         if (bytes(err).length > 0) {
-            string memory err2 = punishForSector(sectorInfo, nodeInfo, setting, 1);
+            string memory err2 = punishForSector(
+                sectorInfo,
+                nodeInfo,
+                setting,
+                1
+            );
             if (bytes(err2).length > 0) {
                 emit FsError("SectorProve", err2);
                 return;
@@ -285,13 +289,9 @@ contract Prove is Initializable, IProve, IFsEvent {
         proveExtra.putPocProve(_pocProve);
     }
 
-    function GetProveDetailList(bytes memory fileHash)
-        public
-        view
-        virtual
-        override
-        returns (ProveDetail[] memory)
-    {
+    function GetProveDetailList(
+        bytes memory fileHash
+    ) public view virtual override returns (ProveDetail[] memory) {
         return proveExtra.GetProveDetailList(fileHash);
     }
 
@@ -302,12 +302,9 @@ contract Prove is Initializable, IProve, IFsEvent {
         proveExtra.UpdateProveDetailList(fileHash, details);
     }
 
-    function DeleteProveDetails(bytes memory fileHash)
-        public
-        payable
-        virtual
-        override
-    {
+    function DeleteProveDetails(
+        bytes memory fileHash
+    ) public payable virtual override {
         proveExtra.DeleteProveDetails(fileHash);
     }
 
@@ -346,17 +343,17 @@ contract Prove is Initializable, IProve, IFsEvent {
         return "";
     }
 
-    function CheckNodeSectorProvedInTime(SectorRef memory sectorRef)
-        public
-        payable
-        virtual
-        override
-    {
+    function CheckNodeSectorProvedInTime(
+        SectorRef memory sectorRef
+    ) public payable virtual override {
         address nodeAddr = sectorRef.NodeAddr;
         uint64 sectorID = sectorRef.SectorId;
         NodeInfo memory nodeInfo = node.GetNodeInfoByWalletAddr(nodeAddr);
         if (nodeInfo.ServiceTime < block.timestamp) {
-            emit FsError("CheckNodeSectorProvedInTime", "NodeServiceTimeNotMatch");
+            emit FsError(
+                "CheckNodeSectorProvedInTime",
+                "NodeServiceTimeNotMatch"
+            );
             return;
         }
         if (sectorID == 0) {
@@ -410,72 +407,16 @@ contract Prove is Initializable, IProve, IFsEvent {
         punishmentHeightForNode[nodeAddr][sectorId] = height;
     }
 
-    function getProveDetailListWithNodeAddr(bytes memory fileHash)
-        private
-        view
-        returns (ProveDetail[] memory)
-    {
+    function getProveDetailListWithNodeAddr(
+        bytes memory fileHash
+    ) private view returns (ProveDetail[] memory) {
         return proveExtra.getProveDetailListWithNodeAddr(node, fileHash);
     }
 
-    function checkSectorProve(
-        SectorProveParams memory sectorProve,
-        SectorInfo memory sectorInfo
-    ) public payable returns (string memory) {
-        // TODO block head hash
-        bytes memory blockHash;
-        GenChallengeParams memory gParams;
-        gParams.WalletAddr = sectorProve.NodeAddr;
-        gParams.HashValue = blockHash;
-        gParams.FileBlockNum = sectorInfo.TotalBlockNum;
-        gParams.ProveNum = SECTOR_PROVE_BLOCK_NUM;
-        Challenge[] memory challenges = pdp.GenChallenge(gParams);
-        // pre
-        // TODO decentralized sector prove data
-        SectorProveData memory sectorProveData;
-        PrepareForPdpVerificationParams memory pParams;
-        pParams.SectorInfo_ = sectorInfo;
-        pParams.ProveData = sectorProveData;
-        PdpVerificationReturns memory pReturns;
-        pReturns = pdp.PrepareForPdpVerification(pParams);
-        if (!pReturns.Success) {
-            return "checkSectorProve PrepareForPdpVerification failed";
-        }
-        // verify
-        ProofParams memory vParams;
-        vParams.Version = 0;
-        vParams.Proofs = sectorProveData.Proofs;
-        vParams.FileIds = pReturns.FileIDs;
-        vParams.Tags = pReturns.Tags;
-        vParams.RootHashes = pReturns.RootHashes;
-        // submit a verify request rather than verify directly
-        pdp.SubmitVerifyProofRequest(vParams, challenges, sectorProveData.MerklePath_);
-        if (sectorInfo.IsPlots) {
-            if (
-                !pReturns.FileInfo_.IsPlotFile ||
-                pReturns.FileInfo_.PlotInfo_.Nonces == 0
-            ) {
-                return "checkSectorProve VerifyPlotData failed";
-            }
-            VerifyPlotDataParams memory vpParams;
-            vpParams.PlotInfo_ = pReturns.FileInfo_.PlotInfo_;
-            vpParams.PlotData = sectorProveData.PlotData;
-            if (challenges.length > 0) {
-                vpParams.Index = uint64(challenges[0].Index);
-            }
-            bool res2 = pdp.VerifyPlotData(vpParams);
-            if (!res2) {
-                return "checkSectorProve VerifyPlotData failed";
-            }
-        }
-        return "";
-    }
-
-    function calcSingleValidFeeForFile(Setting memory setting, uint64 fileSize)
-        private
-        pure
-        returns (uint64)
-    {
+    function calcSingleValidFeeForFile(
+        Setting memory setting,
+        uint64 fileSize
+    ) private pure returns (uint64) {
         return uint64(setting.GasForChallenge * fileSize) / 1024000;
     }
 
@@ -578,11 +519,10 @@ contract Prove is Initializable, IProve, IFsEvent {
         return totalTimes - punishedTimes;
     }
 
-    function GetLastPunishmentHeightForNode(address nodeAddr, uint64 sectorID)
-        private
-        view
-        returns (uint256)
-    {
+    function GetLastPunishmentHeightForNode(
+        address nodeAddr,
+        uint64 sectorID
+    ) private view returns (uint256) {
         return punishmentHeightForNode[nodeAddr][sectorID];
     }
 }
