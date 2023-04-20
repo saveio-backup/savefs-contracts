@@ -236,14 +236,14 @@ contract Prove is Initializable, IProve, IFsEvent {
             return;
         }
         Setting memory setting = config.GetSetting();
-        // if (block.number < sectorInfo.NextProveHeight) {
-        //     emit FsError("SectorProve", "SectorProveNotExpired");
-        //     return;
-        // }
-        // if (sectorProve.ChallengeHeight != sectorInfo.NextProveHeight) {
-        //     emit FsError("SectorProve", "SectorProveChallengeHeightNotMatch");
-        //     return;
-        // }
+        if (block.number < sectorInfo.NextProveHeight) {
+            emit FsError("SectorProve", "SectorProveNotExpired");
+            return;
+        }
+        if (sectorProve.ChallengeHeight != sectorInfo.NextProveHeight) {
+            emit FsError("SectorProve", "SectorProveChallengeHeightNotMatch");
+            return;
+        }
         string memory err = proveExtra.checkSectorProve(
             pdp,
             SECTOR_PROVE_BLOCK_NUM,
