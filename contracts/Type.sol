@@ -316,7 +316,7 @@ struct SectorProveParams {
     address NodeAddr;
     uint64 SectorID;
     uint64 ChallengeHeight;
-    ProveData ProveData_;
+    SectorProveData ProveData_;
 }
 
 struct UserSpaceOperation {

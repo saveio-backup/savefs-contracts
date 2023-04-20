@@ -171,8 +171,7 @@ contract ProveExtra {
         gParams.ProveNum = proveNum;
         Challenge[] memory challenges = pdp.GenChallenge(gParams);
         // pre
-        // TODO decentralized sector prove data
-        SectorProveData memory sectorProveData;
+        SectorProveData memory sectorProveData = sectorProve.ProveData_;
         PrepareForPdpVerificationParams memory pParams;
         pParams.SectorInfo_ = sectorInfo;
         pParams.ProveData = sectorProveData;

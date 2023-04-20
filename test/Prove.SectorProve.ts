@@ -104,10 +104,12 @@ describe(name, function () {
       SectorID: 1,
       ChallengeHeight: 10,
       ProveData_:  {
+        ProveFileNum: 1,
         Proofs: [],
         BlockNum: 1,
         Tags: [],
         MerklePath_: [],
+        PlotData: [],
       }
     });
     await expect(tx).to.not.be.reverted;
