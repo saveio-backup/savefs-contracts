@@ -82,7 +82,12 @@ describe(name, function () {
   it("file prove", async () => {
     const tx = prove.FileProve({
       FileHash: [6, 6, 6, 60],
-      ProveData: [],
+      ProveData_:  {
+        Proofs: [],
+        BlockNum: 1,
+        Tags: [],
+        MerklePath_: [],
+      },
       BlockHeight: 1,
       NodeWallet: addrs[60],
       Profit: 1,
@@ -98,7 +103,12 @@ describe(name, function () {
       NodeAddr: addrs[60],
       SectorID: 1,
       ChallengeHeight: 10,
-      ProveData: []
+      ProveData_:  {
+        Proofs: [],
+        BlockNum: 1,
+        Tags: [],
+        MerklePath_: [],
+      }
     });
     await expect(tx).to.not.be.reverted;
   });

@@ -89,7 +89,12 @@ describe(name, function () {
   it("file prove", async () => {
     const tx = prove.FileProve({
       FileHash: [3, 2, 1, 4, 7, 8],
-      ProveData: [],
+      ProveData_:  {
+        Proofs: [],
+        BlockNum: 1,
+        Tags: [],
+        MerklePath_: [],
+      },
       BlockHeight: 123,
       NodeWallet: addrs[17],
       Profit: 1,

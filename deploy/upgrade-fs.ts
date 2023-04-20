@@ -2,16 +2,16 @@ import { ethers, upgrades } from "hardhat";
 
 async function main() {
 
-  let configAddress = "0x3ad4Aa72049FA58FCAD2bb462e530B4314935935"
-  let nodeAddress = "0xff5C50e7080a5e116d0EF8F11e519Ac9De4EC2a7"
-  let sectorAddress = "0x251201a0CDc5e011b35FA39a84BCA284Dcefc8d4"
-  let spaceAddress = "0x1246B61f24CEAcAD9bAdE4a07b71248F4905371a"
-  let fileAddress = "0x83AFEFFd26CF0ba8BF1AfF5605dDa7812f6AEF10"
-  let fileExtraAddress = "0xF3D9D2E306dA5C2c15A1e3B5006e70f952E61d77"
-  let listAddress = "0xfe56D4853f006f168ef746727555323026176e2E"
-  let proveAddress = "0x9111f68a213909eF7aa62C1517F77530a8610329"
-  let proveExtraAddress = "0x45771759191173D99C9b35931a716732aA9037d1"
-  let pdpAddress = "0xDb96e5bbC0785A22Ef73F835C59F4424f38A15E0"
+  let configAddress = "0x786bd101fA16d0243d085f5850D5666154eB1277"
+  let nodeAddress = "0x361eE58bbDFd0b320C063b900932A4E3dD9D3112"
+  let sectorAddress = "0xa05Ad8cE3a256A05BEA6bB85CECFdBcb8EfEd001"
+  let spaceAddress = "0x48b4d0e8b626c1fBcCB62258D939fd8D151BB89e"
+  let fileAddress = "0x15083fBC432F7f5aC9F34Afddd441c614eB44639"
+  let fileExtraAddress = "0x23f936c0d405c067309E2DA6bCb74A81a306E4d8"
+  let listAddress = "0x599a1590D10A70D575C27e3ffa4ED145082AeF8C"
+  let proveAddress = "0x1F86902045355e344e5F957F44341c239158f794"
+  let proveExtraAddress = "0xa15Db8Bea785eF6771f2a20Ab8c9F6DA272706CD"
+  let pdpAddress = "0x49065229EA79e183677CcfeDb006CD290b59ea30"
 
   const Config = await ethers.getContractFactory("Config");
   let config = await upgrades.upgradeProxy(configAddress, Config);
