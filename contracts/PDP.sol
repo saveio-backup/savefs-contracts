@@ -181,6 +181,7 @@ contract PDP is Initializable, IPDP, IFsEvent {
         SaveChallenge(key, chgs);
         SaveMerklePath(key, mp);
         ProofRecord memory pr;
+        pr.Proof = vParams;
         pr.State = false;
         proofsPool.insert(key, pr);
         emit PDPVerifyEvent(FsEvent.PROOF_REQUEST);
