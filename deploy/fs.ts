@@ -100,6 +100,7 @@ async function main() {
     },
     proveExtra.address
   );
+  await pdp.initialize(file.address, sector.address);
   console.log("Initialize finished");
 
   let log = ''

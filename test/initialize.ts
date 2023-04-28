@@ -165,6 +165,11 @@ describe(name, function () {
     await expect(tx).not.to.be.reverted;
   });
 
+  it("initialize PDP", async () => {
+    let tx = pdp.initialize(file.address, sector.address);
+    await expect(tx).not.to.be.reverted;
+  });
+
 });
 
 
