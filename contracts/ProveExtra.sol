@@ -142,18 +142,30 @@ contract ProveExtra {
         ProofParams memory vParams;
         vParams.Version = 0;
         vParams.Proofs = proveData.Proofs;
-        vParams.FileIds = proveParam.FileID;
+        vParams.FileIds = fillFileIDs(proveParam.FileID, proveData.Tags.length);
         vParams.Tags = proveData.Tags;
-        vParams.RootHashes = proveParam.RootHash;
+        vParams.RootHashes = fillRootHashes(proveParam.RootHash, proveData.Tags.length);
         bool res = pdp.VerifyProofWithMerklePathForFile(
             vParams
         );
         // TODO return true because now can't deserialize prove data
         return true;
-        if (!res) {
-            return false;
+    }
+
+      function fillFileIDs(bytes memory fileId, uint count) public pure returns (bytes[] memory) {
+        bytes[] memory fileIds = new bytes[](count);
+        for (uint i = 0; i < count; i++) {
+            fileIds[i] = fileId;
         }
-        return true;
+        return fileIds;
+    }
+
+    function fillRootHashes(bytes memory rootHash, uint count) public pure returns (bytes[] memory) {
+        bytes[] memory rootHashes = new bytes[](count);
+        for (uint i = 0; i < count; i++) {
+            rootHashes[i] = rootHash;
+        }
+        return rootHashes;
     }
 
     function checkSectorProve(
@@ -177,7 +189,7 @@ contract ProveExtra {
         pParams.ProveData = sectorProveData;
         PdpVerificationReturns memory pReturns;
         pReturns = pdp.PrepareForPdpVerification(pParams);
-        if (!pReturns.Success) {
+        if (bytes(pReturns.Error).length != 0) {
             return "checkSectorProve PrepareForPdpVerification failed";
         }
         // verify

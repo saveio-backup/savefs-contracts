@@ -12,6 +12,9 @@ contract PDP is Initializable, IPDP, IFsEvent {
     using MerkleNodeMapping for MerkleNodePool;
     using MerklePathMapping for MerklePathPool;
 
+    IFile file;
+    ISector sector;
+
     ProofsPool proofsPool; // proofs record
     mapping(bytes => ChallengePool) challengeMap; // key => map(chKey => Challenge)
     mapping(bytes => MerklePathPool) merklePathMap; // key => map(mpKey => mnKeys)
@@ -19,15 +22,14 @@ contract PDP is Initializable, IPDP, IFsEvent {
 
     event VerifyProofWithMerklePathForFileEvent();
 
-    function initialize() public initializer {}
+    function initialize(IFile _file, ISector _sector) public initializer {
+        file = _file;
+        sector = _sector;
+    }
 
-    function GenChallenge(GenChallengeParams memory gParams)
-        public
-        view
-        virtual
-        override
-        returns (Challenge[] memory)
-    {
+    function GenChallenge(
+        GenChallengeParams memory gParams
+    ) public view virtual override returns (Challenge[] memory) {
         bytes memory blockHashArray = gParams.HashValue;
         bytes memory plant = abi.encodePacked(
             gParams.WalletAddr,
@@ -94,16 +96,14 @@ contract PDP is Initializable, IPDP, IFsEvent {
     function bytesToUint(bytes memory b) public pure returns (uint256) {
         uint256 number;
         for (uint256 i = 0; i < b.length; i++) {
-            number = number + uint8(b[i]) * (2**(8 * (b.length - (i + 1))));
+            number = number + uint8(b[i]) * (2 ** (8 * (b.length - (i + 1))));
         }
         return number;
     }
 
-    function genChallengeKey(GenChallengeParams memory gParams)
-        public
-        pure
-        returns (string memory)
-    {
+    function genChallengeKey(
+        GenChallengeParams memory gParams
+    ) public pure returns (string memory) {
         string memory key = string(
             abi.encodePacked(
                 gParams.WalletAddr,
@@ -118,11 +118,106 @@ contract PDP is Initializable, IPDP, IFsEvent {
     function PrepareForPdpVerification(
         PrepareForPdpVerificationParams memory pParams
     ) public view virtual override returns (PdpVerificationReturns memory) {
-        // TODO
-        console.log(pParams.SectorInfo_.NodeAddr);
+        SectorInfo memory sectorInfo = pParams.SectorInfo_;
         PdpVerificationReturns memory pReturns;
-        pReturns.Success = true;
+        string memory err = checkSectorProveData(sectorInfo, pParams.ProveData);
+        if (bytes(err).length > 0) {
+            pReturns.Error = err;
+            return pReturns;
+        }
+        uint64 fileNum = sectorInfo.FileNum;
+        SectorFileInfo[] memory sectorFileInfos = GetSectorFileInfosForSector(
+            sectorInfo.NodeAddr,
+            sectorInfo.SectorID,
+            fileNum
+        );
+        for (uint64 i = 0; i < fileNum; i++) {
+            SectorFileInfo memory sectorFileInfo = sectorFileInfos[i];
+            FileInfo memory fileInfo = file.GetFileInfo(
+                sectorFileInfo.FileHash
+            );
+            sectorFileInfo.BlockCount = fileInfo.FileBlockNum;
+        }
+        Challenge[] memory challenges = pParams.Challenges;
+
+        // TODO
+        pReturns.FileIDs = new bytes[](fileNum);
+        pReturns.Tags = new bytes[](fileNum);
+        pReturns.UpdatedChal = new Challenge[](fileNum);
+        pReturns.Path = new MerklePath[](fileNum);
+        pReturns.RootHashes = new bytes[](fileNum);
+
+        uint64 offset = 0;
+        uint64 curIndex = 0;
+        FileInfo memory firstFileInfo;
+
+        for(uint64 i = 0; i < fileNum; i++) {
+            SectorFileInfo memory sectorFileInfo = sectorFileInfos[i];
+            bytes memory fileHash = sectorFileInfo.FileHash;
+            uint64 blockCount = sectorFileInfo.BlockCount;
+
+            uint64 start = offset;
+            uint64 end = offset + blockCount - 1;
+
+            for (uint64 j = curIndex; j < challenges.length; j++) {
+                Challenge memory challenge = challenges[curIndex];
+                if (challenge.Index >= start && challenge.Index <= end) {
+                    FileInfo memory fileInfo = file.GetFileInfo(fileHash);
+                    // TODO
+                }
+            }
+        }
+
         return pReturns;
+    }
+
+    function checkSectorProveData(
+        SectorInfo memory sectorInfo,
+        SectorProveData memory proveData
+    ) public pure returns (string memory) {
+        if (proveData.ProveFileNum > getSectorFileNum(sectorInfo)) {
+            return
+                "[checkSectorProveData] proveFileNum larger than file num in sector";
+        }
+        if (proveData.ProveFileNum > proveData.BlockNum) {
+            return
+                "[checkSectorProveData] proveFileNum larger than challenged block num in sector";
+        }
+        if (proveData.BlockNum > sectorInfo.TotalBlockNum) {
+            return
+                "[checkSectorProveData] challenged block num larger than total block num in sector";
+        }
+        if (sectorInfo.IsPlots && proveData.PlotData.length == 0) {
+            return "[checkSectorProveData] ";
+        }
+        return "";
+    }
+
+    function getSectorFileNum(
+        SectorInfo memory sectorInfo
+    ) internal pure returns (uint256) {
+        return sectorInfo.FileNum;
+    }
+
+    function GetSectorFileInfosForSector(
+        address nodeAddr,
+        uint64 sectorId,
+        uint64 fileNum
+    ) public view returns (SectorFileInfo[] memory) {
+        SectorFileInfo[] memory sectorFileInfos = new SectorFileInfo[](fileNum);
+        // TODO
+        SectorInfo[] memory sectorInfos = sector.GetSectorsForNode(nodeAddr);
+        SectorInfo memory sectorInfo;
+        for (uint64 i = 0; i < sectorInfos.length; i++) {
+            if (sectorInfos[i].SectorID == sectorId) {
+                sectorInfo = sectorInfos[i];
+                break;
+            }
+        }
+        for (uint64 i = 0; i < fileNum; i++) {
+            sectorFileInfos[i].FileHash = sectorInfo.FileList[i];
+        }
+        return sectorFileInfos;
     }
 
     function VerifyProof(
@@ -144,22 +239,20 @@ contract PDP is Initializable, IPDP, IFsEvent {
         proofsPool.insert(key, pr);
     }
 
-    function SaveChallenge(bytes memory key, Challenge[] memory chgs)
-        public
-        payable
-        virtual
-    {
+    function SaveChallenge(
+        bytes memory key,
+        Challenge[] memory chgs
+    ) public payable virtual {
         for (uint32 i = 0; i < chgs.length; i++) {
             bytes memory chKey = GetChallengeKey(chgs[i]);
             challengeMap[key].insert(chKey, chgs[i]);
         }
     }
 
-    function SaveMerklePath(bytes memory key, MerklePath[] memory mp)
-        public
-        payable
-        virtual
-    {
+    function SaveMerklePath(
+        bytes memory key,
+        MerklePath[] memory mp
+    ) public payable virtual {
         for (uint32 i = 0; i < mp.length; i++) {
             bytes memory mpKey = GetMerklePathKey(mp[i]);
             bytes[] memory keys = new bytes[](mp[i].Path.length);
@@ -229,12 +322,9 @@ contract PDP is Initializable, IPDP, IFsEvent {
         return prList;
     }
 
-    function GetChallengeList(bytes memory key)
-        public
-        view
-        virtual
-        returns (Challenge[] memory)
-    {
+    function GetChallengeList(
+        bytes memory key
+    ) public view virtual returns (Challenge[] memory) {
         Challenge[] memory chgs = new Challenge[](
             challengeMap[key].keys.length
         );
@@ -249,12 +339,9 @@ contract PDP is Initializable, IPDP, IFsEvent {
         return chgs;
     }
 
-    function GetMerklePathList(bytes memory key)
-        public
-        view
-        virtual
-        returns (MerklePath[] memory)
-    {
+    function GetMerklePathList(
+        bytes memory key
+    ) public view virtual returns (MerklePath[] memory) {
         MerklePath[] memory mp = new MerklePath[](
             merklePathMap[key].keys.length
         );
@@ -272,44 +359,32 @@ contract PDP is Initializable, IPDP, IFsEvent {
         return mp;
     }
 
-    function VerifyProofWithMerklePathForFile(ProofParams memory vParams)
-        public
-        view
-        virtual
-        override
-        returns (bool)
-    {
+    function VerifyProofWithMerklePathForFile(
+        ProofParams memory vParams
+    ) public view virtual override returns (bool) {
         bytes memory key = GetKeyByProofParams(vParams);
         ProofRecord memory pr = proofsPool.data[key].value;
         return pr.State;
     }
 
-    function VerifyPlotData(VerifyPlotDataParams memory vParams)
-        public
-        view
-        virtual
-        override
-        returns (bool)
-    {
+    function VerifyPlotData(
+        VerifyPlotDataParams memory vParams
+    ) public view virtual override returns (bool) {
         // TODO
         console.log(vParams.Index);
         return true;
     }
 
-    function GetChallengeKey(Challenge memory chg)
-        public
-        pure
-        returns (bytes memory)
-    {
+    function GetChallengeKey(
+        Challenge memory chg
+    ) public pure returns (bytes memory) {
         bytes memory key = abi.encodePacked(chg.Index, chg.Rand);
         return key;
     }
 
-    function GetMerklePathKey(MerklePath memory mp)
-        public
-        pure
-        returns (bytes memory)
-    {
+    function GetMerklePathKey(
+        MerklePath memory mp
+    ) public pure returns (bytes memory) {
         bytes memory key;
         for (uint32 i = 0; i < mp.Path.length; i++) {
             key = abi.encodePacked(mp.Path[i].Hash, mp.Path[i].Index);
@@ -317,20 +392,16 @@ contract PDP is Initializable, IPDP, IFsEvent {
         return key;
     }
 
-    function GetMerkleNodeKey(MerkleNode memory mn)
-        public
-        pure
-        returns (bytes memory)
-    {
+    function GetMerkleNodeKey(
+        MerkleNode memory mn
+    ) public pure returns (bytes memory) {
         bytes memory key = abi.encodePacked(mn.Hash, mn.Index);
         return key;
     }
 
-    function GetKeyByProofParams(ProofParams memory vParams)
-        public
-        pure
-        returns (bytes memory)
-    {
+    function GetKeyByProofParams(
+        ProofParams memory vParams
+    ) public pure returns (bytes memory) {
         bytes memory ids;
         for (uint32 i = 0; i < vParams.FileIds.length; i++) {
             ids = abi.encodePacked(ids, vParams.FileIds[i]);
@@ -339,13 +410,17 @@ contract PDP is Initializable, IPDP, IFsEvent {
         for (uint32 i = 0; i < vParams.Tags.length; i++) {
             tags = abi.encodePacked(tags, vParams.Tags[i]);
         }
+        bytes memory rootHashes;
+        for (uint32 i = 0; i < vParams.RootHashes.length; i++) {
+            rootHashes = abi.encodePacked(rootHashes, vParams.RootHashes[i]);
+        }
         string memory keyStr = string(
             abi.encodePacked(
                 vParams.Version,
                 vParams.Proofs,
                 ids,
                 tags,
-                vParams.RootHashes
+                rootHashes
             )
         );
         bytes memory keyBytes = bytes(keyStr);
@@ -390,10 +465,10 @@ library ProofsMapping {
         }
     }
 
-    function remove(ProofsPool storage self, bytes memory key)
-        internal
-        returns (bool success)
-    {
+    function remove(
+        ProofsPool storage self,
+        bytes memory key
+    ) internal returns (bool success) {
         uint256 keyIndex = self.data[key].keyIndex;
         if (keyIndex == 0) return false;
         delete self.data[key];
@@ -401,47 +476,41 @@ library ProofsMapping {
         self.size--;
     }
 
-    function contains(ProofsPool storage self, bytes memory key)
-        internal
-        view
-        returns (bool)
-    {
+    function contains(
+        ProofsPool storage self,
+        bytes memory key
+    ) internal view returns (bool) {
         return self.data[key].keyIndex > 0;
     }
 
-    function iterate_start(ProofsPool storage self)
-        internal
-        view
-        returns (uint256 keyIndex)
-    {
+    function iterate_start(
+        ProofsPool storage self
+    ) internal view returns (uint256 keyIndex) {
         uint256 index = iterate_next(self, type(uint256).min);
         return index - 1;
     }
 
-    function iterate_valid(ProofsPool storage self, uint256 keyIndex)
-        internal
-        view
-        returns (bool)
-    {
+    function iterate_valid(
+        ProofsPool storage self,
+        uint256 keyIndex
+    ) internal view returns (bool) {
         return keyIndex < self.keys.length;
     }
 
-    function iterate_next(ProofsPool storage self, uint256 keyIndex)
-        internal
-        view
-        returns (uint256 r_keyIndex)
-    {
+    function iterate_next(
+        ProofsPool storage self,
+        uint256 keyIndex
+    ) internal view returns (uint256 r_keyIndex) {
         keyIndex++;
         while (keyIndex < self.keys.length && self.keys[keyIndex].deleted)
             keyIndex++;
         return keyIndex;
     }
 
-    function iterate_get(ProofsPool storage self, uint256 keyIndex)
-        internal
-        view
-        returns (bytes memory key, ProofRecord memory value)
-    {
+    function iterate_get(
+        ProofsPool storage self,
+        uint256 keyIndex
+    ) internal view returns (bytes memory key, ProofRecord memory value) {
         key = self.keys[keyIndex].key;
         value = self.data[key].value;
     }
@@ -481,10 +550,10 @@ library ChallengeMapping {
         }
     }
 
-    function remove(ChallengePool storage self, bytes memory key)
-        internal
-        returns (bool success)
-    {
+    function remove(
+        ChallengePool storage self,
+        bytes memory key
+    ) internal returns (bool success) {
         uint256 keyIndex = self.data[key].keyIndex;
         if (keyIndex == 0) return false;
         delete self.data[key];
@@ -492,47 +561,41 @@ library ChallengeMapping {
         self.size--;
     }
 
-    function contains(ChallengePool storage self, bytes memory key)
-        internal
-        view
-        returns (bool)
-    {
+    function contains(
+        ChallengePool storage self,
+        bytes memory key
+    ) internal view returns (bool) {
         return self.data[key].keyIndex > 0;
     }
 
-    function iterate_start(ChallengePool storage self)
-        internal
-        view
-        returns (uint256 keyIndex)
-    {
+    function iterate_start(
+        ChallengePool storage self
+    ) internal view returns (uint256 keyIndex) {
         uint256 index = iterate_next(self, type(uint256).min);
         return index - 1;
     }
 
-    function iterate_valid(ChallengePool storage self, uint256 keyIndex)
-        internal
-        view
-        returns (bool)
-    {
+    function iterate_valid(
+        ChallengePool storage self,
+        uint256 keyIndex
+    ) internal view returns (bool) {
         return keyIndex < self.keys.length;
     }
 
-    function iterate_next(ChallengePool storage self, uint256 keyIndex)
-        internal
-        view
-        returns (uint256 r_keyIndex)
-    {
+    function iterate_next(
+        ChallengePool storage self,
+        uint256 keyIndex
+    ) internal view returns (uint256 r_keyIndex) {
         keyIndex++;
         while (keyIndex < self.keys.length && self.keys[keyIndex].deleted)
             keyIndex++;
         return keyIndex;
     }
 
-    function iterate_get(ChallengePool storage self, uint256 keyIndex)
-        internal
-        view
-        returns (bytes memory key, Challenge memory value)
-    {
+    function iterate_get(
+        ChallengePool storage self,
+        uint256 keyIndex
+    ) internal view returns (bytes memory key, Challenge memory value) {
         key = self.keys[keyIndex].key;
         value = self.data[key].value;
     }
@@ -572,10 +635,10 @@ library MerkleNodeMapping {
         }
     }
 
-    function remove(MerkleNodePool storage self, bytes memory key)
-        internal
-        returns (bool success)
-    {
+    function remove(
+        MerkleNodePool storage self,
+        bytes memory key
+    ) internal returns (bool success) {
         uint256 keyIndex = self.data[key].keyIndex;
         if (keyIndex == 0) return false;
         delete self.data[key];
@@ -583,47 +646,41 @@ library MerkleNodeMapping {
         self.size--;
     }
 
-    function contains(MerkleNodePool storage self, bytes memory key)
-        internal
-        view
-        returns (bool)
-    {
+    function contains(
+        MerkleNodePool storage self,
+        bytes memory key
+    ) internal view returns (bool) {
         return self.data[key].keyIndex > 0;
     }
 
-    function iterate_start(MerkleNodePool storage self)
-        internal
-        view
-        returns (uint256 keyIndex)
-    {
+    function iterate_start(
+        MerkleNodePool storage self
+    ) internal view returns (uint256 keyIndex) {
         uint256 index = iterate_next(self, type(uint256).min);
         return index - 1;
     }
 
-    function iterate_valid(MerkleNodePool storage self, uint256 keyIndex)
-        internal
-        view
-        returns (bool)
-    {
+    function iterate_valid(
+        MerkleNodePool storage self,
+        uint256 keyIndex
+    ) internal view returns (bool) {
         return keyIndex < self.keys.length;
     }
 
-    function iterate_next(MerkleNodePool storage self, uint256 keyIndex)
-        internal
-        view
-        returns (uint256 r_keyIndex)
-    {
+    function iterate_next(
+        MerkleNodePool storage self,
+        uint256 keyIndex
+    ) internal view returns (uint256 r_keyIndex) {
         keyIndex++;
         while (keyIndex < self.keys.length && self.keys[keyIndex].deleted)
             keyIndex++;
         return keyIndex;
     }
 
-    function iterate_get(MerkleNodePool storage self, uint256 keyIndex)
-        internal
-        view
-        returns (bytes memory key, MerkleNode memory value)
-    {
+    function iterate_get(
+        MerkleNodePool storage self,
+        uint256 keyIndex
+    ) internal view returns (bytes memory key, MerkleNode memory value) {
         key = self.keys[keyIndex].key;
         value = self.data[key].value;
     }
@@ -663,10 +720,10 @@ library MerklePathMapping {
         }
     }
 
-    function remove(MerklePathPool storage self, bytes memory key)
-        internal
-        returns (bool success)
-    {
+    function remove(
+        MerklePathPool storage self,
+        bytes memory key
+    ) internal returns (bool success) {
         uint256 keyIndex = self.data[key].keyIndex;
         if (keyIndex == 0) return false;
         delete self.data[key];
@@ -674,47 +731,41 @@ library MerklePathMapping {
         self.size--;
     }
 
-    function contains(MerklePathPool storage self, bytes memory key)
-        internal
-        view
-        returns (bool)
-    {
+    function contains(
+        MerklePathPool storage self,
+        bytes memory key
+    ) internal view returns (bool) {
         return self.data[key].keyIndex > 0;
     }
 
-    function iterate_start(MerklePathPool storage self)
-        internal
-        view
-        returns (uint256 keyIndex)
-    {
+    function iterate_start(
+        MerklePathPool storage self
+    ) internal view returns (uint256 keyIndex) {
         uint256 index = iterate_next(self, type(uint256).min);
         return index - 1;
     }
 
-    function iterate_valid(MerklePathPool storage self, uint256 keyIndex)
-        internal
-        view
-        returns (bool)
-    {
+    function iterate_valid(
+        MerklePathPool storage self,
+        uint256 keyIndex
+    ) internal view returns (bool) {
         return keyIndex < self.keys.length;
     }
 
-    function iterate_next(MerklePathPool storage self, uint256 keyIndex)
-        internal
-        view
-        returns (uint256 r_keyIndex)
-    {
+    function iterate_next(
+        MerklePathPool storage self,
+        uint256 keyIndex
+    ) internal view returns (uint256 r_keyIndex) {
         keyIndex++;
         while (keyIndex < self.keys.length && self.keys[keyIndex].deleted)
             keyIndex++;
         return keyIndex;
     }
 
-    function iterate_get(MerklePathPool storage self, uint256 keyIndex)
-        internal
-        view
-        returns (bytes memory key, bytes[] memory value)
-    {
+    function iterate_get(
+        MerklePathPool storage self,
+        uint256 keyIndex
+    ) internal view returns (bytes memory key, bytes[] memory value) {
         key = self.keys[keyIndex].key;
         value = self.data[key].value;
     }

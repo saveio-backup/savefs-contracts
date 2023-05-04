@@ -146,6 +146,11 @@ struct FileInfo {
     PlotInfo PlotInfo_;
 }
 
+struct FileProveParam {
+    bytes RootHash;
+    bytes FileID;
+}
+
 struct SectorInfo {
     address NodeAddr;
     uint64 SectorID;
@@ -164,6 +169,11 @@ struct SectorInfo {
 struct SectorInfos {
     uint64 SectorCount;
     uint64[] SectorIds;
+}
+
+struct SectorFileInfo {
+    bytes FileHash;
+    uint64 BlockCount;
 }
 
 struct FileReNewInfo {
@@ -229,13 +239,13 @@ struct PrepareForPdpVerificationParams {
 }
 
 struct PdpVerificationReturns {
-    bytes FileIDs;
+    bytes[] FileIDs;
     bytes[] Tags;
     Challenge[] UpdatedChal;
     MerklePath[] Path;
-    bytes RootHashes;
+    bytes[] RootHashes;
     FileInfo FileInfo_;
-    bool Success;
+    string Error;
 }
 
 struct GenChallengeParams {
@@ -251,9 +261,9 @@ struct GenChallengeParams {
 struct ProofParams {
     uint64 Version;
     bytes Proofs;
-    bytes FileIds;
+    bytes[] FileIds;
     bytes[] Tags;
-    bytes RootHashes;
+    bytes[] RootHashes;
 }
 
 struct ProofRecord {

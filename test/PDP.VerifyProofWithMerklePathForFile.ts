@@ -12,9 +12,9 @@ describe(name, () => {
       {
         Version: 1,
         Proofs: [1],
-        FileIds: [1, 5, 88],
+        FileIds: [[1], [5], [88]],
         Tags: [[1]],
-        RootHashes: [1],
+        RootHashes: [[1]],
       }
     )
     let res = await tx;
@@ -28,9 +28,9 @@ describe(name, () => {
         Proof: {
           Version: 1,
           Proofs: [1],
-          FileIds: [1],
+          FileIds: [[1]],
           Tags: [[1]],
-          RootHashes: [1]
+          RootHashes: [[1]]
         },
         State: true,
         LastUpdateHeight: 0,
@@ -50,9 +50,9 @@ describe(name, () => {
       {
         Version: 1,
         Proofs: [1],
-        FileIds: [1],
+        FileIds: [[1]],
         Tags: [[1]],
-        RootHashes: [1],
+        RootHashes: [[1]],
       }
     )
     let res = await tx;
