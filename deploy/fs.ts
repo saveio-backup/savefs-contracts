@@ -68,6 +68,11 @@ async function main() {
   await pdp.deployed();
   console.log("PDP deployed to:", pdp.address);
 
+  const PDPExtra = await ethers.getContractFactory("PDPExtra");
+  let pdpExtra = await upgrades.deployProxy(PDPExtra, [], { initializer: false });
+  await pdpExtra.deployed();
+  console.log("PDPExtra deployed to:", pdp.address);
+
   await node.initialize(config.address, sector.address);
   await sector.initialize(
     node.address,
@@ -100,7 +105,7 @@ async function main() {
     },
     proveExtra.address
   );
-  await pdp.initialize(file.address, sector.address);
+  await pdp.initialize(file.address, sector.address, pdpExtra.address);
   console.log("Initialize finished");
 
   let log = ''
