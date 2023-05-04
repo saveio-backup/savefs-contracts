@@ -2,7 +2,8 @@ import { expect } from "chai";
 import { ContractTransaction } from "ethers";
 import { ethers } from "hardhat";
 import {
-  File, Node, Config, Sector, Space, List, Prove, PDP, FileExtra, ProveExtra,
+  File, Node, Config, Sector, Space, List, Prove, PDP,
+  FileExtra, ProveExtra, PDPExtra,
   Dns
 } from "../typechain";
 import { randomBytes } from "crypto";
@@ -21,6 +22,7 @@ let list: List;
 let prove: Prove;
 let proveExtra: ProveExtra;
 let pdp: PDP;
+let pdpExtra: PDPExtra;
 let dns: Dns;
 
 
@@ -111,6 +113,13 @@ describe(name, function () {
     await expect(res).not.to.be.reverted;
   });
 
+  it("Deploy PDP", async () => {
+    const PDPExtra = await ethers.getContractFactory("PDPExtra");
+    pdpExtra = await PDPExtra.deploy();
+    let res = pdpExtra.deployed();
+    await expect(res).not.to.be.reverted;
+  });
+
   it("Deploy DNS", async () => {
     const DNS = await ethers.getContractFactory("Dns");
     dns = await DNS.deploy();
@@ -166,7 +175,7 @@ describe(name, function () {
   });
 
   it("initialize PDP", async () => {
-    let tx = pdp.initialize(file.address, sector.address);
+    let tx = pdp.initialize(file.address, sector.address, pdpExtra.address);
     await expect(tx).not.to.be.reverted;
   });
 

@@ -23,7 +23,10 @@ describe(name, function () {
       ExpiredHeight: 10000000,
       CopyNum: 1,
       Deposit: 1,
-      FileProveParam: [],
+      FileProveParam_: {
+        RootHash: [1],
+        FileID: [1],
+      },
       ProveBlockNum: 1,
       BlockHeight: 1,
       ValidFlag: false,
@@ -59,7 +62,10 @@ describe(name, function () {
       ExpiredHeight: 10000000,
       CopyNum: 1,
       Deposit: 1,
-      FileProveParam: [],
+      FileProveParam_: {
+        RootHash: [1],
+        FileID: [1],
+      },
       ProveBlockNum: 1,
       BlockHeight: 1,
       ValidFlag: false,

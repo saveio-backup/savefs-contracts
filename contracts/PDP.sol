@@ -5,6 +5,7 @@ import "hardhat/console.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "./type.sol";
 import "./interface.sol";
+import "./PDPExtra.sol";
 
 contract PDP is Initializable, IPDP, IFsEvent {
     using ProofsMapping for ProofsPool;
@@ -14,6 +15,7 @@ contract PDP is Initializable, IPDP, IFsEvent {
 
     IFile file;
     ISector sector;
+    PDPExtra pdpExtra;
 
     ProofsPool proofsPool; // proofs record
     mapping(bytes => ChallengePool) challengeMap; // key => map(chKey => Challenge)
@@ -22,9 +24,14 @@ contract PDP is Initializable, IPDP, IFsEvent {
 
     event VerifyProofWithMerklePathForFileEvent();
 
-    function initialize(IFile _file, ISector _sector) public initializer {
+    function initialize(
+        IFile _file,
+        ISector _sector,
+        PDPExtra _pdpExtra
+    ) public initializer {
         file = _file;
         sector = _sector;
+        pdpExtra = _pdpExtra;
     }
 
     function GenChallenge(
@@ -118,19 +125,23 @@ contract PDP is Initializable, IPDP, IFsEvent {
     function PrepareForPdpVerification(
         PrepareForPdpVerificationParams memory pParams
     ) public view virtual override returns (PdpVerificationReturns memory) {
-        SectorInfo memory sectorInfo = pParams.SectorInfo_;
         PdpVerificationReturns memory pReturns;
-        string memory err = checkSectorProveData(sectorInfo, pParams.ProveData);
+        string memory err = pdpExtra.checkSectorProveData(
+            pParams.SectorInfo_,
+            pParams.ProveData
+        );
         if (bytes(err).length > 0) {
             pReturns.Error = err;
             return pReturns;
         }
-        uint64 fileNum = sectorInfo.FileNum;
-        SectorFileInfo[] memory sectorFileInfos = GetSectorFileInfosForSector(
-            sectorInfo.NodeAddr,
-            sectorInfo.SectorID,
-            fileNum
-        );
+        uint64 fileNum = pParams.SectorInfo_.FileNum;
+        SectorFileInfo[] memory sectorFileInfos = pdpExtra
+            .GetSectorFileInfosForSector(
+                sector,
+                pParams.SectorInfo_.NodeAddr,
+                pParams.SectorInfo_.SectorID,
+                fileNum
+            );
         for (uint64 i = 0; i < fileNum; i++) {
             SectorFileInfo memory sectorFileInfo = sectorFileInfos[i];
             FileInfo memory fileInfo = file.GetFileInfo(
@@ -138,86 +149,31 @@ contract PDP is Initializable, IPDP, IFsEvent {
             );
             sectorFileInfo.BlockCount = fileInfo.FileBlockNum;
         }
-        Challenge[] memory challenges = pParams.Challenges;
 
-        // TODO
         pReturns.FileIDs = new bytes[](fileNum);
         pReturns.Tags = new bytes[](fileNum);
-        pReturns.UpdatedChal = new Challenge[](fileNum);
         pReturns.Path = new MerklePath[](fileNum);
         pReturns.RootHashes = new bytes[](fileNum);
+        pReturns.UpdatedChal = new Challenge[](fileNum);
 
-        uint64 offset = 0;
-        uint64 curIndex = 0;
-        FileInfo memory firstFileInfo;
-
-        for(uint64 i = 0; i < fileNum; i++) {
-            SectorFileInfo memory sectorFileInfo = sectorFileInfos[i];
-            bytes memory fileHash = sectorFileInfo.FileHash;
-            uint64 blockCount = sectorFileInfo.BlockCount;
-
-            uint64 start = offset;
-            uint64 end = offset + blockCount - 1;
-
-            for (uint64 j = curIndex; j < challenges.length; j++) {
-                Challenge memory challenge = challenges[curIndex];
-                if (challenge.Index >= start && challenge.Index <= end) {
-                    FileInfo memory fileInfo = file.GetFileInfo(fileHash);
-                    // TODO
-                }
-            }
-        }
+        // FileIDs, RootHashes
+        pReturns = pdpExtra.PrepareForPdpVerification1(
+            file,
+            fileNum,
+            sectorFileInfos,
+            pParams.Challenges,
+            pReturns
+        );
+        // Tags, Path, UpdatedChal
+        pReturns = pdpExtra.PrepareForPdpVerification2(
+            fileNum,
+            sectorFileInfos,
+            pParams.Challenges,
+            pParams.ProveData,
+            pReturns
+        );
 
         return pReturns;
-    }
-
-    function checkSectorProveData(
-        SectorInfo memory sectorInfo,
-        SectorProveData memory proveData
-    ) public pure returns (string memory) {
-        if (proveData.ProveFileNum > getSectorFileNum(sectorInfo)) {
-            return
-                "[checkSectorProveData] proveFileNum larger than file num in sector";
-        }
-        if (proveData.ProveFileNum > proveData.BlockNum) {
-            return
-                "[checkSectorProveData] proveFileNum larger than challenged block num in sector";
-        }
-        if (proveData.BlockNum > sectorInfo.TotalBlockNum) {
-            return
-                "[checkSectorProveData] challenged block num larger than total block num in sector";
-        }
-        if (sectorInfo.IsPlots && proveData.PlotData.length == 0) {
-            return "[checkSectorProveData] ";
-        }
-        return "";
-    }
-
-    function getSectorFileNum(
-        SectorInfo memory sectorInfo
-    ) internal pure returns (uint256) {
-        return sectorInfo.FileNum;
-    }
-
-    function GetSectorFileInfosForSector(
-        address nodeAddr,
-        uint64 sectorId,
-        uint64 fileNum
-    ) public view returns (SectorFileInfo[] memory) {
-        SectorFileInfo[] memory sectorFileInfos = new SectorFileInfo[](fileNum);
-        // TODO
-        SectorInfo[] memory sectorInfos = sector.GetSectorsForNode(nodeAddr);
-        SectorInfo memory sectorInfo;
-        for (uint64 i = 0; i < sectorInfos.length; i++) {
-            if (sectorInfos[i].SectorID == sectorId) {
-                sectorInfo = sectorInfos[i];
-                break;
-            }
-        }
-        for (uint64 i = 0; i < fileNum; i++) {
-            sectorFileInfos[i].FileHash = sectorInfo.FileList[i];
-        }
-        return sectorFileInfos;
     }
 
     function VerifyProof(

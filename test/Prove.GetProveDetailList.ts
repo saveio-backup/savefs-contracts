@@ -61,7 +61,10 @@ describe(name, function () {
       ExpiredHeight: 100,
       CopyNum: 0,
       Deposit: 0,
-      FileProveParam: [],
+      FileProveParam_: {
+        RootHash: [1],
+        FileID: [1],
+      },
       ProveBlockNum: 1,
       BlockHeight: 1,
       ValidFlag: false,

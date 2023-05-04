@@ -132,7 +132,7 @@ struct FileInfo {
     uint256 ExpiredHeight;
     uint64 CopyNum;
     uint64 Deposit;
-    bytes FileProveParam;
+    FileProveParam FileProveParam_;
     uint64 ProveBlockNum;
     uint256 BlockHeight;
     bool ValidFlag;
