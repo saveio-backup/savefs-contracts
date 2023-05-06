@@ -49,6 +49,10 @@ const config: HardhatUserConfig = {
         count: 100
       }
     },
+    local: {
+      url: "http://127.0.0.1:8545",
+      accounts:["492dcf3b28c9096fb134ae75286b34650ff6b00e27ff3b7afea4141c44183150"],
+    },
     ganache: {
       url: `http://127.0.0.1:7545/`,
       accounts: [`58d923527aac8f3e792f341e7e186f5aa9a8555ec7426bb639415710015460d2`],
@@ -60,10 +64,6 @@ const config: HardhatUserConfig = {
     opeth: {
       url: "http://localhost:9545",
       accounts:["ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"],
-    },
-    localeth: {
-      url: "http://localhost:8545",
-      accounts:["d98bc5ef31a20dddce155347d21ad87d91c61cfabf7593581db528be74210588"],
     },
     deveth: {
       url: "http://152.32.217.181:32272",

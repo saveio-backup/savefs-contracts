@@ -2,16 +2,17 @@ import { ethers, upgrades } from "hardhat";
 
 async function main() {
 
-  let configAddress = "0x786bd101fA16d0243d085f5850D5666154eB1277"
-  let nodeAddress = "0x361eE58bbDFd0b320C063b900932A4E3dD9D3112"
-  let sectorAddress = "0xa05Ad8cE3a256A05BEA6bB85CECFdBcb8EfEd001"
-  let spaceAddress = "0x48b4d0e8b626c1fBcCB62258D939fd8D151BB89e"
-  let fileAddress = "0x15083fBC432F7f5aC9F34Afddd441c614eB44639"
-  let fileExtraAddress = "0x23f936c0d405c067309E2DA6bCb74A81a306E4d8"
-  let listAddress = "0x599a1590D10A70D575C27e3ffa4ED145082AeF8C"
-  let proveAddress = "0x1F86902045355e344e5F957F44341c239158f794"
-  let proveExtraAddress = "0xa15Db8Bea785eF6771f2a20Ab8c9F6DA272706CD"
-  let pdpAddress = "0x49065229EA79e183677CcfeDb006CD290b59ea30"
+  let configAddress = "0x1463bFB7d7F7c5A45B2502F903F8C3364988d827"
+  let nodeAddress = "0x7029e8faC0de5B6b50B12951e9c274dE9D91Ca8d"
+  let sectorAddress = "0xD814d6F57Dd7b767ADe6537BF84F442904084E25"
+  let spaceAddress = "0x8cf9E9cB187B9ED64113C7852941992499Be2789"
+  let fileAddress = "0x1B691dA3fAD45aEc92319025959585D2392B3440"
+  let fileExtraAddress = "0xE2B1685000185C1bc5F5eDD5e34d3Ba00FbA365e"
+  let listAddress = "0xEB1ee9ff9cAab2259C93b4b75ddc788b72C0A0BC"
+  let proveAddress = "0x8A56564ecb7223BFC6dc9F0DB4c7198292108220"
+  let proveExtraAddress = "0x9Bc985d31C849D2307344a8199D04B0D6D33c56E"
+  let pdpAddress = "0x57AbC9065B6E9163D25D9d30DE2ab9D2dec8f526"
+  let pdpExtraAddress = "0xa85fFeA4C9E062124B46a0D817f5bE0b87b8b334"
 
   const Config = await ethers.getContractFactory("Config");
   let config = await upgrades.upgradeProxy(configAddress, Config);
@@ -53,6 +54,9 @@ async function main() {
   let pdp = await upgrades.upgradeProxy(pdpAddress, PDP);
   console.log("PDP upgraded");
 
+  const PDPExtra = await ethers.getContractFactory("PDPExtra");
+  let pdpExtra = await upgrades.upgradeProxy(pdpExtraAddress, PDPExtra);
+  console.log("PDPExtra upgraded");
 }
 
 main().catch((error) => {

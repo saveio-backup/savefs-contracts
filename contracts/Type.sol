@@ -176,6 +176,14 @@ struct SectorFileInfo {
     uint64 BlockCount;
 }
 
+struct SectorFileInfoGroup {
+    uint64 FileNum;
+    uint64 GroupId;
+    bytes MinFileHash;
+    bytes MaxFileHash;
+    bool Null;
+}
+
 struct FileReNewInfo {
     bytes FileHash;
     address FromAddr;

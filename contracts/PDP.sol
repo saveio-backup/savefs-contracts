@@ -135,19 +135,12 @@ contract PDP is Initializable, IPDP, IFsEvent {
             return pReturns;
         }
         uint64 fileNum = pParams.SectorInfo_.FileNum;
-        SectorFileInfo[] memory sectorFileInfos = pdpExtra
-            .GetSectorFileInfosForSector(
-                sector,
-                pParams.SectorInfo_.NodeAddr,
-                pParams.SectorInfo_.SectorID,
-                fileNum
-            );
+        SectorFileInfo[] memory sectorFileInfos = new SectorFileInfo[](fileNum);
         for (uint64 i = 0; i < fileNum; i++) {
-            SectorFileInfo memory sectorFileInfo = sectorFileInfos[i];
-            FileInfo memory fileInfo = file.GetFileInfo(
-                sectorFileInfo.FileHash
-            );
-            sectorFileInfo.BlockCount = fileInfo.FileBlockNum;
+            bytes memory fileHash = pParams.SectorInfo_.FileList[i];
+            sectorFileInfos[i].FileHash = fileHash;
+            FileInfo memory fileInfo = file.GetFileInfo(fileHash);
+            sectorFileInfos[i].BlockCount = fileInfo.FileBlockNum;
         }
 
         pReturns.FileIDs = new bytes[](fileNum);
@@ -250,30 +243,32 @@ contract PDP is Initializable, IPDP, IFsEvent {
             i = proofsPool.iterate_next(i)
         ) {
             (, ProofRecord memory pr) = proofsPool.iterate_get(i);
-            if (!pr.State) {
+            if (pr.LastUpdateHeight > 0) {
                 count++;
             }
         }
         ProofRecordWithParams[] memory prList = new ProofRecordWithParams[](
-            count
+            proofsPool.size
         );
         ProofParams memory vParams;
         Challenge[] memory chgs;
         MerklePath[] memory mp;
+        uint64 index = 0;
         for (
             uint256 i = proofsPool.iterate_start();
             proofsPool.iterate_valid(i);
             i = proofsPool.iterate_next(i)
         ) {
             (, ProofRecord memory pr) = proofsPool.iterate_get(i);
-            if (pr.State) {
+            if (pr.LastUpdateHeight <= 0) {
                 continue;
             }
             vParams = pr.Proof;
             bytes memory key = GetKeyByProofParams(vParams);
             chgs = GetChallengeList(key);
             mp = GetMerklePathList(key);
-            prList[i] = ProofRecordWithParams(vParams, chgs, mp);
+            prList[index] = ProofRecordWithParams(vParams, chgs, mp);
+            index++;
         }
         return prList;
     }

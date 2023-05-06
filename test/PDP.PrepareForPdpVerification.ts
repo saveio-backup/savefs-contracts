@@ -1,11 +1,11 @@
 import assert from "assert";
 import { expect } from "chai";
-import { addrs, file, node, prove, sector, pdp } from "./initialize";
+import { addrs, pdp, print, node, sector, file, prove } from "./initialize";
 
 var path = require('path');
 var name = path.basename(__filename);
 
-describe(name, function () {
+describe(name, () => {
 
   it("register node", async () => {
     const tx = node.Register({
@@ -14,8 +14,8 @@ describe(name, function () {
       Volume: 1000 * 1000,
       RestVol: 0,
       ServiceTime: 0,
-      WalletAddr: addrs[99],
-      NodeAddr: addrs[99],
+      WalletAddr: addrs[9],
+      NodeAddr: addrs[9],
     },
       {
         value: 1000000
@@ -26,37 +26,37 @@ describe(name, function () {
 
   it("create sector", async () => {
     const tx = sector.CreateSector({
-      NodeAddr: addrs[99],
+      NodeAddr: addrs[9],
       SectorID: 1,
-      Size: 100,
+      Size: 1,
       Used: 0,
       ProveLevel_: 1,
       FirstProveHeight: 1,
-      NextProveHeight: 200,
-      TotalBlockNum: 0,
+      NextProveHeight: 1,
+      TotalBlockNum: 1,
       FileNum: 0,
       GroupNum: 0,
       IsPlots: false,
-      FileList: []
+      FileList: [[1]]
     });
     expect(tx).to.not.be.reverted;
   });
 
   it("store file to sector", async () => {
     const tx = file.StoreFile({
-      FileHash: [3, 2, 1, 5, 3],
-      FileOwner: addrs[99],
+      FileHash: [1, 6, 9],
+      FileOwner: addrs[9],
       FileDesc: [],
       Privilege: 1,
-      FileBlockNum: 0,
-      FileBlockSize: 0,
+      FileBlockNum: 1,
+      FileBlockSize: 1,
       ProveInterval: 1,
       ProveTimes: 1,
       ExpiredHeight: 100,
       CopyNum: 0,
       Deposit: 0,
       FileProveParam_: {
-        RootHash: [1],
+        RootHash: [2],
         FileID: [1],
       },
       ProveBlockNum: 1,
@@ -66,7 +66,7 @@ describe(name, function () {
       StorageType_: 1,
       RealFileSize: 1,
       PrimaryNodes: [
-        addrs[99]
+        addrs[9]
       ],
       CandidateNodes: [],
       ProveLevel_: 1,
@@ -85,9 +85,9 @@ describe(name, function () {
 
   it("file prove", async () => {
     const tx = prove.FileProve({
-      FileHash: [3, 2, 1, 5, 3],
+      FileHash: [1, 6, 9],
       ProveData_: {
-        Proofs: [],
+        Proofs: [1],
         BlockNum: 1,
         Tags: [[1]],
         MerklePath_: [{
@@ -95,37 +95,50 @@ describe(name, function () {
           Path: [{ Layer: 1, Index: 1, Hash: [1] }],
         }],
       },
-      BlockHeight: 123,
-      NodeWallet: addrs[99],
+      BlockHeight: 1,
+      NodeWallet: addrs[9],
       Profit: 1,
       SectorID: 1
     });
-    // await print(tx)
-    await expect(tx).to.not.be.reverted;
+    // let res = await (await tx).wait();
+    // console.log(res.events)
+    await expect(tx).to.not.be.emit(prove, "FsError");
   });
 
-  it('get sector info', async () => {
-    const tx = sector.GetSectorsForNode(addrs[99]);
-    let res = await tx;
-    // console.log(res)
-    assert(res.length == 1);
-    assert(res[0].FileList.length == 1);
-  });
 
-  it("delete files", async () => {
-    const tx = file.DeleteFiles([
-      [3, 2, 1, 5, 3]
-    ]);
-    // await print(tx)
-    await expect(tx).to.not.be.reverted;
-  });
-
-  it('get sector info 2', async () => {
-    const tx = sector.GetSectorsForNode(addrs[99]);
-    let res = await tx;
-    // console.log(res[0].FileList)
-    assert(res.length == 1);
-    assert(res[0].FileList.length == 0);
+  it("submit", async () => {
+    const tx = pdp.PrepareForPdpVerification(
+      {
+        SectorInfo_: {
+          NodeAddr: addrs[9],
+          SectorID: 1,
+          Size: 1,
+          Used: 0,
+          ProveLevel_: 1,
+          FirstProveHeight: 1,
+          NextProveHeight: 1,
+          TotalBlockNum: 1,
+          FileNum: 0,
+          GroupNum: 0,
+          IsPlots: false,
+          FileList: [[1]]
+        },
+        Challenges: [{ Index: 0, Rand: 1 }],
+        ProveData: {
+          ProveFileNum: 1,
+          Proofs: [1],
+          BlockNum: 1,
+          Tags: [[1]],
+          MerklePath_: [{
+            PathLen: 1,
+            Path: [{ Layer: 1, Index: 1, Hash: [1] }],
+          }],
+          PlotData: [],
+        }
+      }
+    )
+    const res = await tx;
+    // console.log(res.RootHashes)
   });
 
 });

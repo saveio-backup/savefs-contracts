@@ -35,28 +35,6 @@ contract PDPExtra {
         return sectorInfo.FileNum;
     }
 
-    function GetSectorFileInfosForSector(
-        ISector sector,
-        address nodeAddr,
-        uint64 sectorId,
-        uint64 fileNum
-    ) public view returns (SectorFileInfo[] memory) {
-        SectorFileInfo[] memory sectorFileInfos = new SectorFileInfo[](fileNum);
-        // TODO merge group
-        SectorInfo[] memory sectorInfos = sector.GetSectorsForNode(nodeAddr);
-        SectorInfo memory sectorInfo;
-        for (uint64 i = 0; i < sectorInfos.length; i++) {
-            if (sectorInfos[i].SectorID == sectorId) {
-                sectorInfo = sectorInfos[i];
-                break;
-            }
-        }
-        for (uint64 i = 0; i < fileNum; i++) {
-            sectorFileInfos[i].FileHash = sectorInfo.FileList[i];
-        }
-        return sectorFileInfos;
-    }
-
     function PrepareForPdpVerification1(
         IFile file,
         uint64 fileNum,
@@ -66,27 +44,26 @@ contract PDPExtra {
     ) public view returns (PdpVerificationReturns memory) {
         uint64 offset = 0;
         uint64 curIndex = 0;
-
         for (uint64 i = 0; i < fileNum; i++) {
             SectorFileInfo memory sectorFileInfo = sectorFileInfos[i];
-            bytes memory fileHash = sectorFileInfo.FileHash;
-            uint64 blockCount = sectorFileInfo.BlockCount;
 
             uint64 start = offset;
-            uint64 end = offset + blockCount - 1;
+            uint64 end = offset + sectorFileInfo.BlockCount - 1;
 
             for (uint64 j = curIndex; j < challenges.length; j++) {
                 Challenge memory challenge = challenges[curIndex];
                 if (challenge.Index >= start && challenge.Index <= end) {
                     if (curIndex == 0) {
-                        pReturns.FileInfo_ = file.GetFileInfo(fileHash);
+                        pReturns.FileInfo_ = file.GetFileInfo(
+                            sectorFileInfo.FileHash
+                        );
                     }
                     pReturns.FileIDs[i] = file
-                        .GetFileInfo(fileHash)
+                        .GetFileInfo(sectorFileInfo.FileHash)
                         .FileProveParam_
                         .FileID;
                     pReturns.RootHashes[i] = file
-                        .GetFileInfo(fileHash)
+                        .GetFileInfo(sectorFileInfo.FileHash)
                         .FileProveParam_
                         .RootHash;
                     curIndex++;
@@ -97,7 +74,7 @@ contract PDPExtra {
                 }
                 break;
             }
-            offset += blockCount;
+            offset += sectorFileInfo.BlockCount;
         }
         return pReturns;
     }

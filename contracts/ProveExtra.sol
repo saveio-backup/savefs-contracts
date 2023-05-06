@@ -117,7 +117,7 @@ contract ProveExtra {
         IPDP pdp,
         FileProveParams memory fileProve,
         FileInfo memory fileInfo
-    ) public view returns (bool) {
+    ) public payable returns (bool) {
         uint256 currBlockHeight = block.number;
         if (
             fileProve.BlockHeight > currBlockHeight + fileInfo.ProveInterval ||
@@ -125,10 +125,8 @@ contract ProveExtra {
         ) {
             return false;
         }
-        // TODO deserialize = fileInfo.FileProveParam
-        ProveParam memory proveParam;
-        // TODO params to deserialize  = fileProve.ProveData
-        ProveData memory proveData;
+        FileProveParam memory proveParam = fileInfo.FileProveParam_;
+        ProveData memory proveData = fileProve.ProveData_;
         // challenge
         // TODO block head hash
         bytes memory blockHash;
@@ -145,10 +143,7 @@ contract ProveExtra {
         vParams.FileIds = fillFileIDs(proveParam.FileID, proveData.Tags.length);
         vParams.Tags = proveData.Tags;
         vParams.RootHashes = fillRootHashes(proveParam.RootHash, proveData.Tags.length);
-        bool res = pdp.VerifyProofWithMerklePathForFile(
-            vParams
-        );
-        // TODO return true because now can't deserialize prove data
+        pdp.SubmitVerifyProofRequest(vParams, challenges, proveData.MerklePath_);
         return true;
     }
 

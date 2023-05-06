@@ -15,7 +15,8 @@ describe(name, () => {
         ProveNum: 1,
     });
     let res = await tx;
-    // console.log(res);
+    console.log(res);
+    // console.log(addrs[0]);
   });
 
 });

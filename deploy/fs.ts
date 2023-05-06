@@ -71,7 +71,7 @@ async function main() {
   const PDPExtra = await ethers.getContractFactory("PDPExtra");
   let pdpExtra = await upgrades.deployProxy(PDPExtra, [], { initializer: false });
   await pdpExtra.deployed();
-  console.log("PDPExtra deployed to:", pdp.address);
+  console.log("PDPExtra deployed to:", pdpExtra.address);
 
   await node.initialize(config.address, sector.address);
   await sector.initialize(
@@ -122,6 +122,7 @@ var ListAddress = ethCommon.HexToAddress("${list.address}")
 var ProveAddress = ethCommon.HexToAddress("${prove.address}")
 var ProveExtraAddress = ethCommon.HexToAddress("${proveExtra.address}")
 var PDPAddress = ethCommon.HexToAddress("${pdp.address}")
+var PDPExtraAddress = ethCommon.HexToAddress("${pdpExtra.address}")
     `
 
   log += "------------javascript----------"
@@ -137,6 +138,7 @@ let listAddress = "${list.address}"
 let proveAddress = "${prove.address}"
 let proveExtraAddress = "${proveExtra.address}"
 let pdpAddress = "${pdp.address}"
+let pdpExtraAddress = "${pdpExtra.address}"
     `
 
   console.log(log)
