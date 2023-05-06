@@ -11,8 +11,8 @@ contract Sector is Initializable, ISector, IFsEvent {
     uint64 SECTOR_FILE_INFO_GROUP_MAX_LEN;
 
     mapping(address => SectorInfo[]) sectorInfos; // nodeAddr => SectorInfo[]
-    mapping(bytes => SectorFileInfoGroup) sectorFileInfoGroup; // nodeAddr + sectorId + groupId => groupId
-    mapping(uint64 => SectorFileInfo[]) sectorFileInfoFileList; // GroupId => SectorFileInfo[]
+    mapping(bytes => SectorFileInfoGroup) sectorFileInfoGroup; // nodeAddr + sectorId + groupId => groupKey
+    mapping(bytes => SectorFileInfo[]) sectorFileInfoFileList; // groupKey => SectorFileInfo[]
 
     function initialize(
         INode _node,
@@ -20,7 +20,7 @@ contract Sector is Initializable, ISector, IFsEvent {
     ) public initializer {
         node = _node;
         SECTOR_FILE_INFO_GROUP_MAX_LEN = sectorConfig
-            .SECTOR_FILE_INFO_GROUP_MAX_LEN;
+        .SECTOR_FILE_INFO_GROUP_MAX_LEN;
     }
 
     function CreateSector(
@@ -72,14 +72,31 @@ contract Sector is Initializable, ISector, IFsEvent {
     function GetSectorInfo(
         SectorRef memory sectorRef
     ) public view virtual override returns (SectorInfo memory) {
+        SectorInfo memory s;
         SectorInfo[] memory sectorInfo = sectorInfos[sectorRef.NodeAddr];
         for (uint64 i = 0; i < sectorInfo.length; i++) {
             if (sectorInfo[i].SectorID == sectorRef.SectorId) {
-                return sectorInfo[i];
+                s = sectorInfo[i];
+                SectorFileInfoGroup memory g = getSectorFileInfoGroup(
+                    sectorRef.NodeAddr,
+                    s.SectorID,
+                    s.GroupNum
+                );
+                bytes memory groupKey = GetGroupKey(
+                    sectorRef.NodeAddr,
+                    s.SectorID,
+                    s.GroupNum
+                );
+                SectorFileInfo[] memory l = sectorFileInfoFileList[groupKey];
+                bytes[] memory hashes = new bytes[](l.length);
+                for (uint64 k = 0; k < l.length; k++) {
+                    hashes[k] = l[k].FileHash;
+                }
+                s.FileList = hashes;
+                break;
             }
         }
-        SectorInfo memory emptySectorInfo;
-        return emptySectorInfo;
+        return s;
     }
 
     function GetSectorsForNode(
@@ -105,7 +122,12 @@ contract Sector is Initializable, ISector, IFsEvent {
                 if (g.Null) {
                     continue;
                 }
-                SectorFileInfo[] memory l = sectorFileInfoFileList[g.GroupId];
+                bytes memory groupKey = GetGroupKey(
+                    nodeAddr,
+                    s.SectorID,
+                    s.GroupNum
+                );
+                SectorFileInfo[] memory l = sectorFileInfoFileList[groupKey];
                 bytes[] memory hashes = new bytes[](l.length);
                 for (uint64 k = 0; k < l.length; k++) {
                     hashes[k] = l[k].FileHash;
@@ -257,17 +279,25 @@ contract Sector is Initializable, ISector, IFsEvent {
 
     function findFileInGroup(
         SectorFileInfoGroup memory group,
+        SectorFileInfo[] memory list,
         bytes memory fileHash
     ) private view returns (uint64, bool) {
-        SectorFileInfo[] memory fileList = sectorFileInfoFileList[
-            group.GroupId
-        ];
-        if (fileList.length == 0) {
+        if (compareBytes(group.MinFileHash, fileHash) > 0 ||
+            compareBytes(group.MaxFileHash, fileHash) < 0) {
             return (0, false);
         }
-        for (uint64 i = 0; i < fileList.length; i++) {
-            if (keccak256(fileList[i].FileHash) == keccak256(fileHash)) {
-                return (i, true);
+        uint64 start = 0;
+        uint64 end = group.FileNum - 1;
+        uint64 index = 0;
+        while (start <= end) {
+            index = (start + end) / 2;
+            int result = compareBytes(list[index].FileHash, fileHash);
+            if (result == 0) {
+                return (index, true);
+            } else if (result > 0) {
+                end = index - 1;
+            } else {
+                start = index + 1;
             }
         }
         return (0, false);
@@ -285,21 +315,27 @@ contract Sector is Initializable, ISector, IFsEvent {
                 sectorId,
                 i
             );
-            (uint64 index, bool found) = findFileInGroup(group, fileHash);
+            bytes memory groupKey = GetGroupKey(
+                nodeAddr,
+                sectorId,
+                i
+            );
+            SectorFileInfo[] memory list = sectorFileInfoFileList[groupKey];
+            (uint64 index, bool found) = findFileInGroup(group, list, fileHash);
             if (found) {
-                uint256 fileNum = sectorFileInfoFileList[group.GroupId].length;
+                uint256 fileNum = sectorFileInfoFileList[groupKey].length;
 
                 // delete element from sectorFileInfoFileList
                 uint64 j = 0;
                 for (uint64 k = 0; k < fileNum; k++) {
                     if (k != index) {
-                        sectorFileInfoFileList[group.GroupId][
-                            j
-                        ] = sectorFileInfoFileList[group.GroupId][k];
+                        sectorFileInfoFileList[groupKey][
+                        j
+                        ] = sectorFileInfoFileList[groupKey][k];
                         j++;
                     }
                 }
-                sectorFileInfoFileList[group.GroupId].pop();
+                sectorFileInfoFileList[groupKey].pop();
 
                 if (index == 0) {
                     group.MinFileHash = fileHash;
@@ -337,32 +373,31 @@ contract Sector is Initializable, ISector, IFsEvent {
         SectorFileInfoGroup memory _sectorFileInfoGroup,
         SectorFileInfo memory sectorFileInfo
     ) private {
+        bytes memory groupKey = GetGroupKey(nodeAddr, sectorID, _sectorFileInfoGroup.GroupId);
         uint64 index = _sectorFileInfoGroup.FileNum;
         for (uint64 i = 0; i < _sectorFileInfoGroup.FileNum; i++) {
             if (
                 compareBytes(
                     sectorFileInfo.FileHash,
-                    sectorFileInfoFileList[_sectorFileInfoGroup.GroupId][i]
-                        .FileHash
+                    sectorFileInfoFileList[groupKey][i]
+                    .FileHash
                 ) < 0
             ) {
                 index = i;
                 break;
             }
         }
-
-        sectorFileInfoFileList[_sectorFileInfoGroup.GroupId].push(
+        sectorFileInfoFileList[groupKey].push(
             sectorFileInfo
-        ); // Add a new element at the end
+        );
+        // Add a new element at the end
         for (uint64 i = _sectorFileInfoGroup.FileNum; i > index; i--) {
-            sectorFileInfoFileList[_sectorFileInfoGroup.GroupId][
-                i
-            ] = sectorFileInfoFileList[_sectorFileInfoGroup.GroupId][i - 1];
+            sectorFileInfoFileList[groupKey][
+            i
+            ] = sectorFileInfoFileList[groupKey][i - 1];
         }
 
-        sectorFileInfoFileList[_sectorFileInfoGroup.GroupId][
-            index
-        ] = sectorFileInfo;
+        sectorFileInfoFileList[groupKey][index] = sectorFileInfo;
 
         if (_sectorFileInfoGroup.FileNum == 0) {
             _sectorFileInfoGroup.MinFileHash = sectorFileInfo.FileHash;
@@ -386,13 +421,16 @@ contract Sector is Initializable, ISector, IFsEvent {
                 _sectorFileInfoGroup.MaxFileHash = sectorFileInfo.FileHash;
             }
         }
-        bytes memory groupKey = abi.encodePacked(
-            nodeAddr,
-            sectorID,
-            _sectorFileInfoGroup.GroupId
-        );
         _sectorFileInfoGroup.FileNum++;
         sectorFileInfoGroup[groupKey] = _sectorFileInfoGroup;
+    }
+
+    function GetGroupKey(
+        address nodeAddr,
+        uint64 sectorID,
+        uint64 groupID
+    ) private pure returns (bytes memory) {
+        return abi.encodePacked(nodeAddr, sectorID, groupID);
     }
 
     function compareBytes(
@@ -401,13 +439,13 @@ contract Sector is Initializable, ISector, IFsEvent {
     ) private pure returns (int) {
         for (uint i = 0; i < a.length && i < b.length; i++) {
             if (a[i] < b[i]) {
-                return -1;
+                return - 1;
             } else if (a[i] > b[i]) {
                 return 1;
             }
         }
         if (a.length < b.length) {
-            return -1;
+            return - 1;
         } else if (a.length > b.length) {
             return 1;
         } else {
@@ -436,7 +474,7 @@ contract Sector is Initializable, ISector, IFsEvent {
     ) private {
         bytes memory groupKey = abi.encodePacked(nodeAddr, sectorId, groupId);
         delete sectorFileInfoGroup[groupKey];
-        delete sectorFileInfoFileList[groupId];
+        delete sectorFileInfoFileList[groupKey];
     }
 
     function addSectorFileInfo(
@@ -452,6 +490,7 @@ contract Sector is Initializable, ISector, IFsEvent {
         );
         bytes memory minFileHash;
         groupNum = sectorInfo.GroupNum;
+        bytes memory groupKey = GetGroupKey(nodeAddr, sectorID, groupNum);
         if (groupNum == 0) {
             groupNum = 1;
             groupCreated = true;
@@ -465,7 +504,7 @@ contract Sector is Initializable, ISector, IFsEvent {
         } else {
             groupInfo = getSectorFileInfoGroup(nodeAddr, sectorID, groupNum);
             SectorFileInfo[] memory fileList = sectorFileInfoFileList[
-                groupInfo.GroupId
+            groupKey
             ];
             if (fileList.length == SECTOR_FILE_INFO_GROUP_MAX_LEN) {
                 groupNum++;

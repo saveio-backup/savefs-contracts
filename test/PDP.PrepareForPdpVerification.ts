@@ -81,6 +81,7 @@ describe(name, () => {
     })
     // await print(tx)
     await expect(tx).to.not.be.reverted;
+    await expect(tx).to.emit(file, "StoreFileEvent");
   });
 
   it("file prove", async () => {
@@ -102,7 +103,9 @@ describe(name, () => {
     });
     // let res = await (await tx).wait();
     // console.log(res.events)
+    await expect(tx).to.not.be.reverted;
     await expect(tx).to.not.be.emit(prove, "FsError");
+    await expect(tx).to.be.emit(prove, "FilePDPSuccessEvent");
   });
 
 
@@ -118,10 +121,10 @@ describe(name, () => {
           FirstProveHeight: 1,
           NextProveHeight: 1,
           TotalBlockNum: 1,
-          FileNum: 0,
+          FileNum: 1,
           GroupNum: 0,
           IsPlots: false,
-          FileList: [[1]]
+          FileList: [[1, 6, 9]]
         },
         Challenges: [{ Index: 0, Rand: 1 }],
         ProveData: {
@@ -138,7 +141,8 @@ describe(name, () => {
       }
     )
     const res = await tx;
-    // console.log(res.RootHashes)
+    expect(res.Error).to.equal('');
+    expect(res.RootHashes[0]).to.equal('0x02');
   });
 
 });

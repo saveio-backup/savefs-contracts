@@ -258,7 +258,7 @@ struct PdpVerificationReturns {
 
 struct GenChallengeParams {
     address WalletAddr;
-    bytes HashValue;
+    bytes32 HashValue;
     uint64 FileBlockNum;
     uint64 ProveNum;
 }

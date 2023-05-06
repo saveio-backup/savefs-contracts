@@ -103,9 +103,9 @@ contract ProveExtra {
     }
 
     function checkProveExpire(uint256 fileExpiredHeight)
-        public
-        view
-        returns (bool)
+    public
+    view
+    returns (bool)
     {
         if (block.number > fileExpiredHeight) {
             return true;
@@ -128,11 +128,9 @@ contract ProveExtra {
         FileProveParam memory proveParam = fileInfo.FileProveParam_;
         ProveData memory proveData = fileProve.ProveData_;
         // challenge
-        // TODO block head hash
-        bytes memory blockHash;
         GenChallengeParams memory gParams;
         gParams.WalletAddr = fileProve.NodeWallet;
-        gParams.HashValue = blockHash;
+        gParams.HashValue = blockhash(fileProve.BlockHeight);
         gParams.FileBlockNum = fileInfo.FileBlockNum;
         gParams.ProveNum = fileInfo.ProveBlockNum;
         Challenge[] memory challenges = pdp.GenChallenge(gParams);
@@ -147,7 +145,7 @@ contract ProveExtra {
         return true;
     }
 
-      function fillFileIDs(bytes memory fileId, uint count) public pure returns (bytes[] memory) {
+    function fillFileIDs(bytes memory fileId, uint count) public pure returns (bytes[] memory) {
         bytes[] memory fileIds = new bytes[](count);
         for (uint i = 0; i < count; i++) {
             fileIds[i] = fileId;
@@ -170,10 +168,9 @@ contract ProveExtra {
         SectorInfo memory sectorInfo
     ) public payable returns (string memory) {
         // TODO block head hash
-        bytes memory blockHash;
         GenChallengeParams memory gParams;
         gParams.WalletAddr = sectorProve.NodeAddr;
-        gParams.HashValue = blockHash;
+        gParams.HashValue = blockhash(sectorProve.ChallengeHeight);
         gParams.FileBlockNum = sectorInfo.TotalBlockNum;
         gParams.ProveNum = proveNum;
         Challenge[] memory challenges = pdp.GenChallenge(gParams);
@@ -199,7 +196,7 @@ contract ProveExtra {
         if (sectorInfo.IsPlots) {
             if (
                 !pReturns.FileInfo_.IsPlotFile ||
-                pReturns.FileInfo_.PlotInfo_.Nonces == 0
+            pReturns.FileInfo_.PlotInfo_.Nonces == 0
             ) {
                 return "checkSectorProve VerifyPlotData failed";
             }
@@ -218,9 +215,9 @@ contract ProveExtra {
     }
 
     function getProveDetailListWithNodeAddr(INode node, bytes memory fileHash)
-        public
-        view
-        returns (ProveDetail[] memory)
+    public
+    view
+    returns (ProveDetail[] memory)
     {
         ProveDetail[] memory details = GetProveDetailList(fileHash);
         for (uint256 i = 0; i < details.length; i++) {
@@ -233,9 +230,9 @@ contract ProveExtra {
     }
 
     function GetProveDetailList(bytes memory fileHash)
-        public
-        view
-        returns (ProveDetail[] memory)
+    public
+    view
+    returns (ProveDetail[] memory)
     {
         ProveDetailMap storage data = proveDetails[fileHash];
         ProveDetail[] memory result = new ProveDetail[](data.size);
@@ -277,9 +274,9 @@ contract ProveExtra {
     }
 
     function getPocProve(address nodeAddr, uint256 height)
-        public
-        view
-        returns (PocProve memory)
+    public
+    view
+    returns (PocProve memory)
     {
         string memory key = string(abi.encodePacked(nodeAddr, height));
         return pocProve[key];
@@ -296,20 +293,21 @@ contract ProveExtra {
 }
 
 // map
-struct IndexValue {
-    uint256 keyIndex;
-    ProveDetail value;
-}
-struct KeyFlag {
-    bytes key;
-    bool deleted;
-}
+    struct IndexValue {
+        uint256 keyIndex;
+        ProveDetail value;
+    }
 
-struct ProveDetailMap {
-    mapping(bytes => IndexValue) data;
-    KeyFlag[] keys;
-    uint256 size;
-}
+    struct KeyFlag {
+        bytes key;
+        bool deleted;
+    }
+
+    struct ProveDetailMap {
+        mapping(bytes => IndexValue) data;
+        KeyFlag[] keys;
+        uint256 size;
+    }
 
 library IterableMapping {
     function insert(
@@ -331,8 +329,8 @@ library IterableMapping {
     }
 
     function remove(ProveDetailMap storage self, bytes memory key)
-        internal
-        returns (bool success)
+    internal
+    returns (bool success)
     {
         uint256 keyIndex = self.data[key].keyIndex;
         if (keyIndex == 0) return false;
@@ -342,34 +340,34 @@ library IterableMapping {
     }
 
     function contains(ProveDetailMap storage self, bytes memory key)
-        internal
-        view
-        returns (bool)
+    internal
+    view
+    returns (bool)
     {
         return self.data[key].keyIndex > 0;
     }
 
     function iterate_start(ProveDetailMap storage self)
-        internal
-        view
-        returns (uint256 keyIndex)
+    internal
+    view
+    returns (uint256 keyIndex)
     {
         uint256 index = iterate_next(self, type(uint256).min);
         return index - 1;
     }
 
     function iterate_valid(ProveDetailMap storage self, uint256 keyIndex)
-        internal
-        view
-        returns (bool)
+    internal
+    view
+    returns (bool)
     {
         return keyIndex < self.keys.length;
     }
 
     function iterate_next(ProveDetailMap storage self, uint256 keyIndex)
-        internal
-        view
-        returns (uint256 r_keyIndex)
+    internal
+    view
+    returns (uint256 r_keyIndex)
     {
         keyIndex++;
         while (keyIndex < self.keys.length && self.keys[keyIndex].deleted)
@@ -378,9 +376,9 @@ library IterableMapping {
     }
 
     function iterate_get(ProveDetailMap storage self, uint256 keyIndex)
-        internal
-        view
-        returns (bytes memory key, ProveDetail memory value)
+    internal
+    view
+    returns (bytes memory key, ProveDetail memory value)
     {
         key = self.keys[keyIndex].key;
         value = self.data[key].value;

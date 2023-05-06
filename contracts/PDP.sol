@@ -37,7 +37,7 @@ contract PDP is Initializable, IPDP, IFsEvent {
     function GenChallenge(
         GenChallengeParams memory gParams
     ) public view virtual override returns (Challenge[] memory) {
-        bytes memory blockHashArray = gParams.HashValue;
+        bytes32 blockHashArray = gParams.HashValue;
         bytes memory plant = abi.encodePacked(
             gParams.WalletAddr,
             blockHashArray
